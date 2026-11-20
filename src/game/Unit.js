@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=3';
-import { Entity } from './Entity.js?v=3';
+import { CONFIG } from '../config.js?v=4';
+import { Entity } from './Entity.js?v=4';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -47,12 +47,16 @@ export class Unit extends Entity {
     this.cd = Math.max(0, this.cd - dt);
     this.attackAnim = Math.max(0, this.attackAnim - dt / CONFIG.combat.attackAnimTime);
 
-    const target = this.findTarget(game);
+    let target = this.findTarget(game, this.def.range);
+    // Bloquée derrière un allié qui combat : elle frappe quand même
+    // si l'ennemi est à portée de « soutien » (2e rang de la mêlée)
+    const blocked = !target && this.isBlocked(game);
+    if (blocked) target = this.findTarget(game, this.def.range + CONFIG.combat.meleeSupportReach, true);
     if (target) {
       this.state = 'attack';
       if (this.def.attack.kind === 'flame') game.fx.flame(this.x + this.dir * 22, this.y - 38, this.dir, this.def.range);
       if (this.cd <= 0) this.attack(target, game);
-    } else if (this.isBlocked(game)) {
+    } else if (blocked) {
       this.state = 'wait';
     } else {
       this.state = 'walk';
@@ -66,8 +70,8 @@ export class Unit extends Entity {
   }
 
   // Ennemi le plus proche devant moi ; sinon la base ennemie si elle est à portée.
-  findTarget(game) {
-    const range = this.def.range;
+  // unitsOnly : en soutien, on ne frappe que les unités (pas la base)
+  findTarget(game, range, unitsOnly = false) {
     const tol = CONFIG.combat.targetBehindTolerance;
     let best = null;
     let bestD = Infinity;
@@ -78,6 +82,7 @@ export class Unit extends Entity {
       if (d < bestD) { bestD = d; best = e; }
     }
     if (best && bestD <= range) return best;
+    if (unitsOnly) return null;
 
     const base = game.bases[this.side === 'player' ? 'enemy' : 'player'];
     if (base.alive && (base.faceX - this.x) * this.dir <= range) return base;

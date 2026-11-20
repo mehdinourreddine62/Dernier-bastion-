@@ -1,10 +1,10 @@
-import { CONFIG } from '../config.js?v=3';
-import { Unit, bonusMultiplier } from './Unit.js?v=3';
-import { Base } from './Base.js?v=3';
-import { ProjectilePool } from './Projectile.js?v=3';
-import { Particles } from './Particles.js?v=3';
-import { Spells } from './Spell.js?v=3';
-import { AI } from './AI.js?v=3';
+import { CONFIG } from '../config.js?v=4';
+import { Unit, bonusMultiplier } from './Unit.js?v=4';
+import { Base } from './Base.js?v=4';
+import { ProjectilePool } from './Projectile.js?v=4';
+import { Particles } from './Particles.js?v=4';
+import { Spells } from './Spell.js?v=4';
+import { AI } from './AI.js?v=4';
 
 const SIDES = ['player', 'enemy'];
 const MAX_EVENTS = 120;

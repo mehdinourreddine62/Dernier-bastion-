@@ -60,7 +60,8 @@ export const CONFIG = {
     hitFlashTime: 0.1,        // flash blanc quand on est touché (s)
     attackAnimTime: 0.25,     // durée de l'animation d'attaque (s)
     meleeWaitRange: 60,       // une unité de portée <= à ça attend derrière un allié qui combat
-    blockGap: 24,             // distance sous laquelle l'allié devant « bloque »
+    blockGap: 30,             // distance sous laquelle l'allié devant « bloque » (écart entre unités)
+    meleeSupportReach: 45,    // portée en plus pour frapper derrière un allié (0 = file indienne)
     spawnOffset: 12,          // distance de la porte où apparaissent les unités
     targetBehindTolerance: 12,// tolérance pour viser un ennemi quasi superposé
     resultOverlayDelay: 1.2,  // délai avant l'écran de victoire/défaite (s)

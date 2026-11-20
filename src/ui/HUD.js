@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=3';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=3';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=3';
+import { CONFIG } from '../config.js?v=4';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=4';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=4';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -88,7 +88,7 @@ export class HUD {
     btns.push({
       id: 'income', kind: 'income', x, y, w: bw, h: bh,
       enabled: cost !== null && s.scrap >= cost && !game.result,
-      cost, level: s.incomeLevel,
+      cost, incomeLevel: s.incomeLevel,
       tooltip: true,
     });
 
@@ -229,7 +229,7 @@ export class HUD {
     } else if (b.kind === 'income') {
       const e = CONFIG.economy.incomeUpgrade;
       title = 'Amélioration du revenu';
-      lines.push(`+${e.bonusPerLevel} ferraille/s par niveau (niveau ${b.level}/${e.costs.length})`);
+      lines.push(`+${e.bonusPerLevel} ferraille/s par niveau (niveau ${b.incomeLevel}/${e.costs.length})`);
       lines.push(b.cost === null ? 'Niveau maximum atteint' : `Prochain niveau : ⚙ ${b.cost}`);
     }
 
@@ -330,7 +330,7 @@ export class HUD {
     const max = CONFIG.economy.incomeUpgrade.costs.length;
     // niveaux atteints
     for (let i = 0; i < max; i++) {
-      ctx.fillStyle = i < b.level ? COL.good : 'rgba(0,0,0,0.4)';
+      ctx.fillStyle = i < b.incomeLevel ? COL.good : 'rgba(0,0,0,0.4)';
       ctx.fillRect(b.x + b.w / 2 - max * 7 + i * 14 + 2, b.y + dy + b.h - 36, 10, 6);
     }
     text(ctx, b.cost === null ? 'MAX' : '⚙ ' + b.cost, b.x + b.w / 2, b.y + dy + b.h - 9, 18,

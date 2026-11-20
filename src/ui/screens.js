@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=3';
-import { COL, drawPanel, drawButton, drawStar, text } from './widgets.js?v=3';
+import { CONFIG } from '../config.js?v=4';
+import { COL, drawPanel, drawButton, drawStar, text } from './widgets.js?v=4';
 
 // Écrans : titre, pause, fin de partie. Dessinés sur le canvas, comme le HUD.
 // Chaque écran fournit ses boutons (pour le clic/toucher) et sa fonction de dessin.

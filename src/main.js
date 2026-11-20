@@ -1,12 +1,12 @@
-import { CONFIG } from './config.js?v=3';
-import { Game } from './game/Game.js?v=3';
-import { Camera } from './game/Camera.js?v=3';
-import { Renderer } from './render/Renderer.js?v=3';
-import { HUD } from './ui/HUD.js?v=3';
-import { Input } from './ui/input.js?v=3';
-import * as screens from './ui/screens.js?v=3';
-import { Sfx } from './audio/sfx.js?v=3';
-import { loadSave, writeSave } from './save.js?v=3';
+import { CONFIG } from './config.js?v=4';
+import { Game } from './game/Game.js?v=4';
+import { Camera } from './game/Camera.js?v=4';
+import { Renderer } from './render/Renderer.js?v=4';
+import { HUD } from './ui/HUD.js?v=4';
+import { Input } from './ui/input.js?v=4';
+import * as screens from './ui/screens.js?v=4';
+import { Sfx } from './audio/sfx.js?v=4';
+import { loadSave, writeSave } from './save.js?v=4';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
