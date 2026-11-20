@@ -95,7 +95,8 @@ export const CONFIG = {
   stars: {
     twoStarsAbove: 0.3,       // PV de ma base restants > 30 % => 2 étoiles
     threeStarsAbove: 0.7,     // > 70 % => 3 étoiles
-    partsPerStar: 10,         // étape 4 : pièces détachées par étoile
+    partsPerStar: 30,         // pièces détachées par NOUVELLE étoile obtenue
+    firstWinBonus: 20,        // pièces en plus à la première victoire d'un niveau
   },
 
   // ---------- Types ----------
@@ -213,8 +214,11 @@ export const CONFIG = {
     },
   },
 
-  // ---------- Atelier (étape 4) ----------
+  // ---------- Atelier ----------
+  // Chaque amélioration a 5 niveaux. Les unités sont améliorées séparément.
   workshop: {
+    order: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde', 'walls', 'turret', 'salvage', 'spells'],
+    names: { walls: 'Murailles', turret: 'Tourelle', salvage: 'Récupération', spells: 'Sorts' },
     maxLevel: 5,
     costs: [10, 20, 35, 55, 80],     // pièces détachées par niveau
     unitHpBonus: 0.10,               // par niveau, pour chaque unité séparément

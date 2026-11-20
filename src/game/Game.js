@@ -1,10 +1,10 @@
-import { CONFIG } from '../config.js?v=4';
-import { Unit, bonusMultiplier } from './Unit.js?v=4';
-import { Base } from './Base.js?v=4';
-import { ProjectilePool } from './Projectile.js?v=4';
-import { Particles } from './Particles.js?v=4';
-import { Spells } from './Spell.js?v=4';
-import { AI } from './AI.js?v=4';
+import { CONFIG } from '../config.js?v=5';
+import { Unit, bonusMultiplier } from './Unit.js?v=5';
+import { Base } from './Base.js?v=5';
+import { ProjectilePool } from './Projectile.js?v=5';
+import { Particles } from './Particles.js?v=5';
+import { Spells } from './Spell.js?v=5';
+import { AI } from './AI.js?v=5';
 
 const SIDES = ['player', 'enemy'];
 const MAX_EVENTS = 120;
@@ -13,9 +13,12 @@ const MAX_EVENTS = 120;
 // Aucune dépendance au navigateur : la simulation peut tourner sans écran.
 // Les sons et secousses d'écran sont pilotés par la liste `events`, vidée par main.js.
 export class Game {
-  constructor(levelIndex = 0) {
+  // opts.mods : bonus de l'atelier pour le joueur
+  // opts.unlockedUpTo : niveau atteint dans la campagne (débloque unités et sorts)
+  constructor(levelIndex = 0, opts = {}) {
     this.levelIndex = levelIndex;
     this.level = CONFIG.levels[levelIndex];
+    this.unlockId = Math.max(this.level.id, opts.unlockedUpTo || 0);
     this.time = 0;
     this.speed = 1;
     this.paused = false;
@@ -28,6 +31,7 @@ export class Game {
       player: this._makeSide(1),
       enemy: this._makeSide(this.level.aiIncomeMult),
     };
+    if (opts.mods) Object.assign(this.sides.player.mods, opts.mods);
     this.units = [];
     this.bases = {
       player: new Base('player', this.level, this.sides.player.mods),
@@ -50,8 +54,8 @@ export class Game {
       incomeLevel: 0,         // niveau d'amélioration du revenu en partie
       cooldowns: {},          // recharge de chaque unité
       queue: [],              // recrutements payés en attente de sortie
-      // Bonus de l'atelier (étape 4) : multiplicateurs, 1 = aucun bonus
-      mods: { hp: 1, damage: 1, wallHp: 0, turretDamage: 1, turretRange: 1, spellCooldown: 1, income: 0 },
+      // Bonus de l'atelier : units[id] = { hp, damage } (multiplicateurs), le reste pour la base et les sorts
+      mods: { units: {}, wallHp: 0, turretDamage: 1, turretRange: 1, spellCooldown: 1, income: 0 },
     };
   }
 
@@ -97,7 +101,7 @@ export class Game {
   isUnlocked(side, defId) {
     const def = CONFIG.units[defId];
     if (!def || def.side !== side) return false;
-    return side === 'enemy' || def.unlockLevel <= this.level.id;
+    return side === 'enemy' || def.unlockLevel <= this.unlockId;
   }
 
   // Peut-on ajouter cette unité à la file ? (ferraille, place dans la file)

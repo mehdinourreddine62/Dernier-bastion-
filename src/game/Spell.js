@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=4';
+import { CONFIG } from '../config.js?v=5';
 
 // Sorts du joueur : Frappe de mortier et Kit de soins.
 export class Spells {
@@ -12,7 +12,7 @@ export class Spells {
 
   // Sorts disponibles à ce niveau, dans l'ordre de la config
   get available() {
-    return Object.keys(CONFIG.spells).filter((id) => CONFIG.spells[id].unlockLevel <= this.game.level.id);
+    return Object.keys(CONFIG.spells).filter((id) => CONFIG.spells[id].unlockLevel <= this.game.unlockId);
   }
 
   cooldownOf(id) {

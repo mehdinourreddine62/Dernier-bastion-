@@ -1,12 +1,15 @@
-import { CONFIG } from './config.js?v=4';
-import { Game } from './game/Game.js?v=4';
-import { Camera } from './game/Camera.js?v=4';
-import { Renderer } from './render/Renderer.js?v=4';
-import { HUD } from './ui/HUD.js?v=4';
-import { Input } from './ui/input.js?v=4';
-import * as screens from './ui/screens.js?v=4';
-import { Sfx } from './audio/sfx.js?v=4';
-import { loadSave, writeSave } from './save.js?v=4';
+import { CONFIG } from './config.js?v=5';
+import { Game } from './game/Game.js?v=5';
+import { Camera } from './game/Camera.js?v=5';
+import { Renderer } from './render/Renderer.js?v=5';
+import { HUD } from './ui/HUD.js?v=5';
+import { Input } from './ui/input.js?v=5';
+import * as screens from './ui/screens.js?v=5';
+import * as campaign from './ui/campaign.js?v=5';
+import * as workshop from './ui/workshop.js?v=5';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=5';
+import { Sfx } from './audio/sfx.js?v=5';
+import { loadSave, writeSave } from './save.js?v=5';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
@@ -32,9 +35,14 @@ resize();
 // ---------- État global ----------
 const save = loadSave();
 const settings = save.settings;          // { sound, shake, speedIndex }
-let screen = 'title';                    // 'title' | 'playing'
+const progress = normalizeProgress(save.progress);
+// Écran courant : 'title' | 'options' | 'map' | 'workshop' | 'playing'
+let screen = 'title';
 let game = null;
 let selectedLevel = 0;
+let mapInfo = null;      // niveau dont la fiche est ouverte sur la carte
+let confirm = null;      // demande de confirmation { text, onYes }
+let reward = null;       // gains de la dernière partie (écran de fin)
 const camera = new Camera();
 const renderer = new Renderer();
 const hud = new HUD();
@@ -51,10 +59,13 @@ let aim = null;
 const portraitQuery = window.matchMedia('(orientation: portrait) and (pointer: coarse)');
 
 function saveSettings() { writeSave(save); }
+const saveAll = saveSettings;
+function askConfirm(text, onYes) { confirm = { text, onYes }; }
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
-  game = new Game(selectedLevel);
+  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked });
+  reward = null;
   game.speed = CONFIG.loop.speeds[settings.speedIndex] || 1;
   camera.reset();
   cancelAim();
@@ -130,7 +141,8 @@ input.onButtonDrag = (id, x) => {
 
 // ---------- Boutons ----------
 function overlayState() {
-  if (screen === 'title') return 'title';
+  if (confirm) return 'confirm';
+  if (screen !== 'playing') return screen;
   if (game.paused) return 'pause';
   if (game.result && game.resultTime > CONFIG.combat.resultOverlayDelay) return 'end';
   return 'hud';
@@ -138,9 +150,13 @@ function overlayState() {
 
 function buildButtons() {
   switch (overlayState()) {
-    case 'title': return screens.titleButtons(view, selectedLevel);
+    case 'confirm': return screens.confirmButtons(view);
+    case 'title': return screens.titleButtons(view);
+    case 'options': return screens.optionsButtons(view, settings);
+    case 'map': return campaign.mapButtons(view, progress, mapInfo);
+    case 'workshop': return workshop.workshopButtons(view, progress);
     case 'pause': return screens.pauseButtons(view, settings);
-    case 'end': return screens.endButtons(view);
+    case 'end': return screens.endButtons(view, game);
     default: return game.result ? [] : hud.build(game, view, aim && aim.spell, settings);
   }
 }
@@ -153,18 +169,64 @@ input.hitTest = (x, y) => {
   return null;
 };
 
+function goToMap() {
+  screen = 'map';
+  mapInfo = null;
+  game = null;
+  cancelAim();
+}
+
 input.onButton = (b) => {
   if (b.kind === 'unit') { if (!game.recruit('player', b.unit)) sfx.play('deny'); return; }
   if (b.kind === 'spell') { startAim(b.spell); return; }
   sfx.play('click');
-  if (b.level !== undefined) { selectedLevel = b.level; return; }
+  // Carte : toucher une étape ouvre sa fiche
+  if (b.id.startsWith('node:')) {
+    if (b.locked) showToast('Termine le niveau précédent pour débloquer ce lieu.', 2.5);
+    else mapInfo = b.level;
+    return;
+  }
+  // Atelier : achat
+  if (b.id.startsWith('buy:')) {
+    if (buyUpgrade(progress, b.upgrade)) { saveAll(); sfx.play('upgrade'); }
+    return;
+  }
   switch (b.id) {
+    // --- confirmation ---
+    case 'confirmYes': { const f = confirm.onYes; confirm = null; f(); break; }
+    case 'confirmNo': confirm = null; break;
+    // --- menus ---
+    case 'play': goToMap(); break;
+    case 'options': screen = 'options'; break;
+    case 'workshop': screen = 'workshop'; game = null; cancelAim(); break;
+    case 'back': screen = screen === 'workshop' ? 'map' : 'title'; break;
+    case 'eraseSave':
+      askConfirm('Effacer toute la progression ?\n(niveaux, étoiles, pièces et atelier)', () => {
+        for (const k of Object.keys(progress)) delete progress[k];
+        normalizeProgress(progress);
+        saveAll();
+        showToast('Sauvegarde effacée.', 2.5);
+      });
+      break;
+    case 'reset':
+      askConfirm('Réinitialiser toutes les améliorations ?\nToutes les pièces dépensées seront rendues.', () => {
+        const n = resetUpgrades(progress);
+        saveAll();
+        showToast(n + ' pièces rendues.', 2.5);
+      });
+      break;
+    // --- carte ---
+    case 'launch': selectedLevel = mapInfo; mapInfo = null; startGame(); break;
+    case 'closeInfo': mapInfo = null; break;
+    // --- en partie ---
     case 'income': game.upgradeIncome('player'); break;
     case 'cancelAim': cancelAim(); break;
-    case 'play': case 'restart': startGame(); break;
+    case 'restart': startGame(); break;
+    case 'next': selectedLevel = Math.min(CONFIG.levels.length - 1, selectedLevel + 1); startGame(); break;
+    case 'map': goToMap(); break;
     case 'pause': game.paused = true; cancelAim(); break;
     case 'resume': game.paused = false; break;
-    case 'menu': screen = 'title'; game = null; cancelAim(); break;
+    case 'abandon': goToMap(); break;
     case 'speed':
       settings.speedIndex = (settings.speedIndex + 1) % CONFIG.loop.speeds.length;
       game.speed = CONFIG.loop.speeds[settings.speedIndex];
@@ -190,8 +252,16 @@ input.onWheel = (d) => { if (canScroll()) camera.move(d * CONFIG.camera.wheelFac
 
 // Clavier : 1-5 recrutement, Q/W sorts, Espace pause, Échap annule la visée / pause
 input.onKey = (e) => {
-  if (screen === 'title') {
-    if (e.code === 'Enter' || e.code === 'Space') startGame();
+  if (confirm) { if (e.code === 'Escape') confirm = null; return; }
+  if (screen !== 'playing') {
+    if (e.code === 'Escape') {
+      if (screen === 'map' && mapInfo !== null) mapInfo = null;
+      else if (screen === 'workshop') screen = 'map';
+      else screen = 'title';
+    } else if (e.code === 'Enter') {
+      if (screen === 'title') goToMap();
+      else if (screen === 'map' && mapInfo !== null) { selectedLevel = mapInfo; mapInfo = null; startGame(); }
+    }
     return;
   }
   if (e.code === 'Escape' && aim) { cancelAim(); return; }
@@ -256,6 +326,11 @@ function frame(now) {
       acc -= CONFIG.loop.fixedStep;
     }
     if (aim && (game.result || !game.spells.isReady(aim.spell))) cancelAim();
+    // Fin de partie : étoiles, pièces, déblocages -> sauvegarde automatique
+    if (game.result && !reward) {
+      reward = recordResult(progress, game.levelIndex, game.result === 'won', game.stars);
+      saveAll();
+    }
   }
   if (screen === 'playing') handleEvents();
   shake = Math.max(0, shake - delta * 2.2);
@@ -285,13 +360,21 @@ function render(time) {
   ctx.rect(0, 0, CONFIG.display.width, CONFIG.display.height);
   ctx.clip();
 
-  const levelId = screen === 'title' ? CONFIG.levels[selectedLevel].id : game.level.id;
+  // Décor : celui du niveau joué, ou du dernier lieu atteint dans les menus
+  const levelId = screen === 'playing' ? game.level.id : progress.unlocked;
   renderer.prepare(levelId, view.dpr * view.scale);
 
   const state = overlayState();
-  if (screen === 'title') {
+  if (screen !== 'playing') {
     renderer.drawBackdrop(ctx, 0, time);
-    screens.drawTitle(ctx, buttons, input.pressed, selectedLevel);
+    const p = input.pressed;
+    if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress) });
+    else if (screen === 'options') screens.drawOptions(ctx, buttons, p);
+    else if (screen === 'map') {
+      campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null), mapInfo === null ? p : new Set(), mapInfo, time);
+      if (mapInfo !== null && !confirm) campaign.drawLevelInfo(ctx, progress, mapInfo, buttons, p);
+    } else if (screen === 'workshop') workshop.drawWorkshop(ctx, progress, confirm ? workshop.workshopButtons(view, progress) : buttons, p);
+    if (confirm) screens.drawConfirm(ctx, confirm.text, buttons, p);
     if (toast) hud.drawToast(ctx, toast.text);
     return;
   }
@@ -315,7 +398,7 @@ function render(time) {
     if (tb) hud.drawTooltip(ctx, tb, game);
   }
   if (state === 'pause') screens.drawPause(ctx, buttons, input.pressed);
-  else if (state === 'end') screens.drawEnd(ctx, game, buttons, input.pressed);
+  else if (state === 'end') screens.drawEnd(ctx, game, buttons, input.pressed, reward);
   if (toast) hud.drawToast(ctx, toast.text);
 }
 

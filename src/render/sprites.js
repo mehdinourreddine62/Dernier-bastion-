@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=4';
+import { CONFIG } from '../config.js?v=5';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).
@@ -601,6 +601,18 @@ export function drawSpellIcon(ctx, id, cx, cy, size, dim = false) {
       X.strokeStyle = '#d9482b';
       X.beginPath(); X.moveTo(12, -8); X.lineTo(26, 8); X.moveTo(26, -8); X.lineTo(12, 8); X.stroke();
     }
+  } else if (id === 'walls') {
+    // tôles + sacs de sable
+    rr(-24, -20, 14, 30, 2, '#7a5a3c'); rr(-10, -24, 14, 34, 2, '#6a6a62'); rr(4, -18, 14, 28, 2, '#8a5030');
+    for (let i = 0; i < 3; i++) blob(-14 + i * 14, 12, 8, 6, '#a8946a');
+    rr(18, -30, 4, 40, 1, '#3b2f22'); poly([22, -30, 34, -26, 22, -22], '#f2c230');
+  } else if (id === 'turret') {
+    // mitrailleuse sur trépied
+    limb([-10, 18, 0, 0, 10, 18], 3, '#3a3a3e');
+    limb([0, 0, 0, 18], 3, '#3a3a3e');
+    rr(-14, -10, 16, 14, 3, '#3a3a3e');
+    rr(0, -6, 28, 6, 2, '#2b2b2e');
+    poly([28, -3, 36, -9, 42, -3, 36, 3], '#ffd27a', false);
   } else if (id === 'fullscreen') {
     X.strokeStyle = '#f3e3c3'; X.lineWidth = 4; X.lineCap = 'round';
     X.beginPath();

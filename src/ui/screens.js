@@ -1,19 +1,34 @@
-import { CONFIG } from '../config.js?v=4';
-import { COL, drawPanel, drawButton, drawStar, text } from './widgets.js?v=4';
+import { CONFIG } from '../config.js?v=5';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=5';
 
-// Écrans : titre, pause, fin de partie. Dessinés sur le canvas, comme le HUD.
-// Chaque écran fournit ses boutons (pour le clic/toucher) et sa fonction de dessin.
+// Écrans de menu : titre, options, pause, fin de partie, confirmation.
+// Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
+// (pour le clic/toucher) et sa fonction de dessin.
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
 
-function column(view, ids, firstY, w = 340) {
-  const minL = CONFIG.display.minButtonPx / view.scale;
-  const h = Math.max(70, minL);
+export const minSize = (view) => CONFIG.display.minButtonPx / view.scale;
+
+function column(view, ids, firstY, w = 360) {
+  const h = Math.max(66, minSize(view));
   return ids.map(([id, label, primary], i) => ({
     id, label, primary, enabled: true,
-    x: (W - w) / 2, y: firstY + i * (h + 16), w, h,
+    x: (W - w) / 2, y: firstY + i * (h + 14), w, h,
   }));
+}
+
+// Rangée de boutons centrée
+function row(view, ids, y, w = 210) {
+  const h = Math.max(66, minSize(view));
+  const gap = 16;
+  const total = ids.length * w + (ids.length - 1) * gap;
+  let x = (W - total) / 2;
+  return ids.map(([id, label, primary]) => {
+    const b = { id, label, primary, enabled: true, x, y, w, h };
+    x += w + gap;
+    return b;
+  });
 }
 
 function dim(ctx, alpha) {
@@ -21,50 +36,55 @@ function dim(ctx, alpha) {
   ctx.fillRect(0, 0, W, H);
 }
 
-// ---------- Titre ----------
-// Choix du niveau provisoire (pour tester) : remplacé par la carte de campagne à l'étape 4.
-export function titleButtons(view, selected) {
-  const btns = column(view, [['play', 'JOUER', true]], 360);
-  const minL = CONFIG.display.minButtonPx / view.scale;
-  const n = CONFIG.levels.length;
-  const s = Math.max(70, minL);
-  const gap = 10;
-  const total = n * s + (n - 1) * gap;
-  const scale = total > W - 40 ? (W - 40) / total : 1;
-  const size = s * scale;
-  let x = (W - (n * size + (n - 1) * gap * scale)) / 2;
-  CONFIG.levels.forEach((lv, i) => {
-    btns.push({ id: 'level:' + i, level: i, label: String(lv.id), x, y: 520, w: size, h: size,
-      enabled: true, selected: i === selected });
-    x += size + gap * scale;
-  });
-  return btns;
+function bigTitle(ctx, str, y, size, color = '#e8a04a') {
+  ctx.lineJoin = 'round';
+  ctx.font = `bold ${size}px ${FONT}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = size / 8; ctx.strokeStyle = COL.dark;
+  ctx.strokeText(str, W / 2, y);
+  ctx.fillStyle = color;
+  ctx.fillText(str, W / 2, y);
 }
 
-export function drawTitle(ctx, buttons, pressed, selected) {
-  dim(ctx, 0.45);
-  ctx.lineJoin = 'round';
-  ctx.font = 'bold 96px system-ui, "Segoe UI", Roboto, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 12; ctx.strokeStyle = COL.dark;
-  ctx.strokeText('DERNIER BASTION', W / 2, 160);
-  ctx.fillStyle = '#e8a04a';
-  ctx.fillText('DERNIER BASTION', W / 2, 160);
-  text(ctx, 'Survivants contre Mutants', W / 2, 240, 30, COL.text, 'center', 'middle');
-  const lv = CONFIG.levels[selected];
-  text(ctx, 'Niveau ' + lv.id + ' — ' + lv.name, W / 2, 300, 26, COL.yellow, 'center', 'middle');
-  for (const b of buttons) {
-    if (b.level !== undefined) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.selected, size: 26 });
-    else drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 34 });
-  }
-  text(ctx, 'Choix du niveau (test — la carte de campagne arrive à l’étape 4)', W / 2, 500, 17, COL.dim, 'center', 'middle');
+const drawAll = (ctx, buttons, pressed, size = 28) => {
+  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: b.small ? 17 : size });
+};
+
+// ---------- Titre ----------
+export function titleButtons(view) {
+  return column(view, [['play', 'JOUER', true], ['workshop', 'ATELIER'], ['options', 'OPTIONS']], 300);
+}
+
+export function drawTitle(ctx, buttons, pressed, progress, stats) {
+  dim(ctx, 0.4);
+  bigTitle(ctx, 'DERNIER BASTION', 150, 96);
+  text(ctx, 'Survivants contre Mutants', W / 2, 230, 30, COL.text, 'center', 'middle');
+  drawAll(ctx, buttons, pressed, 32);
+  const last = buttons[buttons.length - 1];
+  text(ctx, `★ ${stats.stars} / ${CONFIG.levels.length * 3}     Pièces détachées : ${progress.parts}`,
+    W / 2, Math.min(H - 24, last.y + last.h + 40), 22, COL.yellow, 'center', 'middle');
+}
+
+// ---------- Options (depuis le titre) ----------
+export function optionsButtons(view, settings) {
+  return column(view, [
+    ['toggleSound', 'SON : ' + (settings.sound ? 'OUI' : 'NON')],
+    ['toggleShake', 'SECOUSSES : ' + (settings.shake ? 'OUI' : 'NON')],
+    ['eraseSave', 'EFFACER LA SAUVEGARDE'],
+    ['back', 'RETOUR', true],
+  ], 200, 440);
+}
+
+export function drawOptions(ctx, buttons, pressed) {
+  dim(ctx, 0.55);
+  bigTitle(ctx, 'OPTIONS', 120, 64);
+  drawAll(ctx, buttons, pressed, 26);
 }
 
 // ---------- Pause ----------
 // Réglages dans le menu pause : son et secousses d'écran (mémorisés)
 export function pauseButtons(view, settings) {
-  const minL = CONFIG.display.minButtonPx / view.scale;
-  const h = Math.max(66, minL);
+  const h = Math.max(66, minSize(view));
   const gap = 14;
   const w = 360;
   const x = (W - w) / 2;
@@ -78,7 +98,7 @@ export function pauseButtons(view, settings) {
   y += h + gap;
   btns.push({ id: 'restart', label: 'RECOMMENCER', enabled: true, x, y, w, h });
   y += h + gap;
-  btns.push({ id: 'menu', label: 'MENU', enabled: true, x, y, w, h });
+  btns.push({ id: 'abandon', label: 'ABANDONNER', enabled: true, x, y, w, h });
   return btns;
 }
 
@@ -87,23 +107,60 @@ export function drawPause(ctx, buttons, pressed) {
   const last = buttons[buttons.length - 1];
   drawPanel(ctx, W / 2 - 220, 100, 440, last.y + last.h + 30 - 100, 16);
   text(ctx, 'PAUSE', W / 2, 155, 52, COL.text, 'center', 'middle');
-  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: b.small ? 17 : 28 });
+  drawAll(ctx, buttons, pressed);
 }
 
 // ---------- Fin de partie ----------
-export function endButtons(view) {
-  return column(view, [['restart', 'REJOUER', true], ['menu', 'MENU']], 450);
+export function endButtons(view, game) {
+  const won = game.result === 'won';
+  const hasNext = won && game.levelIndex + 1 < CONFIG.levels.length;
+  const ids = won
+    ? [...(hasNext ? [['next', 'NIVEAU SUIVANT', true]] : []), ['restart', 'REJOUER', !hasNext], ['map', 'CARTE']]
+    : [['restart', 'RÉESSAYER', true], ['workshop', 'ATELIER'], ['map', 'CARTE']];
+  return row(view, ids, 560);
 }
 
-export function drawEnd(ctx, game, buttons, pressed) {
+// reward = résultat de recordResult (pièces gagnées, messages de déblocage)
+export function drawEnd(ctx, game, buttons, pressed, reward) {
   dim(ctx, 0.6);
-  drawPanel(ctx, W / 2 - 260, 80, 520, 560, 16);
+  drawPanel(ctx, W / 2 - 370, 50, 740, Math.max(640, buttons[0].y + buttons[0].h + 24) - 50, 16);
   const won = game.result === 'won';
-  text(ctx, won ? 'VICTOIRE !' : 'DÉFAITE', W / 2, 150, 56, won ? COL.yellow : COL.bad, 'center', 'middle');
-  for (let i = 0; i < 3; i++) drawStar(ctx, W / 2 + (i - 1) * 90, 255, 38, i < game.stars);
+  text(ctx, won ? 'VICTOIRE !' : 'DÉFAITE', W / 2, 112, 56, won ? COL.yellow : COL.bad, 'center', 'middle');
+  text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name, W / 2, 162, 22, COL.dim, 'center', 'middle');
+  for (let i = 0; i < 3; i++) drawStar(ctx, W / 2 + (i - 1) * 86, 228, 36, i < game.stars);
   const pct = Math.round(Math.max(0, game.bases.player.hp / game.bases.player.maxHp) * 100);
-  text(ctx, won ? 'Base restante : ' + pct + ' %' : 'Le nid mutant a détruit ta base.', W / 2, 335, 24, COL.text, 'center', 'middle');
   const t = Math.round(game.time);
-  text(ctx, 'Durée : ' + Math.floor(t / 60) + ' min ' + String(t % 60).padStart(2, '0') + ' s', W / 2, 375, 22, COL.dim, 'center', 'middle');
-  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 30 });
+  const dur = Math.floor(t / 60) + ' min ' + String(t % 60).padStart(2, '0') + ' s';
+  text(ctx, won ? `Base restante : ${pct} %   ·   Durée : ${dur}` : `Le nid mutant a détruit ta base.   ·   Durée : ${dur}`,
+    W / 2, 298, 21, COL.text, 'center', 'middle');
+  let y = 344;
+  if (reward && reward.parts > 0) {
+    const detail = reward.firstWin ? ` (dont ${CONFIG.stars.firstWinBonus} de première victoire)` : '';
+    text(ctx, `+${reward.parts} pièces détachées${detail}`, W / 2, y, 24, COL.yellow, 'center', 'middle');
+    y += 36;
+  } else if (won) {
+    text(ctx, 'Pas de nouvelle étoile : pas de pièces cette fois.', W / 2, y, 20, COL.dim, 'center', 'middle');
+    y += 36;
+  } else {
+    text(ctx, 'Astuce : renforce ton armée dans l’Atelier.', W / 2, y, 20, COL.dim, 'center', 'middle');
+    y += 36;
+  }
+  for (const m of (reward && reward.messages) || []) {
+    text(ctx, m, W / 2, y, 21, COL.good, 'center', 'middle');
+    y += 32;
+  }
+  drawAll(ctx, buttons, pressed, 22);
+}
+
+// ---------- Confirmation ----------
+export function confirmButtons(view) {
+  return row(view, [['confirmYes', 'OUI', true], ['confirmNo', 'NON']], 420, 200);
+}
+
+export function drawConfirm(ctx, msg, buttons, pressed) {
+  dim(ctx, 0.65);
+  const b = buttons[0];
+  drawPanel(ctx, W / 2 - 330, 200, 660, b.y + b.h + 30 - 200, 16);
+  msg.split('\n').forEach((l, i) => text(ctx, l, W / 2, 262 + i * 34, 24, COL.text, 'center', 'middle'));
+  drawAll(ctx, buttons, pressed);
 }

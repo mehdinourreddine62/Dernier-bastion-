@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=4';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=4';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=4';
+import { CONFIG } from '../config.js?v=5';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=5';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=5';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -39,7 +39,7 @@ export class HUD {
     }
     if (aim) {
       const cw = Math.max(200, minL);
-      btns.push({ id: 'cancelAim', x: W / 2 - cw / 2, y: MAP.y + mapH + 10, w: cw, h: Math.max(52, minL), label: 'ANNULER', enabled: true });
+      btns.push({ id: 'cancelAim', x: W / 2 - cw / 2, y: MAP.y + mapH + 40, w: cw, h: Math.max(52, minL), label: 'ANNULER', enabled: true });
     }
 
     // Bas : on calcule la largeur des boutons pour que tout tienne
@@ -101,6 +101,7 @@ export class HUD {
     this._hpBar(ctx, 16, 12, BAR_W, 34, game.bases.player, COL.good, 'MA BASE', false);
     this._hpBar(ctx, W - 16 - BAR_W, 12, BAR_W, 34, game.bases.enemy, COL.bad, 'NID MUTANT', true);
     this._minimap(ctx, game, camera);
+    this._bossBar(ctx, game);
 
     // Barre du bas : panneau de tôle ondulée
     const barY = this.barY;
@@ -152,6 +153,22 @@ export class HUD {
       ctx.fillStyle = 'rgba(25,15,8,0.8)'; ctx.fill();
       text(ctx, msg, W / 2, barY - 27, 20, COL.text, 'center', 'middle');
     }
+  }
+
+  // Barre de vie du boss, sous la mini-carte, tant qu'il est vivant
+  _bossBar(ctx, game) {
+    let boss = null;
+    for (const u of game.units) if (u.alive && u.tags.includes('boss')) { boss = u; break; }
+    if (!boss) return;
+    const w = MAP.w, h = 24, x = MAP.x, y = MAP.y + MAP.h + 8;
+    roundRectPath(ctx, x, y, w, h, 7);
+    ctx.fillStyle = 'rgba(25,8,12,0.88)'; ctx.fill();
+    ctx.fillStyle = '#a0204a';
+    ctx.fillRect(x + 3, y + 3, (w - 6) * (boss.hp / boss.maxHp), h - 6);
+    roundRectPath(ctx, x, y, w, h, 7);
+    ctx.lineWidth = 2.5; ctx.strokeStyle = COL.dark; ctx.stroke();
+    text(ctx, boss.def.name.toUpperCase() + '  ' + Math.ceil(boss.hp) + ' / ' + Math.round(boss.maxHp),
+      x + w / 2, y + h / 2 + 1, 15, '#fff', 'center', 'middle');
   }
 
   // ---------- Mini-carte ----------
@@ -210,7 +227,7 @@ export class HUD {
     let title = '';
     if (b.kind === 'unit') {
       const d = CONFIG.units[b.unit];
-      const mods = game.sides.player.mods;
+      const mods = game.sides.player.mods.units[b.unit] || { hp: 1, damage: 1 };
       title = d.name + ' — ' + d.role;
       lines.push(`PV ${Math.round(d.hp * mods.hp)}   Dégâts ${Math.round(d.damage * mods.damage)}${d.attack.kind === 'flame' ? ' / 0,25 s (zone)' : d.attack.splashRadius ? ' (zone)' : ''}`);
       lines.push(`Portée ${d.range}   Cadence ${String(d.attackInterval).replace('.', ',')} s   Vitesse ${d.speed}`);

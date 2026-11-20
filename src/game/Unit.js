@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=4';
-import { Entity } from './Entity.js?v=4';
+import { CONFIG } from '../config.js?v=5';
+import { Entity } from './Entity.js?v=5';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -13,16 +13,19 @@ export function bonusMultiplier(attackerDef, target) {
   return m;
 }
 
+const NO_BONUS = { hp: 1, damage: 1 };
+
 // Une unité (Survivant ou Mutant). Avance, s'arrête devant un ennemi, attaque.
 export class Unit extends Entity {
   constructor(defId, side, x, mods) {
     const def = CONFIG.units[defId];
     const c = CONFIG.combat;
-    super(side, x, CONFIG.world.groundY + (Math.random() * 2 - 1) * c.yJitter, def.hp * mods.hp);
+    const m = mods.units[defId] || NO_BONUS;
+    super(side, x, CONFIG.world.groundY + (Math.random() * 2 - 1) * c.yJitter, def.hp * m.hp);
     this.defId = defId;
     this.def = def;
     this.dir = side === 'player' ? 1 : -1;
-    this.damage = def.damage * mods.damage;
+    this.damage = def.damage * m.damage;
     this.cd = 0;              // temps avant la prochaine attaque
     this.state = 'walk';      // 'walk' | 'attack' | 'wait' | 'dead'
     this.walk = Math.random() * 6; // phase d'animation de marche
