@@ -24,7 +24,7 @@ export class Unit extends Entity {
     this.dir = side === 'player' ? 1 : -1;
     this.damage = def.damage * mods.damage;
     this.cd = 0;              // temps avant la prochaine attaque
-    this.state = 'walk';      // 'walk' | 'attack' | 'wait'
+    this.state = 'walk';      // 'walk' | 'attack' | 'wait' | 'dead'
     this.walk = Math.random() * 6; // phase d'animation de marche
     this.attackAnim = 0;      // 1 -> 0 pendant l'animation d'attaque
     this.dying = false;
@@ -32,7 +32,7 @@ export class Unit extends Entity {
   }
 
   get tags() { return this.def.tags; }
-  get aimY() { return this.y - 34; }
+  get aimY() { return this.y - this.def.bodyHeight * 0.55; }
 
   die() {
     this.dying = true;
@@ -50,13 +50,14 @@ export class Unit extends Entity {
     const target = this.findTarget(game);
     if (target) {
       this.state = 'attack';
+      if (this.def.attack.kind === 'flame') game.fx.flame(this.x + this.dir * 22, this.y - 38, this.dir, this.def.range);
       if (this.cd <= 0) this.attack(target, game);
     } else if (this.isBlocked(game)) {
       this.state = 'wait';
     } else {
       this.state = 'walk';
       this.x += this.dir * this.def.speed * dt;
-      this.walk += dt * this.def.speed * 0.14;
+      this.walk += dt * Math.min(this.def.speed, 90) * 0.14;
     }
   }
 
@@ -93,15 +94,34 @@ export class Unit extends Entity {
 
   attack(target, game) {
     const def = this.def;
+    const atk = def.attack;
     this.cd = def.attackInterval;
     this.attackAnim = 1;
-    const mult = bonusMultiplier(def, target);
-    const dmg = this.damage * mult;
-    if (def.attack.kind === 'projectile') {
-      game.fireProjectile(this, target, dmg, mult > 1);
-    } else {
-      // 'melee' (et repli provisoire pour 'flame' / 'cannon' avant l'étape 2)
-      game.dealDamage(this.side, target, dmg, mult > 1);
+
+    switch (atk.kind) {
+      case 'projectile':
+      case 'cannon':
+        game.projectiles.spawn({
+          side: this.side,
+          x: this.x + this.dir * def.bodyWidth * 0.55,
+          y: this.y - def.bodyHeight * 0.62,
+          target, damage: this.damage, attackerDef: def,
+          cfg: atk.projectile, splash: atk.splashRadius || 0,
+        });
+        break;
+      case 'flame':
+        game.flameAttack(this);
+        break;
+      default: { // 'melee'
+        if (atk.splashRadius) {
+          const cx = target.isBase ? target.faceX : target.x;
+          game.explode(this.side, cx, atk.splashRadius, this.damage, def, true, 'slam');
+        } else {
+          const mult = bonusMultiplier(def, target);
+          game.dealDamage(this.side, target, this.damage * mult, mult > 1);
+          if (atk.knockback && !target.isBase && target.alive) game.knockBack(target, atk.knockback);
+        }
+      }
     }
   }
 }

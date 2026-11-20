@@ -22,24 +22,42 @@ function dim(ctx, alpha) {
 }
 
 // ---------- Titre ----------
-export function titleButtons(view) {
-  return column(view, [['play', 'JOUER', true]], 430);
+// Choix du niveau provisoire (pour tester) : remplacé par la carte de campagne à l'étape 4.
+export function titleButtons(view, selected) {
+  const btns = column(view, [['play', 'JOUER', true]], 360);
+  const minL = CONFIG.display.minButtonPx / view.scale;
+  const n = CONFIG.levels.length;
+  const s = Math.max(70, minL);
+  const gap = 10;
+  const total = n * s + (n - 1) * gap;
+  const scale = total > W - 40 ? (W - 40) / total : 1;
+  const size = s * scale;
+  let x = (W - (n * size + (n - 1) * gap * scale)) / 2;
+  CONFIG.levels.forEach((lv, i) => {
+    btns.push({ id: 'level:' + i, level: i, label: String(lv.id), x, y: 520, w: size, h: size,
+      enabled: true, selected: i === selected });
+    x += size + gap * scale;
+  });
+  return btns;
 }
 
-export function drawTitle(ctx, buttons, pressed) {
+export function drawTitle(ctx, buttons, pressed, selected) {
   dim(ctx, 0.45);
   ctx.lineJoin = 'round';
   ctx.font = 'bold 96px system-ui, "Segoe UI", Roboto, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineWidth = 12; ctx.strokeStyle = COL.dark;
-  ctx.strokeText('DERNIER BASTION', W / 2, 190);
+  ctx.strokeText('DERNIER BASTION', W / 2, 160);
   ctx.fillStyle = '#e8a04a';
-  ctx.fillText('DERNIER BASTION', W / 2, 190);
-  text(ctx, 'Survivants contre Mutants', W / 2, 270, 30, COL.text, 'center', 'middle');
-  text(ctx, 'Niveau 1 — ' + CONFIG.levels[0].name, W / 2, 330, 24, COL.dim, 'center', 'middle');
-  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 34 });
-  text(ctx, 'Glisse pour faire défiler le champ de bataille • Étape 1 du développement',
-    W / 2, H - 28, 18, COL.dim, 'center', 'middle');
+  ctx.fillText('DERNIER BASTION', W / 2, 160);
+  text(ctx, 'Survivants contre Mutants', W / 2, 240, 30, COL.text, 'center', 'middle');
+  const lv = CONFIG.levels[selected];
+  text(ctx, 'Niveau ' + lv.id + ' — ' + lv.name, W / 2, 300, 26, COL.yellow, 'center', 'middle');
+  for (const b of buttons) {
+    if (b.level !== undefined) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.selected, size: 26 });
+    else drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 34 });
+  }
+  text(ctx, 'Choix du niveau (test — la carte de campagne arrive à l’étape 4)', W / 2, 500, 17, COL.dim, 'center', 'middle');
 }
 
 // ---------- Pause ----------

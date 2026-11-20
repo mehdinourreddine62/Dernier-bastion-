@@ -1,19 +1,16 @@
 import { CONFIG } from '../config.js';
+import { bonusMultiplier } from './Unit.js';
 
-// Un projectile visible (balle traçante, crachat d'acide…) qui rejoint sa cible.
+// Un projectile visible (balle traçante, crachat d'acide, obus…) qui rejoint sa cible.
 // Les projectiles sont réutilisés (pool) : aucune création/destruction en jeu.
-class Projectile {
-  constructor() { this.active = false; }
-}
-
 export class ProjectilePool {
   constructor(size = CONFIG.pools.projectiles) {
-    this.items = Array.from({ length: size }, () => new Projectile());
+    this.items = Array.from({ length: size }, () => ({ active: false }));
     this.next = 0;
   }
 
-  spawn(shooter, target, damage, bonus) {
-    // Cherche un emplacement libre, sinon recycle le suivant
+  // o = { side, x, y, target, damage, attackerDef (pour les bonus, ou null), cfg, splash }
+  spawn(o) {
     let p = null;
     for (let i = 0; i < this.items.length; i++) {
       const c = this.items[(this.next + i) % this.items.length];
@@ -22,23 +19,22 @@ export class ProjectilePool {
     if (!p) p = this.items[this.next];
     this.next = (this.next + 1) % this.items.length;
 
-    const cfg = shooter.def.attack.projectile;
     p.active = true;
-    p.cfg = cfg;
-    p.side = shooter.side;
-    p.target = target;
-    p.damage = damage;
-    p.bonus = bonus;
-    p.sx = shooter.x + shooter.dir * 20;
-    p.sy = shooter.y - 40;
-    p.tx = target.isBase ? target.faceX : target.x;
-    p.ty = target.aimY;
+    p.cfg = o.cfg;
+    p.side = o.side;
+    p.target = o.target;
+    p.damage = o.damage;
+    p.attackerDef = o.attackerDef || null;
+    p.splash = o.splash || 0;
+    p.sx = o.x;
+    p.sy = o.y;
+    p.tx = o.target.isBase ? o.target.faceX : o.target.x;
+    p.ty = p.splash ? CONFIG.world.groundY - 10 : o.target.aimY;
     p.x = p.sx;
     p.y = p.sy;
-    p.vx = shooter.dir;      // direction pour dessiner la traînée
+    p.vx = Math.sign(p.tx - p.sx) || 1;
     p.vy = 0;
-    const dist = Math.hypot(p.tx - p.sx, p.ty - p.sy);
-    p.duration = Math.max(0.05, dist / cfg.speed);
+    p.duration = Math.max(0.05, Math.hypot(p.tx - p.sx, p.ty - p.sy) / o.cfg.speed);
     p.t = 0;
     return p;
   }
@@ -49,7 +45,7 @@ export class ProjectilePool {
       // Suit la cible tant qu'elle est en vie
       if (p.target.alive) {
         p.tx = p.target.isBase ? p.target.faceX : p.target.x;
-        p.ty = p.target.aimY;
+        if (!p.splash) p.ty = p.target.aimY;
       }
       p.t += dt / p.duration;
       const t = Math.min(1, p.t);
@@ -61,9 +57,17 @@ export class ProjectilePool {
       if (len > 0.001) { p.vx = dx / len; p.vy = dy / len; }
       p.x = nx;
       p.y = ny;
-      if (p.t >= 1) {
-        p.active = false;
-        if (p.target.alive) game.dealDamage(p.side, p.target, p.damage, p.bonus);
+      if (p.t < 1) continue;
+
+      p.active = false;
+      if (p.splash) {
+        // Obus : explosion de zone (bonus calculé pour chaque cible)
+        game.explode(p.side, p.x, p.splash, p.damage, p.attackerDef, true);
+      } else {
+        if (p.target.alive) {
+          const mult = p.attackerDef ? bonusMultiplier(p.attackerDef, p.target) : 1;
+          game.dealDamage(p.side, p.target, p.damage * mult, mult > 1);
+        }
         game.fx.sparks(p.x, p.y, p.cfg.color, 4, 90);
       }
     }

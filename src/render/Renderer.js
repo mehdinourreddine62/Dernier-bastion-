@@ -142,6 +142,17 @@ export class Renderer {
       this._prop(ctx, p);
     }
 
+    // Cratères du mortier
+    for (const c of game.craters) {
+      if (!c.active) continue;
+      ctx.globalAlpha = Math.min(1, c.life / 1.5);
+      ctx.fillStyle = 'rgba(30,18,10,0.55)';
+      ctx.beginPath(); ctx.ellipse(c.x, CONFIG.world.groundY + 4, c.r, c.r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(110,80,50,0.5)';
+      ctx.beginPath(); ctx.ellipse(c.x, CONFIG.world.groundY - 1, c.r * 0.9, c.r * 0.12, 0, Math.PI, 0); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     this._base(ctx, game.bases.player, time);
     this._base(ctx, game.bases.enemy, time);
 
@@ -156,7 +167,42 @@ export class Renderer {
     for (const u of list) if (u.alive && u.hp < u.maxHp) this._hpBar(ctx, u);
 
     this._projectiles(ctx, game.projectiles);
+    this._shells(ctx, game.spells);
     this._particles(ctx, game.fx);
+    ctx.restore();
+  }
+
+  // Obus de mortier qui tombent du ciel
+  _shells(ctx, spells) {
+    const gy = CONFIG.world.groundY;
+    for (const s of spells.shells) {
+      if (!s.active || s.delay > 0) continue;
+      const y = -40 + (gy + 40) * s.t * s.t;
+      ctx.strokeStyle = 'rgba(255,240,200,0.5)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(s.x, y - 50); ctx.lineTo(s.x, y); ctx.stroke();
+      ctx.fillStyle = '#3a3a32';
+      ctx.beginPath(); ctx.ellipse(s.x, y, 5, 10, 0, 0, Math.PI * 2); ctx.fill();
+      // ombre au sol qui grossit
+      ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.35 * s.t})`;
+      ctx.beginPath(); ctx.ellipse(s.x, gy + 2, 6 + 18 * s.t, 3 + 3 * s.t, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Cercle de visée d'un sort (x en coordonnées du monde)
+  drawAim(ctx, camera, x, radius, color, time) {
+    const gy = CONFIG.world.groundY;
+    ctx.save();
+    ctx.translate(-camera.x, 0);
+    ctx.fillStyle = color + '33';
+    ctx.beginPath(); ctx.ellipse(x, gy, radius, radius * 0.28, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.setLineDash([10, 8]);
+    ctx.lineDashOffset = -time * 30;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x, gy - 14); ctx.lineTo(x, gy + 14); ctx.moveTo(x - 14, gy); ctx.lineTo(x + 14, gy); ctx.stroke();
     ctx.restore();
   }
 
@@ -165,7 +211,7 @@ export class Renderer {
     ctx.translate(u.x, u.y);
     // ombre
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.beginPath(); ctx.ellipse(0, 1, 16, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 1, u.def.bodyWidth * 0.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
     if (u.dir < 0) ctx.scale(-1, 1);
     if (u.dying) {
       // chute en arrière puis fondu
@@ -177,14 +223,14 @@ export class Renderer {
     const pose = this._pose || (this._pose = { walk: 0, atk: 0, flash: false, moving: false });
     pose.walk = u.walk;
     pose.atk = u.attackAnim;
-    pose.flash = u.hitFlash > 0;
+    pose.flash = u.hitFlash > 0 && !u.dying;
     pose.moving = u.state === 'walk';
     drawSprite(ctx, u.defId, pose);
     ctx.restore();
   }
 
   _hpBar(ctx, u) {
-    const w = 34, h = 4, x = u.x - w / 2, y = u.y - 80;
+    const w = Math.max(34, u.def.bodyWidth * 0.7), h = 4, x = u.x - w / 2, y = u.y - u.def.bodyHeight - 12;
     const r = u.hp / u.maxHp;
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
@@ -221,6 +267,25 @@ export class Renderer {
         ctx.globalAlpha = 0.55 * k;
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1.6 - k * 0.6), 0, Math.PI * 2); ctx.fill();
+      } else if (p.kind === 'flame') {
+        ctx.globalAlpha = Math.min(1, k * 1.6);
+        ctx.fillStyle = k > 0.6 ? '#fff0a0' : k > 0.35 ? '#ffb347' : '#d9482b';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (2.2 - k), 0, Math.PI * 2); ctx.fill();
+      } else if (p.kind === 'flash') {
+        ctx.globalAlpha = k;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      } else if (p.kind === 'ring') {
+        ctx.globalAlpha = k;
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 3;
+        const r = p.size * (1 - k * 0.8);
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+      } else if (p.kind === 'plus') {
+        ctx.globalAlpha = Math.min(1, k * 2);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - 4, p.y - 1.5, 8, 3);
+        ctx.fillRect(p.x - 1.5, p.y - 4, 3, 8);
       } else {
         ctx.globalAlpha = Math.min(1, k * 2);
         ctx.fillStyle = p.color;
@@ -286,7 +351,7 @@ export class Renderer {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 6, 110, 10, 0, 0, Math.PI * 2); ctx.fill();
 
-    if (b.side === 'player') this._fort(ctx, time); else this._nest(ctx, time);
+    if (b.side === 'player') this._fort(ctx, time, b); else this._nest(ctx, time, b);
 
     // Dégâts : suie + morceaux manquants
     const ds = b.damageState;
@@ -308,7 +373,7 @@ export class Renderer {
   }
 
   // Fort des Survivants : carcasses, tôles, sacs de sable, tour, drapeau
-  _fort(ctx, time) {
+  _fort(ctx, time, b) {
     // bus renversé au fond
     ctx.fillStyle = '#5f6e76'; ctx.fillRect(-95, -78, 110, 58);
     ctx.fillStyle = '#74848c'; ctx.fillRect(-95, -78, 110, 8);
@@ -326,8 +391,16 @@ export class Renderer {
     ctx.fillStyle = '#6b5440'; ctx.fillRect(-60, -166, 60, 10);
     ctx.fillStyle = '#5a4636'; ctx.fillRect(-56, -196, 52, 30);
     ctx.fillStyle = '#2a1c14'; ctx.fillRect(-52, -190, 44, 12);
-    // mitrailleuse (la tourelle sera animée à l'étape 2)
-    ctx.fillStyle = '#2b2b2e'; ctx.fillRect(-22, -184, 30, 6); ctx.fillRect(-26, -188, 10, 12);
+    // mitrailleuse qui pivote vers sa cible
+    ctx.save();
+    ctx.translate(-14, -182);
+    ctx.rotate(b.turretAngle);
+    ctx.fillStyle = '#2b2b2e'; ctx.fillRect(-6, -3, 30, 6); ctx.fillRect(-10, -6, 12, 12);
+    if (b.turretFlash > 0) {
+      ctx.fillStyle = '#fff3b0';
+      ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(34, -6); ctx.lineTo(40, 0); ctx.lineTo(34, 6); ctx.fill();
+    }
+    ctx.restore();
     // drapeau jaune
     ctx.fillStyle = '#3b2f22'; ctx.fillRect(-76, -206, 3, 50);
     ctx.fillStyle = '#f2c230';
@@ -345,7 +418,7 @@ export class Renderer {
   }
 
   // Nid des Mutants : chair, os, tôles rouillées, tentacule
-  _nest(ctx, time) {
+  _nest(ctx, time, b) {
     // dôme de chair
     const g = ctx.createRadialGradient(0, -80, 10, 0, -60, 110);
     g.addColorStop(0, '#9a4a5a'); g.addColorStop(1, '#5a2638');
@@ -385,6 +458,7 @@ export class Renderer {
     }
     ctx.stroke();
     const tipX = 46 + Math.sin(time * 2 + 5) * 8, tipY = -180 + Math.cos(time * 1.7 + 4) * 4;
-    ctx.fillStyle = '#9be22b'; ctx.beginPath(); ctx.arc(tipX, tipY, 8, 0, Math.PI * 2); ctx.fill();
+    const spit = b.turretFlash > 0 ? 4 : 0;
+    ctx.fillStyle = '#9be22b'; ctx.beginPath(); ctx.arc(tipX, tipY, 8 + spit, 0, Math.PI * 2); ctx.fill();
   }
 }
