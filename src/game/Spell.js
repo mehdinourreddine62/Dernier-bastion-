@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js';
+import { CONFIG } from '../config.js?v=3';
 
 // Sorts du joueur : Frappe de mortier et Kit de soins.
 export class Spells {
@@ -47,6 +47,7 @@ export class Spells {
         g.fx.heal(u.x, u.y - u.def.bodyHeight * 0.5);
       }
       g.fx.healRing(x, CONFIG.world.groundY, cfg.radius);
+      g.emit('heal', x);
     }
     return true;
   }
@@ -57,11 +58,12 @@ export class Spells {
     for (const s of this.shells) {
       if (!s.active) continue;
       if (s.delay > 0) { s.delay -= dt; continue; }
+      if (s.t === 0) this.game.emit('shellFall', s.x);   // sifflement de l'obus
       s.t += dt / cfg.fallTime;
       if (s.t >= 1) {
         s.active = false;
         this.game.explode('player', s.x, cfg.shellBlastRadius, cfg.damagePerShell, null, cfg.hitsBases, 'big');
-        this.game.addCrater(s.x, cfg.shellBlastRadius * 0.8, cfg.craterTime);
+        this.game.addDecal('crater', s.x, cfg.shellBlastRadius * 0.8, cfg.craterTime);
       }
     }
   }

@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js';
+import { CONFIG } from '../config.js?v=3';
 
 // Entrées unifiées souris + tactile (Pointer Events) + clavier.
 // - Un toucher qui commence sur un bouton déclenche le bouton s'il se termine dessus
@@ -23,6 +23,7 @@ export class Input {
     this.onKey = () => {};
     this.onAim = () => {};            // (x, y, phase) phase = 'down' | 'move' | 'up'
     this.onCancel = () => {};         // clic droit
+    this.onButtonDrag = () => {};     // (id, x, y) zone glissable (mini-carte)
     this.onInteract = () => {};
 
     const c = canvas;
@@ -66,9 +67,14 @@ export class Input {
     if (e.button === 2) { this.onCancel(); return; }
     try { this.canvas.setPointerCapture(e.pointerId); } catch (_) { /* ignoré */ }
     const btn = this.hitTest(p.x, p.y);
-    const ptr = { x: p.x, y: p.y, btn: btn ? btn.id : null, type: e.pointerType, t0: performance.now(), aim: false };
+    const ptr = { x: p.x, y: p.y, btn: btn ? btn.id : null, type: e.pointerType, t0: performance.now(), aim: false, drag: null };
     this.pointers.set(e.pointerId, ptr);
-    if (btn) {
+    if (btn && btn.drag) {
+      // Zone « glissable » (mini-carte) : suit le doigt tant qu'il est posé
+      ptr.btn = null;
+      ptr.drag = btn.id;
+      this.onButtonDrag(btn.id, p.x, p.y);
+    } else if (btn) {
       if (btn.enabled !== false) this.pressed.add(btn.id);
     } else if (this.aiming) {
       ptr.aim = true;
@@ -85,7 +91,9 @@ export class Input {
       if (e.pointerType === 'mouse' && this.aiming) this.onAim(p.x, p.y, 'move', 'mouse');
       return;
     }
-    if (ptr.btn) {
+    if (ptr.drag) {
+      this.onButtonDrag(ptr.drag, p.x, p.y);
+    } else if (ptr.btn) {
       // Si on sort du bouton, il n'est plus « enfoncé »
       const hit = this.hitTest(p.x, p.y);
       if (hit && hit.id === ptr.btn) { if (hit.enabled !== false) this.pressed.add(ptr.btn); }

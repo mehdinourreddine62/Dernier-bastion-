@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js';
-import { Entity } from './Entity.js';
+import { CONFIG } from '../config.js?v=3';
+import { Entity } from './Entity.js?v=3';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -58,6 +58,10 @@ export class Unit extends Entity {
       this.state = 'walk';
       this.x += this.dir * this.def.speed * dt;
       this.walk += dt * Math.min(this.def.speed, 90) * 0.14;
+      // Poussière soulevée par les unités rapides ou lourdes (effet visuel)
+      if ((this.def.speed >= 100 || this.def.tags.includes('heavy') || this.def.tags.includes('boss')) && Math.random() < 0.25) {
+        game.fx.dust(this.x - this.dir * this.def.bodyWidth * 0.4, this.y, 1);
+      }
     }
   }
 
@@ -97,6 +101,7 @@ export class Unit extends Entity {
     const atk = def.attack;
     this.cd = def.attackInterval;
     this.attackAnim = 1;
+    if (atk.kind !== 'flame') game.emit('attack', this.x, { id: this.defId });
 
     switch (atk.kind) {
       case 'projectile':

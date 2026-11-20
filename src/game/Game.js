@@ -1,15 +1,17 @@
-import { CONFIG } from '../config.js';
-import { Unit, bonusMultiplier } from './Unit.js';
-import { Base } from './Base.js';
-import { ProjectilePool } from './Projectile.js';
-import { Particles } from './Particles.js';
-import { Spells } from './Spell.js';
-import { AI } from './AI.js';
+import { CONFIG } from '../config.js?v=3';
+import { Unit, bonusMultiplier } from './Unit.js?v=3';
+import { Base } from './Base.js?v=3';
+import { ProjectilePool } from './Projectile.js?v=3';
+import { Particles } from './Particles.js?v=3';
+import { Spells } from './Spell.js?v=3';
+import { AI } from './AI.js?v=3';
 
 const SIDES = ['player', 'enemy'];
+const MAX_EVENTS = 120;
 
 // État d'une partie : bases, unités, ressources, file de recrutement, sorts, IA.
 // Aucune dépendance au navigateur : la simulation peut tourner sans écran.
+// Les sons et secousses d'écran sont pilotés par la liste `events`, vidée par main.js.
 export class Game {
   constructor(levelIndex = 0) {
     this.levelIndex = levelIndex;
@@ -20,6 +22,7 @@ export class Game {
     this.result = null;       // null | 'won' | 'lost'
     this.resultTime = 0;      // temps écoulé depuis la fin de partie
     this.banner = null;       // annonce à l'écran { text, time }
+    this.events = [];         // événements de l'image (sons, secousses)
 
     this.sides = {
       player: this._makeSide(1),
@@ -33,9 +36,11 @@ export class Game {
     this.projectiles = new ProjectilePool();
     this.fx = new Particles();
     this.spells = new Spells(this);
-    this.craters = Array.from({ length: CONFIG.pools.craters }, () => ({ active: false }));
+    // Traces au sol : cratères, brûlures, flaques d'acide, restes de mutants
+    this.decals = Array.from({ length: CONFIG.pools.decals }, () => ({ active: false }));
     this.bossDone = this.level.bosses.map(() => false);
     this.ai = new AI(this);
+    this._boomTimer = 0;
   }
 
   _makeSide(incomeMult) {
@@ -48,6 +53,10 @@ export class Game {
       // Bonus de l'atelier (étape 4) : multiplicateurs, 1 = aucun bonus
       mods: { hp: 1, damage: 1, wallHp: 0, turretDamage: 1, turretRange: 1, spellCooldown: 1, income: 0 },
     };
+  }
+
+  emit(type, x, data) {
+    if (this.events.length < MAX_EVENTS) this.events.push({ type, x, data });
   }
 
   // ---------- Économie ----------
@@ -72,6 +81,7 @@ export class Game {
     if (this.result || cost === null || s.scrap < cost) return false;
     s.scrap -= cost;
     s.incomeLevel++;
+    if (side === 'player') this.emit('upgrade', 0);
     return true;
   }
 
@@ -104,6 +114,7 @@ export class Game {
     const s = this.sides[side];
     s.scrap -= CONFIG.units[defId].cost;
     s.queue.push(defId);
+    if (side === 'player') this.emit('queue', 0);
     return true;
   }
 
@@ -132,6 +143,8 @@ export class Game {
     const x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
     this.units.push(u);
+    this.fx.dust(x, u.y, 4);
+    this.emit('spawn', x, { side, id: defId });
     return u;
   }
 
@@ -145,14 +158,25 @@ export class Game {
     if (!quiet) {
       this.fx.text(tx, target.aimY - 30, String(Math.round(damage)),
         bonus ? '#ffd23f' : '#f3e3c3', bonus ? 18 : 14);
-      this.fx.sparks(tx, target.aimY, bonus ? '#ffd23f' : '#ffb347', 3, 80);
+      this.fx.hit(tx, target.aimY, target.isBase ? 'base' : target.side === 'enemy' ? 'ichor' : 'blood');
     }
+    if (target.isBase) this.emit('baseHit', tx, { side: target.side });
 
     if (!target.alive && !target.isBase) {
       target.die();
       const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio);
       this.sides[attackerSide].scrap += bounty;
-      this.fx.puff(target.x, target.y - 10, '#8a7a66');
+      this.emit('death', target.x, { id: target.defId });
+      if (target.defId === 'blinde') {
+        this.fx.explosion(target.x, target.y - 30, 60);
+        this.addDecal('scorch', target.x, 60, 8);
+        this.emit('explosion', target.x, { big: true });
+      } else if (target.side === 'enemy') {
+        this.addDecal('ichor', target.x, target.def.bodyWidth * 0.6, 5);
+        this.fx.hit(target.x, target.y - 20, 'ichor');
+      } else {
+        this.fx.puff(target.x, target.y - 8, '#8a7a66');
+      }
       if (attackerSide === 'player') this.fx.text(target.x, target.y - target.def.bodyHeight - 6, '+' + bounty, '#f2c230', 14);
     }
   }
@@ -174,8 +198,15 @@ export class Game {
         this.dealDamage(attackerSide, base, damage * mult, mult > 1);
       }
     }
-    if (look === 'slam') this.fx.puff(x, CONFIG.world.groundY - 4, '#6a5040');
-    else this.fx.explosion(x, CONFIG.world.groundY - 8, look === 'big' ? radius * 1.2 : radius);
+    const gy = CONFIG.world.groundY;
+    if (look === 'slam') {
+      this.fx.slam(x, gy, radius);
+      this.emit('slam', x);
+    } else {
+      this.fx.explosion(x, gy - 8, look === 'big' ? radius * 1.2 : radius);
+      this.addDecal('scorch', x, radius * 0.9, 7);
+      this.emit('explosion', x, { big: look === 'big' });
+    }
   }
 
   // Lance-flammes : touche tous les ennemis devant lui jusqu'à sa portée
@@ -194,6 +225,7 @@ export class Game {
       const mult = bonusMultiplier(def, base);
       this.dealDamage(unit.side, base, unit.damage * mult, mult > 1, Math.random() > 0.35);
     }
+    this.emit('flame', unit.x);
   }
 
   // Recul infligé par la Brute (sans passer derrière sa propre base)
@@ -203,9 +235,12 @@ export class Game {
     if ((target.x - own.faceX) * target.dir < 0) target.x = own.faceX;
   }
 
-  addCrater(x, r, life) {
-    const c = this.craters.find((o) => !o.active) || this.craters[0];
-    c.active = true; c.x = x; c.r = r; c.life = c.maxLife = life;
+  // Trace au sol temporaire : 'crater' | 'scorch' | 'acid' | 'ichor'
+  addDecal(kind, x, r, life) {
+    let d = this.decals.find((o) => !o.active);
+    if (!d) d = this.decals.reduce((a, b) => (a.life < b.life ? a : b));
+    d.active = true; d.kind = kind; d.x = x; d.r = r; d.life = d.maxLife = life;
+    d.seed = Math.random() * 1000;
   }
 
   // Boss : apparaissent quand la base ennemie passe sous un seuil de PV
@@ -216,6 +251,7 @@ export class Game {
       this.bossDone[i] = true;
       this.spawnUnit('enemy', b.unit);
       this.banner = { text: "L'ABOMINATION SORT DU NID !", time: CONFIG.combat.bossBannerTime };
+      this.emit('boss', this.bases.enemy.faceX);
     });
   }
 
@@ -227,11 +263,20 @@ export class Game {
       this.banner.time -= dt;
       if (this.banner.time <= 0) this.banner = null;
     }
-    for (const c of this.craters) if (c.active && (c.life -= dt) <= 0) c.active = false;
+    for (const d of this.decals) if (d.active && (d.life -= dt) <= 0) d.active = false;
 
-    // Après la fin de partie : on laisse seulement vivre les effets
+    // Après la fin de partie : la base vaincue explose, puis seuls les effets vivent
     if (this.result) {
       this.resultTime += dt;
+      const b = this.result === 'won' ? this.bases.enemy : this.bases.player;
+      this._boomTimer -= dt;
+      if (this.resultTime < 1.6 && this._boomTimer <= 0) {
+        this._boomTimer = 0.14;
+        const x = b.x + (Math.random() - 0.5) * b.width;
+        this.fx.explosion(x, b.y - Math.random() * b.height * 0.8, 40 + Math.random() * 30);
+        if (Math.random() < 0.5) this.emit('explosion', x, { big: Math.random() < 0.4 });
+      }
+      for (const u of this.units) if (u.dying) u.deadTime += dt;
       this.fx.update(dt);
       this.bases.player.update(dt, this);
       this.bases.enemy.update(dt, this);
@@ -273,8 +318,10 @@ export class Game {
     else if (!this.bases.enemy.alive) this.result = 'won';
     if (this.result) {
       this.resultTime = 0;
+      this._boomTimer = 0;
+      this.emit(this.result === 'won' ? 'win' : 'lose', 0);
       const b = this.result === 'won' ? this.bases.enemy : this.bases.player;
-      for (let i = 0; i < 14; i++) this.fx.puff(b.x + (Math.random() - 0.5) * b.width, b.y - Math.random() * b.height, '#5a4a3e');
+      this.emit('explosion', b.faceX, { big: true, huge: true });
     }
   }
 

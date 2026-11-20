@@ -306,5 +306,5 @@ export const CONFIG = {
   ],
 
   // ---------- Performance ----------
-  pools: { projectiles: 160, particles: 500, floatingTexts: 64, craters: 12, shells: 12 },
+  pools: { projectiles: 160, particles: 700, floatingTexts: 64, decals: 28, shells: 12 },
 };

@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js';
-import { COL, drawPanel, drawButton, drawStar, text } from './widgets.js';
+import { CONFIG } from '../config.js?v=3';
+import { COL, drawPanel, drawButton, drawStar, text } from './widgets.js?v=3';
 
 // Écrans : titre, pause, fin de partie. Dessinés sur le canvas, comme le HUD.
 // Chaque écran fournit ses boutons (pour le clic/toucher) et sa fonction de dessin.
@@ -61,15 +61,33 @@ export function drawTitle(ctx, buttons, pressed, selected) {
 }
 
 // ---------- Pause ----------
-export function pauseButtons(view) {
-  return column(view, [['resume', 'REPRENDRE', true], ['restart', 'RECOMMENCER'], ['menu', 'MENU']], 260);
+// Réglages dans le menu pause : son et secousses d'écran (mémorisés)
+export function pauseButtons(view, settings) {
+  const minL = CONFIG.display.minButtonPx / view.scale;
+  const h = Math.max(66, minL);
+  const gap = 14;
+  const w = 360;
+  const x = (W - w) / 2;
+  let y = 200;
+  const btns = [];
+  btns.push({ id: 'resume', label: 'REPRENDRE', primary: true, enabled: true, x, y, w, h });
+  y += h + gap;
+  const hw = (w - 12) / 2;
+  btns.push({ id: 'toggleSound', label: 'SON : ' + (settings.sound ? 'OUI' : 'NON'), enabled: true, x, y, w: hw, h, small: true });
+  btns.push({ id: 'toggleShake', label: 'SECOUSSES : ' + (settings.shake ? 'OUI' : 'NON'), enabled: true, x: x + hw + 12, y, w: hw, h, small: true });
+  y += h + gap;
+  btns.push({ id: 'restart', label: 'RECOMMENCER', enabled: true, x, y, w, h });
+  y += h + gap;
+  btns.push({ id: 'menu', label: 'MENU', enabled: true, x, y, w, h });
+  return btns;
 }
 
 export function drawPause(ctx, buttons, pressed) {
   dim(ctx, 0.6);
-  drawPanel(ctx, W / 2 - 220, 120, 440, 520, 16);
-  text(ctx, 'PAUSE', W / 2, 190, 52, COL.text, 'center', 'middle');
-  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 28 });
+  const last = buttons[buttons.length - 1];
+  drawPanel(ctx, W / 2 - 220, 100, 440, last.y + last.h + 30 - 100, 16);
+  text(ctx, 'PAUSE', W / 2, 155, 52, COL.text, 'center', 'middle');
+  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: b.small ? 17 : 28 });
 }
 
 // ---------- Fin de partie ----------

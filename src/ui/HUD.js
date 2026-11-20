@@ -1,9 +1,11 @@
-import { CONFIG } from '../config.js';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js';
+import { CONFIG } from '../config.js?v=3';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=3';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=3';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
+const BAR_W = 396;                                   // barres de PV
+const MAP = { x: 16 + BAR_W + 16, y: 12, w: W - 2 * (16 + BAR_W + 16), h: 40 };   // mini-carte
 
 // Interface en partie : barres de PV, ressources, recrutement, sorts, revenu,
 // pause, vitesse, infobulles. build() calcule les boutons de l'image courante
@@ -14,19 +16,30 @@ export class HUD {
     this.barY = H - 104;
   }
 
-  // aim = sort en cours de visée (ou null)
-  build(game, view, aim) {
+  // aim = sort en cours de visée (ou null) ; settings = réglages (son…)
+  build(game, view, aim, settings) {
     const minL = CONFIG.display.minButtonPx / view.scale;   // taille mini en unités logiques
     const btns = [];
     const s = game.sides.player;
 
-    // Haut : pause et vitesse
-    const m = Math.max(56, minL);
-    btns.push({ id: 'pause', x: W / 2 - m - 6, y: 8, w: m, h: m, label: 'II', enabled: true });
-    btns.push({ id: 'speed', x: W / 2 + 6, y: 8, w: m, h: m, label: 'x' + game.speed, enabled: true });
+    // Haut : mini-carte au centre (toucher/glisser dessus déplace la caméra)
+    const mapH = Math.max(44, minL);
+    btns.push({ id: 'minimap', kind: 'minimap', drag: true, x: MAP.x, y: MAP.y - 2, w: MAP.w, h: mapH, enabled: true });
+    // 4 boutons sous la barre de PV ennemie
+    const m = Math.max(50, minL);
+    const gap = 8;
+    let bx = W - 16 - 4 * m - 3 * gap;
+    const by = 56;
+    for (const [id, icon, label] of [
+      ['pause', null, 'II'], ['speed', null, 'x' + game.speed],
+      ['sound', settings.sound ? 'sound' : 'mute', ''], ['fullscreen', 'fullscreen', ''],
+    ]) {
+      btns.push({ id, kind: 'top', icon, label, x: bx, y: by, w: m, h: m, enabled: true });
+      bx += m + gap;
+    }
     if (aim) {
       const cw = Math.max(200, minL);
-      btns.push({ id: 'cancelAim', x: W / 2 - cw / 2, y: 8 + m + 12, w: cw, h: Math.max(52, minL), label: 'ANNULER', enabled: true });
+      btns.push({ id: 'cancelAim', x: W / 2 - cw / 2, y: MAP.y + mapH + 10, w: cw, h: Math.max(52, minL), label: 'ANNULER', enabled: true });
     }
 
     // Bas : on calcule la largeur des boutons pour que tout tienne
@@ -83,14 +96,19 @@ export class HUD {
     return btns;
   }
 
-  draw(ctx, game, pressed, aim) {
+  draw(ctx, game, pressed, aim, camera) {
     // Barres de PV des deux bases
-    this._hpBar(ctx, 20, 14, 420, 30, game.bases.player, COL.good, 'MA BASE', false);
-    this._hpBar(ctx, W - 20 - 420, 14, 420, 30, game.bases.enemy, COL.bad, 'NID MUTANT', true);
+    this._hpBar(ctx, 16, 12, BAR_W, 34, game.bases.player, COL.good, 'MA BASE', false);
+    this._hpBar(ctx, W - 16 - BAR_W, 12, BAR_W, 34, game.bases.enemy, COL.bad, 'NID MUTANT', true);
+    this._minimap(ctx, game, camera);
 
-    // Barre du bas
+    // Barre du bas : panneau de tôle ondulée
     const barY = this.barY;
     drawPanel(ctx, 6, barY, W - 12, H - barY - 6, 12);
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    for (let x = 14; x < W - 14; x += 10) ctx.fillRect(x, barY + 4, 3, H - barY - 14);
+    ctx.fillStyle = 'rgba(150,70,30,0.18)';
+    ctx.fillRect(300, barY + 6, 60, 10); ctx.fillRect(900, H - 30, 80, 12);
     const s = game.sides.player;
     text(ctx, '⚙ ' + Math.floor(s.scrap), 22, barY + 42, 36, COL.yellow);
     text(ctx, '+' + Number(game.income('player').toFixed(1)) + '/s', 24, barY + 68, 19, COL.dim);
@@ -104,7 +122,11 @@ export class HUD {
       if (b.kind === 'unit') this._unitButton(ctx, b, p);
       else if (b.kind === 'spell') this._spellButton(ctx, b, p);
       else if (b.kind === 'income') this._incomeButton(ctx, b, p);
-      else drawButton(ctx, b, b.label, p, { size: b.id === 'cancelAim' ? 24 : 28, primary: b.id === 'cancelAim' });
+      else if (b.kind === 'minimap') continue;
+      else if (b.kind === 'top') {
+        drawButton(ctx, b, b.icon ? '' : b.label, p, { size: Math.min(26, b.h * 0.45) });
+        if (b.icon) drawSpellIcon(ctx, b.icon, b.x + b.w / 2, b.y + b.h / 2 + (p ? 2 : 0), b.h * 0.62);
+      } else drawButton(ctx, b, b.label, p, { size: 24, primary: true });
     }
 
     // Annonce (boss…)
@@ -130,6 +152,56 @@ export class HUD {
       ctx.fillStyle = 'rgba(25,15,8,0.8)'; ctx.fill();
       text(ctx, msg, W / 2, barY - 27, 20, COL.text, 'center', 'middle');
     }
+  }
+
+  // ---------- Mini-carte ----------
+  _minimap(ctx, game, camera) {
+    const { x, y, w, h } = MAP;
+    const k = w / CONFIG.world.width;
+    roundRectPath(ctx, x, y, w, h, 8);
+    ctx.fillStyle = 'rgba(25,15,8,0.82)'; ctx.fill();
+    ctx.save();
+    roundRectPath(ctx, x, y, w, h, 8); ctx.clip();
+    // sol
+    ctx.fillStyle = 'rgba(140,100,60,0.35)';
+    ctx.fillRect(x, y + h - 12, w, 12);
+    // bases
+    const pb = game.bases.player, eb = game.bases.enemy;
+    ctx.fillStyle = COL.good; ctx.fillRect(x + 3, y + h - 24, (pb.faceX) * k - 3, 14);
+    ctx.fillStyle = COL.bad; ctx.fillRect(x + eb.faceX * k, y + h - 24, w - eb.faceX * k - 3, 14);
+    // unités
+    for (const u of game.units) {
+      if (!u.alive) continue;
+      const big = u.def.bodyHeight > 90 ? 3 : 0;
+      ctx.fillStyle = u.side === 'player' ? '#9cf07a' : '#ff6a4a';
+      ctx.fillRect(x + u.x * k - 1.5 - big / 2, y + h - 18 - (u.side === 'player' ? 4 : 0) - big, 3 + big, 3 + big);
+    }
+    // cadre de la caméra
+    ctx.strokeStyle = COL.yellow; ctx.lineWidth = 2;
+    ctx.strokeRect(x + camera.x * k, y + 3, CONFIG.display.width * k, h - 6);
+    ctx.restore();
+    roundRectPath(ctx, x, y, w, h, 8);
+    ctx.lineWidth = 3; ctx.strokeStyle = COL.dark; ctx.stroke();
+  }
+
+  // Position du monde correspondant à un x de la mini-carte
+  minimapToWorld(px) {
+    return ((px - MAP.x) / MAP.w) * CONFIG.world.width;
+  }
+
+  // Message temporaire (ex. plein écran indisponible)
+  drawToast(ctx, msg) {
+    ctx.font = `bold 20px ${FONT}`;
+    const lines = msg.split('\n');
+    let w = 0;
+    for (const l of lines) w = Math.max(w, ctx.measureText(l).width);
+    w += 40;
+    const h = 24 + lines.length * 28;
+    const x = W / 2 - w / 2, y = 250;
+    roundRectPath(ctx, x, y, w, h, 12);
+    ctx.fillStyle = 'rgba(25,15,8,0.92)'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#8a6a48'; ctx.stroke();
+    lines.forEach((l, i) => text(ctx, l, W / 2, y + 30 + i * 28, 20, COL.text, 'center', 'middle'));
   }
 
   // ---------- Infobulle ----------
@@ -179,6 +251,8 @@ export class HUD {
 
   // ---------- Éléments ----------
   _hpBar(ctx, x, y, w, h, base, color, label, rtl) {
+    // la barre clignote quand la base prend des coups
+    if (base.hitFlash > 0) { roundRectPath(ctx, x - 3, y - 3, w + 6, h + 6, 10); ctx.fillStyle = 'rgba(255,220,180,0.5)'; ctx.fill(); }
     roundRectPath(ctx, x, y, w, h, 8);
     ctx.fillStyle = 'rgba(25,15,8,0.8)';
     ctx.fill();

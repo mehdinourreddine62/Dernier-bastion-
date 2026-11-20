@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js';
+import { CONFIG } from '../config.js?v=3';
 
 // L'ordinateur (Mutants). Une décision par seconde (réglable par niveau) :
 //  1. améliore son revenu selon le profil du niveau ;
