@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=10';
+import { CONFIG } from '../config.js?v=11';
 
 // Décor en parallaxe : ciel (fixe), ruines lointaines, ruines proches, sol avec débris,
 // et quelques débris au premier plan. Les couches lointaines et le sol sont dessinés

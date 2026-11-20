@@ -1,10 +1,10 @@
-import { CONFIG } from '../config.js?v=10';
-import { Unit, bonusMultiplier } from './Unit.js?v=10';
-import { Base } from './Base.js?v=10';
-import { ProjectilePool } from './Projectile.js?v=10';
-import { Particles } from './Particles.js?v=10';
-import { Spells } from './Spell.js?v=10';
-import { AI } from './AI.js?v=10';
+import { CONFIG } from '../config.js?v=11';
+import { Unit, bonusMultiplier } from './Unit.js?v=11';
+import { Base } from './Base.js?v=11';
+import { ProjectilePool } from './Projectile.js?v=11';
+import { Particles } from './Particles.js?v=11';
+import { Spells } from './Spell.js?v=11';
+import { AI } from './AI.js?v=11';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;

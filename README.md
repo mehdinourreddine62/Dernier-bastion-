@@ -84,11 +84,19 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=10` par `?v=11` (dans `index.html` et dans tous les fichiers de `src/`, avec un
-« rechercher / remplacer dans les fichiers » de ton éditeur). Pour un simple test, ouvre la page
-en **navigation privée**.
+`?v=11` par `?v=12` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+« rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
+l'application installée : elle télécharge la nouvelle version au lancement suivant.
+Pour un simple test, ouvre la page en **navigation privée**.
 
 ---
+
+### Application installable (hors connexion)
+Le jeu peut s'installer sur l'écran d'accueil comme une appli (bouton **INSTALLER** de l'écran
+titre ; sur iPhone : « Partager » → « Sur l'écran d'accueil »). Il s'ouvre alors en plein écran
+et fonctionne **sans internet**. Fichiers concernés : `manifest.webmanifest` (nom, icône,
+orientation), `sw.js` (copie hors connexion ; si tu ajoutes un fichier dans `src/`, ajoute-le
+aussi à la liste `FILES` de `sw.js`) et `icons/` (icônes, générées par `tools/make-icons.html`).
 
 ## 4. Sauvegarde
 

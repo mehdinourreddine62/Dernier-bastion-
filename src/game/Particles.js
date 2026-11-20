@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=10';
+import { CONFIG } from '../config.js?v=11';
 
 // Effets visuels : étincelles, fumée, flammes, explosions, débris, soins, chiffres.
 // Tout est en pool : on recycle les plus anciens au lieu de créer des objets.

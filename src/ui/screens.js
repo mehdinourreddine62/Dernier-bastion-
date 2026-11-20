@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=10';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=10';
-import { objectiveText } from '../progress.js?v=10';
+import { CONFIG } from '../config.js?v=11';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=11';
+import { objectiveText } from '../progress.js?v=11';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -52,8 +52,15 @@ const drawAll = (ctx, buttons, pressed, size = 28) => {
 };
 
 // ---------- Titre ----------
-export function titleButtons(view) {
-  return column(view, [['play', 'JOUER', true], ['workshop', 'ATELIER'], ['options', 'OPTIONS']], 300);
+export function titleButtons(view, canInstall) {
+  const btns = column(view, [['play', 'JOUER', true], ['workshop', 'ATELIER'], ['options', 'OPTIONS']], 300);
+  // Bouton « Installer » discret en bas à droite (absent si le jeu est déjà installé)
+  if (canInstall) {
+    const m = minSize(view);
+    const w = Math.max(190, m), h = Math.max(54, m);
+    btns.push({ id: 'install', label: '⬇ INSTALLER', small: true, enabled: true, x: W - w - 20, y: H - h - 20, w, h });
+  }
+  return btns;
 }
 
 export function drawTitle(ctx, buttons, pressed, progress, stats) {
@@ -61,7 +68,7 @@ export function drawTitle(ctx, buttons, pressed, progress, stats) {
   bigTitle(ctx, 'DERNIER BASTION', 150, 96);
   text(ctx, 'Survivants contre Mutants', W / 2, 230, 30, COL.text, 'center', 'middle');
   drawAll(ctx, buttons, pressed, 32);
-  const last = buttons[buttons.length - 1];
+  const last = buttons.find((b) => b.id === 'options');
   text(ctx, `★ ${stats.stars} / ${CONFIG.levels.length * 3}     Pièces détachées : ${progress.parts}`,
     W / 2, Math.min(H - 24, last.y + last.h + 40), 22, COL.yellow, 'center', 'middle');
 }

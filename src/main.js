@@ -1,17 +1,17 @@
-import { CONFIG } from './config.js?v=10';
-import { Game } from './game/Game.js?v=10';
-import { Camera } from './game/Camera.js?v=10';
-import { Renderer } from './render/Renderer.js?v=10';
-import { HUD } from './ui/HUD.js?v=10';
-import { Input } from './ui/input.js?v=10';
-import * as screens from './ui/screens.js?v=10';
-import * as campaign from './ui/campaign.js?v=10';
-import * as workshop from './ui/workshop.js?v=10';
-import { Tutorial } from './ui/tutorial.js?v=10';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=10';
-import { Sfx } from './audio/sfx.js?v=10';
-import { Music } from './audio/music.js?v=10';
-import { loadSave, writeSave } from './save.js?v=10';
+import { CONFIG } from './config.js?v=11';
+import { Game } from './game/Game.js?v=11';
+import { Camera } from './game/Camera.js?v=11';
+import { Renderer } from './render/Renderer.js?v=11';
+import { HUD } from './ui/HUD.js?v=11';
+import { Input } from './ui/input.js?v=11';
+import * as screens from './ui/screens.js?v=11';
+import * as campaign from './ui/campaign.js?v=11';
+import * as workshop from './ui/workshop.js?v=11';
+import { Tutorial } from './ui/tutorial.js?v=11';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=11';
+import { Sfx } from './audio/sfx.js?v=11';
+import { Music } from './audio/music.js?v=11';
+import { loadSave, writeSave } from './save.js?v=11';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
@@ -101,11 +101,36 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) autoP
 // Le son ne peut démarrer qu'après une interaction de l'utilisateur
 input.onInteract = () => sfx.unlock();
 
+// ---------- Application installée ----------
+// Lancé depuis l'icône de l'écran d'accueil ?
+const isInstalled = () => window.matchMedia('(display-mode: fullscreen)').matches ||
+  window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installPrompt = null;   // proposé par Chrome/Android quand le jeu est installable
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+window.addEventListener('appinstalled', () => { installPrompt = null; showToast('Dernier Bastion est installé !', 3); });
+
+function installApp() {
+  if (installPrompt) {
+    installPrompt.prompt();
+    installPrompt.userChoice.finally(() => { installPrompt = null; });
+  } else if (isIOS) {
+    showToast("Pour installer le jeu : touche « Partager »\npuis « Sur l'écran d'accueil ».", 6);
+  } else {
+    showToast("Pour installer le jeu : ouvre le menu du navigateur\npuis « Installer l'application ».", 6);
+  }
+}
+
 // ---------- Plein écran ----------
 function toggleFullscreen() {
   const d = document;
   const el = d.documentElement;
   const isFs = d.fullscreenElement || d.webkitFullscreenElement;
+  if (isInstalled() && !isFs && !el.requestFullscreen && !el.webkitRequestFullscreen) {
+    showToast('Le jeu est déjà en plein écran.', 2.5);
+    return;
+  }
   try {
     if (isFs) {
       (d.exitFullscreen || d.webkitExitFullscreen).call(d);
@@ -175,7 +200,7 @@ function overlayState() {
 function buildButtons() {
   switch (overlayState()) {
     case 'confirm': return screens.confirmButtons(view);
-    case 'title': return screens.titleButtons(view);
+    case 'title': return screens.titleButtons(view, !isInstalled());
     case 'options': return screens.optionsButtons(view, settings, QUALITY_LABEL[settings.quality]);
     case 'map': return campaign.mapButtons(view, progress, mapInfo);
     case 'workshop': return workshop.workshopButtons(view, progress);
@@ -232,6 +257,7 @@ input.onButton = (b) => {
     // --- menus ---
     case 'play': goToMap(); break;
     case 'options': screen = 'options'; break;
+    case 'install': installApp(); break;
     case 'workshop': screen = 'workshop'; game = null; cancelAim(); break;
     case 'back': screen = screen === 'workshop' ? 'map' : 'title'; break;
     case 'eraseSave':

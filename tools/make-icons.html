@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- Générateur des icônes de l'application (dessinées en code, comme le reste du jeu).
+     Ouvre cette page via le serveur local (ex. http://localhost:8000/tools/make-icons.html),
+     puis clique sur chaque icône pour la télécharger dans le dossier icons/. -->
+<html lang="fr"><head><meta charset="utf-8"><title>Icônes Dernier Bastion</title></head>
+<body style="background:#222;color:#eee;font-family:sans-serif">
+<p>Clique sur une icône pour la télécharger.</p>
+<div id="out"></div>
+<script type="module">
+import { drawIcon } from '../src/render/appIcon.js?v=11';
+for (const [size, name] of [[512, 'icon-512.png'], [192, 'icon-192.png'], [180, 'apple-touch-icon.png']]) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  drawIcon(c.getContext('2d'), size);
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png'); a.download = name; a.title = name;
+  a.appendChild(c); c.style.margin = '8px'; c.style.width = Math.min(size, 256) + 'px';
+  document.getElementById('out').appendChild(a);
+}
+window.ICONS_READY = true;
+</script>
+</body></html>

@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=10';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=10';
+import { CONFIG } from '../config.js?v=11';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=11';
 
 // Tutoriel guidé du niveau 1. Chaque bulle met le jeu en pause et montre un élément.
 // Certaines attendent une action (recruter, viser…), d'autres un simple « OK ».
