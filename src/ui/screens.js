@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=6';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=6';
+import { CONFIG } from '../config.js?v=8';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=8';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -66,13 +66,23 @@ export function drawTitle(ctx, buttons, pressed, progress, stats) {
 }
 
 // ---------- Options (depuis le titre) ----------
-export function optionsButtons(view, settings) {
-  return column(view, [
-    ['toggleSound', 'SON : ' + (settings.sound ? 'OUI' : 'NON')],
-    ['toggleShake', 'SECOUSSES : ' + (settings.shake ? 'OUI' : 'NON')],
-    ['eraseSave', 'EFFACER LA SAUVEGARDE'],
-    ['back', 'RETOUR', true],
-  ], 200, 440);
+export function optionsButtons(view, settings, qualityLabel) {
+  const h = Math.max(66, minSize(view));
+  const gap = 14, w = 300, full = 2 * w + gap;
+  const x0 = (W - full) / 2, x1 = x0 + w + gap;
+  let y = 170;
+  const b = (id, label, x, bw, primary) => ({ id, label, x, y, w: bw, h, enabled: true, primary });
+  const out = [
+    b('toggleSound', 'SON : ' + (settings.sound ? 'OUI' : 'NON'), x0, w),
+    b('toggleShake', 'SECOUSSES : ' + (settings.shake ? 'OUI' : 'NON'), x1, w),
+  ];
+  y += h + gap;
+  out.push(b('quality', 'QUALITÉ : ' + qualityLabel, x0, w), b('replayTuto', 'REVOIR LE TUTORIEL', x1, w));
+  y += h + gap;
+  out.push(b('eraseSave', 'EFFACER LA SAUVEGARDE', x0, full));
+  y += h + gap;
+  out.push(b('back', 'RETOUR', x0, full, true));
+  return out;
 }
 
 export function drawOptions(ctx, buttons, pressed) {

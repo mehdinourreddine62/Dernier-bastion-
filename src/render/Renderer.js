@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=6';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=6';
-import { Backdrop } from './background.js?v=6';
-import { drawFort, drawNest } from './bases.js?v=6';
+import { CONFIG } from '../config.js?v=8';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=8';
+import { Backdrop } from './background.js?v=8';
+import { drawFort, drawNest } from './bases.js?v=8';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -18,12 +18,54 @@ export class Renderer {
     this.res = 1;
     this.drawList = [];
     this.pose = { walk: 0, atk: 0, flash: false, moving: false, time: 0, dark: false };
+    this.cache = new Map();   // images d'animation déjà dessinées (voir _frame)
+    this.cacheRes = 1;
+    this.lowFx = false;       // qualité basse : moins d'effets (réglé par main.js)
   }
 
   // Décor du niveau (redessiné seulement si le niveau ou la résolution change)
   prepare(levelId, res) {
     if (!this.backdrop || this.backdrop.levelId !== levelId) this.backdrop = new Backdrop(levelId);
     this.backdrop.ensure(res);
+    // Résolution des images d'unités en cache (plafonnée pour la mémoire)
+    const cr = Math.max(0.75, Math.min(1.25, Math.round(res * 4) / 4));
+    if (cr !== this.cacheRes) { this.cacheRes = cr; this.cache.clear(); }
+  }
+
+  // Image d'animation en cache : chaque position (marche, attaque, flash…) est dessinée
+  // une seule fois, puis simplement recopiée. Indispensable avec 200 unités à l'écran.
+  _frame(u, pose) {
+    const TAU = Math.PI * 2;
+    let key;
+    if (pose.flash) {
+      key = 'F' + (pose.moving ? 1 : 0);
+      pose.walk = 0.4; pose.atk = 0; pose.time = 0;
+    } else if (pose.moving) {
+      const wf = Math.floor((((u.walk % TAU) + TAU) % TAU) / TAU * 12) % 12;
+      key = 'w' + wf;
+      pose.walk = ((wf + 0.5) / 12) * TAU; pose.atk = 0; pose.time = 0;
+    } else {
+      const af = pose.atk > 0 ? 1 + Math.min(4, Math.floor(pose.atk * 5)) : 0;
+      const tf = Math.floor(pose.time * 1.2) % 2;
+      key = 'i' + af + 't' + tf;
+      pose.atk = af ? (af - 0.5) / 5 : 0; pose.time = tf * 0.8; pose.walk = 0;
+    }
+    if (pose.dark) key += 'D';
+    key = u.defId + ':' + key;
+    let f = this.cache.get(key);
+    if (!f) {
+      const def = u.def;
+      const w = Math.ceil(def.bodyWidth * 1.4 + 140), h = Math.ceil(def.bodyHeight + 80);
+      const r = this.cacheRes;
+      const cv = document.createElement('canvas');
+      cv.width = Math.ceil(w * r); cv.height = Math.ceil(h * r);
+      const c = cv.getContext('2d');
+      c.setTransform(r, 0, 0, r, (w / 2) * r, (h - 12) * r);
+      drawSprite(c, u.defId, pose);
+      f = { cv, w, h, ox: w / 2, oy: h - 12 };
+      this.cache.set(key, f);
+    }
+    return f;
   }
 
   // Décor seul (écran titre)
@@ -65,9 +107,12 @@ export class Renderer {
     this._particles(ctx, game.fx, camera);
     ctx.restore();
 
-    b.drawForeground(ctx, camera.x);
-    b.drawAir(ctx, camera.x, time);
-    this._vignette(ctx);
+    // Qualité basse : on saute le premier plan, l'ambiance et le vignettage
+    if (!this.lowFx) {
+      b.drawForeground(ctx, camera.x);
+      b.drawAir(ctx, camera.x, time);
+      this._vignette(ctx);
+    }
   }
 
   _vignette(ctx) {
@@ -152,7 +197,8 @@ export class Renderer {
       const fadeStart = c.corpseTime - c.deathFadeTime;
       if (t > fadeStart) ctx.globalAlpha = Math.max(0, 1 - (t - fadeStart) / c.deathFadeTime);
     }
-    drawSprite(ctx, u.defId, pose);
+    const f = this._frame(u, pose);
+    ctx.drawImage(f.cv, -f.ox, -f.oy, f.w, f.h);
     ctx.restore();
 
     // Lumière du tir (flash de bouche du canon / crachat)
@@ -167,6 +213,7 @@ export class Renderer {
   }
 
   _glow(ctx, x, y, r, rgb, a) {
+    if (this.lowFx) return;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const g = ctx.createRadialGradient(x, y, 1, x, y, r);
@@ -325,7 +372,7 @@ export class Renderer {
         ctx.globalAlpha = Math.min(1, (k - 0.3) * 2.5);
         ctx.fillStyle = k > 0.8 ? '#ffd27a' : k > 0.55 ? '#ff9a3a' : '#c8401e';
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1.5 - k * 0.6), 0, Math.PI * 2); ctx.fill();
-      } else if (p.kind === 'glow') {
+      } else if (p.kind === 'glow' && !this.lowFx) {
         const g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.size);
         g.addColorStop(0, p.color); g.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.globalAlpha = k * 0.8;

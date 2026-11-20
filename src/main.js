@@ -1,25 +1,27 @@
-import { CONFIG } from './config.js?v=6';
-import { Game } from './game/Game.js?v=6';
-import { Camera } from './game/Camera.js?v=6';
-import { Renderer } from './render/Renderer.js?v=6';
-import { HUD } from './ui/HUD.js?v=6';
-import { Input } from './ui/input.js?v=6';
-import * as screens from './ui/screens.js?v=6';
-import * as campaign from './ui/campaign.js?v=6';
-import * as workshop from './ui/workshop.js?v=6';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=6';
-import { Sfx } from './audio/sfx.js?v=6';
-import { loadSave, writeSave } from './save.js?v=6';
+import { CONFIG } from './config.js?v=8';
+import { Game } from './game/Game.js?v=8';
+import { Camera } from './game/Camera.js?v=8';
+import { Renderer } from './render/Renderer.js?v=8';
+import { HUD } from './ui/HUD.js?v=8';
+import { Input } from './ui/input.js?v=8';
+import * as screens from './ui/screens.js?v=8';
+import * as campaign from './ui/campaign.js?v=8';
+import * as workshop from './ui/workshop.js?v=8';
+import { Tutorial } from './ui/tutorial.js?v=8';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=8';
+import { Sfx } from './audio/sfx.js?v=8';
+import { loadSave, writeSave } from './save.js?v=8';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
 const wrap = document.getElementById('wrap');
 const ctx = canvas.getContext('2d');
 const view = { scale: 1, ox: 0, oy: 0, dpr: 1 };   // mise à l'échelle écran <-> monde logique
+let dprCap = CONFIG.display.maxPixelRatio;           // abaissé en qualité basse
 
 function resize() {
   const r = wrap.getBoundingClientRect();
-  view.dpr = Math.min(window.devicePixelRatio || 1, CONFIG.display.maxPixelRatio);
+  view.dpr = Math.min(window.devicePixelRatio || 1, dprCap);
   canvas.width = Math.max(1, Math.round(r.width * view.dpr));
   canvas.height = Math.max(1, Math.round(r.height * view.dpr));
   view.scale = Math.min(r.width / CONFIG.display.width, r.height / CONFIG.display.height);
@@ -43,12 +45,25 @@ let selectedLevel = 0;
 let mapInfo = null;      // niveau dont la fiche est ouverte sur la carte
 let confirm = null;      // demande de confirmation { text, onYes }
 let reward = null;       // gains de la dernière partie (écran de fin)
+let tutorial = null;     // tutoriel en cours (niveau 1, première fois)
+// Qualité : 'auto' (baisse toute seule si le jeu rame), 'high' ou 'low'
+if (!settings.quality) settings.quality = 'auto';
+let autoLow = false;
+let frameEma = 16.7, slowTime = 0;
+function applyQuality() {
+  const low = settings.quality === 'low' || (settings.quality === 'auto' && autoLow);
+  renderer.lowFx = low;
+  const cap = low ? 1 : CONFIG.display.maxPixelRatio;
+  if (cap !== dprCap) { dprCap = cap; resize(); }
+}
+const QUALITY_LABEL = { auto: 'AUTO', high: 'HAUTE', low: 'BASSE' };
 const camera = new Camera();
 const renderer = new Renderer();
 const hud = new HUD();
 const input = new Input(canvas, view);
 const sfx = new Sfx();
 sfx.setEnabled(settings.sound);
+applyQuality();
 let buttons = [];
 let shake = 0;                           // intensité de la secousse d'écran (0..1)
 let toast = null;                        // { text, time }
@@ -66,6 +81,7 @@ function showToast(text, time = 4) { toast = { text, time }; }
 function startGame() {
   game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked });
   reward = null;
+  tutorial = selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
   game.speed = CONFIG.loop.speeds[settings.speedIndex] || 1;
   camera.reset();
   cancelAim();
@@ -129,7 +145,10 @@ input.onAim = (x, y, phase, type) => {
   aim.visible = inField(y);
   aim.pointer = phase === 'down' || phase === 'move' ? type : null;
   if (phase === 'up') {
-    if (inField(y) && game.spells.cast(aim.spell, camera.x + x)) cancelAim();
+    if (inField(y) && game.spells.cast(aim.spell, camera.x + x)) {
+      cancelAim();
+      if (tutorial) tutorial.notify('cast');
+    }
   }
 };
 input.onCancel = () => cancelAim();
@@ -145,6 +164,7 @@ function overlayState() {
   if (screen !== 'playing') return screen;
   if (game.paused) return 'pause';
   if (game.result && game.resultTime > CONFIG.combat.resultOverlayDelay) return 'end';
+  if (tutorial && tutorial.showing && !game.result) return 'tuto';
   return 'hud';
 }
 
@@ -152,11 +172,17 @@ function buildButtons() {
   switch (overlayState()) {
     case 'confirm': return screens.confirmButtons(view);
     case 'title': return screens.titleButtons(view);
-    case 'options': return screens.optionsButtons(view, settings);
+    case 'options': return screens.optionsButtons(view, settings, QUALITY_LABEL[settings.quality]);
     case 'map': return campaign.mapButtons(view, progress, mapInfo);
     case 'workshop': return workshop.workshopButtons(view, progress);
     case 'pause': return screens.pauseButtons(view, settings);
     case 'end': return screens.endButtons(view, game);
+    case 'tuto': {
+      // Pendant une bulle : seuls les boutons utiles à l'étape restent actifs
+      const all = hud.build(game, view, aim && aim.spell, settings);
+      const allowed = tutorial.allowedIds();
+      return [...all.filter((b) => allowed.includes(b.id)), ...tutorial.buttons(view, tutorial.targetRect(all, hud))];
+    }
     default: return game.result ? [] : hud.build(game, view, aim && aim.spell, settings);
   }
 }
@@ -177,7 +203,11 @@ function goToMap() {
 }
 
 input.onButton = (b) => {
-  if (b.kind === 'unit') { if (!game.recruit('player', b.unit)) sfx.play('deny'); return; }
+  if (b.kind === 'unit') {
+    if (!game.recruit('player', b.unit)) sfx.play('deny');
+    else if (tutorial) tutorial.notify('recruit:' + b.unit);
+    return;
+  }
   if (b.kind === 'spell') { startAim(b.spell); return; }
   sfx.play('click');
   // Carte : toucher une étape ouvre sa fiche
@@ -219,7 +249,16 @@ input.onButton = (b) => {
     case 'launch': selectedLevel = mapInfo; mapInfo = null; startGame(); break;
     case 'closeInfo': mapInfo = null; break;
     // --- en partie ---
-    case 'income': game.upgradeIncome('player'); break;
+    case 'income': if (game.upgradeIncome('player') && tutorial) tutorial.notify('income'); break;
+    case 'tutoOk': tutorial.next(); break;
+    case 'tutoSkip': tutorial.skip(); break;
+    case 'quality': {
+      const order = ['auto', 'high', 'low'];
+      settings.quality = order[(order.indexOf(settings.quality) + 1) % order.length];
+      autoLow = false; applyQuality(); saveSettings();
+      break;
+    }
+    case 'replayTuto': progress.tutorialDone = false; saveAll(); showToast('Le tutoriel se lancera au niveau 1.', 2.5); break;
     case 'cancelAim': cancelAim(); break;
     case 'restart': startGame(); break;
     case 'next': selectedLevel = Math.min(CONFIG.levels.length - 1, selectedLevel + 1); startGame(); break;
@@ -246,7 +285,7 @@ input.onButton = (b) => {
 };
 
 // Caméra : glisser, molette
-const canScroll = () => screen === 'playing' && game && !game.paused && overlayState() === 'hud';
+const canScroll = () => screen === 'playing' && game && !game.paused && ['hud', 'tuto'].includes(overlayState());
 input.onDrag = (dx) => { if (canScroll()) camera.move(-dx); };
 input.onWheel = (d) => { if (canScroll()) camera.move(d * CONFIG.camera.wheelFactor); };
 
@@ -269,7 +308,7 @@ input.onKey = (e) => {
     if (!game.result) { game.paused = !game.paused; cancelAim(); }
     return;
   }
-  if (game.paused || game.result) return;
+  if (game.paused || game.result || overlayState() === 'tuto') return;
   const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
   if (m) {
     const id = CONFIG.roster.player.filter((u) => game.isUnlocked('player', u))[Number(m[1]) - 1];
@@ -318,8 +357,23 @@ function frame(now) {
     else if (aim.sx > CONFIG.display.width - z) camera.move(CONFIG.camera.edgeScrollSpeed * delta);
   }
 
+  // Qualité automatique : si le jeu rame plusieurs secondes, on allège le rendu
+  if (settings.quality === 'auto' && !autoLow && screen === 'playing' && delta < 0.1) {
+    frameEma = frameEma * 0.95 + delta * 1000 * 0.05;
+    slowTime = frameEma > 20 ? slowTime + delta : 0;
+    if (slowTime > 3) { autoLow = true; applyQuality(); showToast('Qualité réduite automatiquement pour rester fluide.', 3); }
+  }
+
+  // Tutoriel : une bulle met le jeu en pause jusqu'à l'action demandée
+  if (tutorial && screen === 'playing' && !game.paused && !game.result) {
+    tutorial.update(game, camera);
+    if (tutorial.showing && tutorial.step.wait === 'scroll' && camera.x > 250) tutorial.notify('scroll');
+    if (tutorial.done) { progress.tutorialDone = true; saveAll(); tutorial = null; }
+  }
+  const frozen = tutorial && tutorial.showing;
+
   // Simulation à pas fixe
-  if (screen === 'playing' && !game.paused) {
+  if (screen === 'playing' && !game.paused && !frozen) {
     acc += delta * game.speed;
     while (acc >= CONFIG.loop.fixedStep) {
       game.update(CONFIG.loop.fixedStep);
@@ -396,6 +450,10 @@ function render(time) {
   if (state === 'hud') {
     const tb = tooltipButton();
     if (tb) hud.drawTooltip(ctx, tb, game);
+  }
+  if (state === 'tuto' && !aim) {
+    const all = hud.buttons;
+    tutorial.draw(ctx, tutorial.targetRect(all, hud), buttons.filter((b) => b.id.startsWith('tuto')), input.pressed, time);
   }
   if (state === 'pause') screens.drawPause(ctx, buttons, input.pressed);
   else if (state === 'end') screens.drawEnd(ctx, game, buttons, input.pressed, reward);

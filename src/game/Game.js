@@ -1,12 +1,13 @@
-import { CONFIG } from '../config.js?v=6';
-import { Unit, bonusMultiplier } from './Unit.js?v=6';
-import { Base } from './Base.js?v=6';
-import { ProjectilePool } from './Projectile.js?v=6';
-import { Particles } from './Particles.js?v=6';
-import { Spells } from './Spell.js?v=6';
-import { AI } from './AI.js?v=6';
+import { CONFIG } from '../config.js?v=8';
+import { Unit, bonusMultiplier } from './Unit.js?v=8';
+import { Base } from './Base.js?v=8';
+import { ProjectilePool } from './Projectile.js?v=8';
+import { Particles } from './Particles.js?v=8';
+import { Spells } from './Spell.js?v=8';
+import { AI } from './AI.js?v=8';
 
 const SIDES = ['player', 'enemy'];
+const byX = (a, b) => a.x - b.x;
 const MAX_EVENTS = 120;
 
 // État d'une partie : bases, unités, ressources, file de recrutement, sorts, IA.
@@ -31,8 +32,10 @@ export class Game {
       player: this._makeSide(1),
       enemy: this._makeSide(this.level.aiIncomeMult),
     };
+    if (this.level.aiStartScrap !== undefined) this.sides.enemy.scrap = this.level.aiStartScrap;
     if (opts.mods) Object.assign(this.sides.player.mods, opts.mods);
     this.units = [];
+    this.byX = { player: [], enemy: [] };   // unités vivantes de chaque camp, triées par position
     this.bases = {
       player: new Base('player', this.level, this.sides.player.mods),
       enemy: new Base('enemy', this.level, this.sides.enemy.mods),
@@ -259,6 +262,14 @@ export class Game {
     });
   }
 
+  // Listes triées par position (recherche de cible rapide, même avec 200 unités)
+  _sortUnits() {
+    const P = this.byX.player, E = this.byX.enemy;
+    P.length = 0; E.length = 0;
+    for (const u of this.units) if (u.alive) (u.side === 'player' ? P : E).push(u);
+    P.sort(byX); E.sort(byX);
+  }
+
   // ---------- Boucle ----------
 
   update(dt) {
@@ -299,6 +310,7 @@ export class Game {
 
     this.ai.update(dt);
     this.spells.update(dt);
+    this._sortUnits();
 
     const n = this.units.length;
     for (let i = 0; i < n; i++) this.units[i].update(dt, this);

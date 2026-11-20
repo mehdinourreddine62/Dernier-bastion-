@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=6';
-import { Entity } from './Entity.js?v=6';
+import { CONFIG } from '../config.js?v=8';
+import { Entity } from './Entity.js?v=8';
 
 // Une base (fort des Survivants ou nid des Mutants), avec sa tourelle automatique :
 // mitrailleuse pour le fort, tentacule cracheur pour le nid.
@@ -77,14 +77,12 @@ export class Base extends Entity {
     this.turretCd = Math.max(0, this.turretCd - dt);
 
     // Ennemi le plus proche de l'avant de la base, à portée
+    // (liste triée par position : l'ennemi le plus proche est à une extrémité)
+    const L = game.byX[this.side === 'player' ? 'enemy' : 'player'];
     let target = null;
-    let best = Infinity;
-    for (const u of game.units) {
-      if (u.side === this.side || !u.alive) continue;
-      const d = (u.x - this.faceX) * this.dir;
-      if (d <= t.range && d < best) { best = d; target = u; }
-    }
-    if (!target) return;
+    if (this.dir > 0) { for (let i = 0; i < L.length; i++) if (L[i].alive) { target = L[i]; break; } }
+    else { for (let i = L.length - 1; i >= 0; i--) if (L[i].alive) { target = L[i]; break; } }
+    if (!target || (target.x - this.faceX) * this.dir > t.range) return;
 
     this.turretAngle = Math.atan2(target.aimY - this.pivot.y, target.x - this.pivot.x);
     if (this.turretCd > 0) return;

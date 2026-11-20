@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=6';
-import { Entity } from './Entity.js?v=6';
+import { CONFIG } from '../config.js?v=8';
+import { Entity } from './Entity.js?v=8';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -14,6 +14,16 @@ export function bonusMultiplier(attackerDef, target) {
 }
 
 const NO_BONUS = { hp: 1, damage: 1 };
+
+// Premier indice de la liste (triée par x) dont la position est >= x
+export function lowerBound(list, x) {
+  let lo = 0, hi = list.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (list[mid].x < x) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
 
 // Une unité (Survivant ou Mutant). Avance, s'arrête devant un ennemi, attaque.
 export class Unit extends Entity {
@@ -76,15 +86,16 @@ export class Unit extends Entity {
   // unitsOnly : en soutien, on ne frappe que les unités (pas la base)
   findTarget(game, range, unitsOnly = false) {
     const tol = CONFIG.combat.targetBehindTolerance;
+    // Liste des ennemis triée par position : on cherche le premier devant moi
+    // (derrière moi : ignoré, on ne recule jamais)
+    const L = game.byX[this.side === 'player' ? 'enemy' : 'player'];
     let best = null;
-    let bestD = Infinity;
-    for (const e of game.units) {
-      if (e.side === this.side || !e.alive) continue;
-      const d = (e.x - this.x) * this.dir;
-      if (d < -tol) continue;                 // derrière moi : on ne recule jamais
-      if (d < bestD) { bestD = d; best = e; }
+    if (this.dir > 0) {
+      for (let i = lowerBound(L, this.x - tol); i < L.length; i++) if (L[i].alive) { best = L[i]; break; }
+    } else {
+      for (let i = lowerBound(L, this.x + tol + 0.0001) - 1; i >= 0; i--) if (L[i].alive) { best = L[i]; break; }
     }
-    if (best && bestD <= range) return best;
+    if (best && (best.x - this.x) * this.dir <= range) return best;
     if (unitsOnly) return null;
 
     const base = game.bases[this.side === 'player' ? 'enemy' : 'player'];
@@ -96,13 +107,18 @@ export class Unit extends Entity {
   isBlocked(game) {
     if (this.def.range > CONFIG.combat.meleeWaitRange) return false;
     const gap = CONFIG.combat.blockGap;
-    for (const a of game.units) {
-      if (a === this || a.side !== this.side || !a.alive) continue;
+    const L = game.byX[this.side];
+    // Alliés juste devant moi (entre 0 et `gap`), via la liste triée
+    let i = this.dir > 0 ? lowerBound(L, this.x) : lowerBound(L, this.x) - 1;
+    for (; i >= 0 && i < L.length; i += this.dir) {
+      const a = L[i];
+      const d = (a.x - this.x) * this.dir;
+      if (d >= gap) break;
+      if (a === this || d <= 0 || !a.alive) continue;
       // On ne s'arrête que derrière une autre unité de corps à corps :
       // on dépasse les tireurs, lance-flammes et blindés pour les protéger
       if (a.def.range > CONFIG.combat.meleeWaitRange) continue;
-      const d = (a.x - this.x) * this.dir;
-      if (d > 0 && d < gap && (a.state === 'attack' || a.state === 'wait')) return true;
+      if (a.state === 'attack' || a.state === 'wait') return true;
     }
     return false;
   }
