@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Dernier Bastion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Zone de jeu : respecte l'encoche via les marges de sécurité (voir style.css) -->
+  <div id="wrap"><canvas id="game"></canvas></div>
+
+  <!-- Affiché uniquement sur téléphone tenu en portrait -->
+  <div id="rotate">
+    <div class="phone"></div>
+    <p>Tourne ton téléphone</p>
+    <small>Dernier Bastion se joue en mode paysage</small>
+  </div>
+
+  <noscript>Active JavaScript pour jouer à Dernier Bastion.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
