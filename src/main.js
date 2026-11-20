@@ -1,15 +1,15 @@
-import { CONFIG } from './config.js?v=5';
-import { Game } from './game/Game.js?v=5';
-import { Camera } from './game/Camera.js?v=5';
-import { Renderer } from './render/Renderer.js?v=5';
-import { HUD } from './ui/HUD.js?v=5';
-import { Input } from './ui/input.js?v=5';
-import * as screens from './ui/screens.js?v=5';
-import * as campaign from './ui/campaign.js?v=5';
-import * as workshop from './ui/workshop.js?v=5';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=5';
-import { Sfx } from './audio/sfx.js?v=5';
-import { loadSave, writeSave } from './save.js?v=5';
+import { CONFIG } from './config.js?v=6';
+import { Game } from './game/Game.js?v=6';
+import { Camera } from './game/Camera.js?v=6';
+import { Renderer } from './render/Renderer.js?v=6';
+import { HUD } from './ui/HUD.js?v=6';
+import { Input } from './ui/input.js?v=6';
+import * as screens from './ui/screens.js?v=6';
+import * as campaign from './ui/campaign.js?v=6';
+import * as workshop from './ui/workshop.js?v=6';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=6';
+import { Sfx } from './audio/sfx.js?v=6';
+import { loadSave, writeSave } from './save.js?v=6';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');

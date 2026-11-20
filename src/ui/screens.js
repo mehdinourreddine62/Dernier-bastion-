@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=5';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=5';
+import { CONFIG } from '../config.js?v=6';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=6';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons

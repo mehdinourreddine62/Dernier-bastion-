@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=5';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=5';
-import { Backdrop } from './background.js?v=5';
-import { drawFort, drawNest } from './bases.js?v=5';
+import { CONFIG } from '../config.js?v=6';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=6';
+import { Backdrop } from './background.js?v=6';
+import { drawFort, drawNest } from './bases.js?v=6';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {

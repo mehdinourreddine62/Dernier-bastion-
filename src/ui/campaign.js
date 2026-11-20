@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=5';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=5';
-import { unlocksAt } from '../progress.js?v=5';
+import { CONFIG } from '../config.js?v=6';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=6';
+import { unlocksAt } from '../progress.js?v=6';
 
 // Carte de campagne : une route qui traverse les 10 lieux en ruine.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).

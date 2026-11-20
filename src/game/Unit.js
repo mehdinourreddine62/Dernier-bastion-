@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=5';
-import { Entity } from './Entity.js?v=5';
+import { CONFIG } from '../config.js?v=6';
+import { Entity } from './Entity.js?v=6';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -92,12 +92,15 @@ export class Unit extends Entity {
     return null;
   }
 
-  // Les unités de mêlée attendent derrière un allié qui combat (ou attend déjà).
+  // Les unités de mêlée attendent derrière un allié de mêlée qui combat (ou attend déjà).
   isBlocked(game) {
     if (this.def.range > CONFIG.combat.meleeWaitRange) return false;
     const gap = CONFIG.combat.blockGap;
     for (const a of game.units) {
       if (a === this || a.side !== this.side || !a.alive) continue;
+      // On ne s'arrête que derrière une autre unité de corps à corps :
+      // on dépasse les tireurs, lance-flammes et blindés pour les protéger
+      if (a.def.range > CONFIG.combat.meleeWaitRange) continue;
       const d = (a.x - this.x) * this.dir;
       if (d > 0 && d < gap && (a.state === 'attack' || a.state === 'wait')) return true;
     }
