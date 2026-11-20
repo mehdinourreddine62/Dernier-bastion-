@@ -49,10 +49,14 @@ Modifie un chiffre, enregistre, recharge la page : c'est pris en compte.
 | `bases` | PV de ta base, puissance et portée de ta tourelle |
 | `units` | pour chaque unité : coût, PV, dégâts, cadence, portée, vitesse, recharge, bonus de type, niveau de déblocage |
 | `spells` | mortier et kit de soins : dégâts, rayon, recharge, niveau de déblocage |
-| `stars` | seuils des étoiles, pièces détachées gagnées par étoile et à la première victoire |
+| `stars` | pièces détachées gagnées par étoile et à la première victoire |
 | `workshop` | atelier : coûts des 5 niveaux et effet de chaque amélioration |
 | `ai` | comportement commun de l'ordinateur : contres, durée max d'économie, profils d'amélioration du revenu |
-| `levels` | pour chacun des 10 niveaux : PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
+| `levels` | pour chacun des 10 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
+
+**Étoiles** : 1 étoile pour la victoire + 1 par objectif rempli. Chaque niveau a deux objectifs
+dans `levels[].objectives` (types : `time` = gagner en moins de X secondes, `losses` = perdre au plus
+X unités, `baseHp` = garder au moins X % des PV de sa base).
 
 Exemples :
 - Rendre le Pillard moins cher : `units.pillard.cost: 50` → `40`.
@@ -80,7 +84,7 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=9` par `?v=10` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=10` par `?v=11` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Pour un simple test, ouvre la page
 en **navigation privée**.
 

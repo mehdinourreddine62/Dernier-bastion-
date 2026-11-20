@@ -1,5 +1,6 @@
-import { CONFIG } from '../config.js?v=9';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=9';
+import { CONFIG } from '../config.js?v=10';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=10';
+import { objectiveText } from '../progress.js?v=10';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -143,7 +144,14 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
   const dur = Math.floor(t / 60) + ' min ' + String(t % 60).padStart(2, '0') + ' s';
   text(ctx, won ? `Base restante : ${pct} %   ·   Durée : ${dur}` : `Le nid mutant a détruit ta base.   ·   Durée : ${dur}`,
     W / 2, 298, 21, COL.text, 'center', 'middle');
-  let y = 344;
+  // Objectifs d'étoiles : rempli (✓) ou raté (✗)
+  let y = 336;
+  for (const { obj, ok } of game.objectives) {
+    const done = won && ok;
+    text(ctx, (done ? '✓ ' : '✗ ') + objectiveText(obj), W / 2, y, 20, done ? COL.good : '#e88a6a', 'center', 'middle');
+    y += 28;
+  }
+  y += 14;
   if (reward && reward.parts > 0) {
     const detail = reward.firstWin ? ` (dont ${CONFIG.stars.firstWinBonus} de première victoire)` : '';
     text(ctx, `+${reward.parts} pièces détachées${detail}`, W / 2, y, 24, COL.yellow, 'center', 'middle');

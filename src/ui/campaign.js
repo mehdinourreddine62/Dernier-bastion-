@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=9';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=9';
-import { unlocksAt } from '../progress.js?v=9';
+import { CONFIG } from '../config.js?v=10';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=10';
+import { unlocksAt, objectiveText } from '../progress.js?v=10';
 
 // Carte de campagne : une route qui traverse les 10 lieux en ruine.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -198,6 +198,8 @@ export function drawLevelInfo(ctx, progress, index, buttons, pressed) {
   ];
   if (lv.bosses.length) lines.push([`Boss : Abomination${lv.bosses.length > 1 ? ' ×' + lv.bosses.length : ''}`, '#ff8a6a']);
   for (const m of unlocksAt(lv.id)) lines.push([m, COL.good]);
+  // Étoiles : victoire + objectifs
+  for (const o of lv.objectives || []) lines.push(['★ ' + objectiveText(o), '#f2d27a']);
   lines.push([`Récompense : ${CONFIG.stars.partsPerStar} pièces par nouvelle étoile` +
     (progress.won[lv.id] ? '' : ` (+${CONFIG.stars.firstWinBonus} à la 1re victoire)`), COL.yellow]);
   lines.forEach(([l, c], i) => text(ctx, l, W / 2, 278 + i * 34, 21, c, 'center', 'middle'));

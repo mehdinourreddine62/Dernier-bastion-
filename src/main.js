@@ -1,17 +1,17 @@
-import { CONFIG } from './config.js?v=9';
-import { Game } from './game/Game.js?v=9';
-import { Camera } from './game/Camera.js?v=9';
-import { Renderer } from './render/Renderer.js?v=9';
-import { HUD } from './ui/HUD.js?v=9';
-import { Input } from './ui/input.js?v=9';
-import * as screens from './ui/screens.js?v=9';
-import * as campaign from './ui/campaign.js?v=9';
-import * as workshop from './ui/workshop.js?v=9';
-import { Tutorial } from './ui/tutorial.js?v=9';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=9';
-import { Sfx } from './audio/sfx.js?v=9';
-import { Music } from './audio/music.js?v=9';
-import { loadSave, writeSave } from './save.js?v=9';
+import { CONFIG } from './config.js?v=10';
+import { Game } from './game/Game.js?v=10';
+import { Camera } from './game/Camera.js?v=10';
+import { Renderer } from './render/Renderer.js?v=10';
+import { HUD } from './ui/HUD.js?v=10';
+import { Input } from './ui/input.js?v=10';
+import * as screens from './ui/screens.js?v=10';
+import * as campaign from './ui/campaign.js?v=10';
+import * as workshop from './ui/workshop.js?v=10';
+import { Tutorial } from './ui/tutorial.js?v=10';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=10';
+import { Sfx } from './audio/sfx.js?v=10';
+import { Music } from './audio/music.js?v=10';
+import { loadSave, writeSave } from './save.js?v=10';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');

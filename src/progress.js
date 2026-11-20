@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=9';
+import { CONFIG } from './config.js?v=10';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
@@ -56,6 +56,17 @@ export function recordResult(p, levelIndex, won, stars) {
     res.messages.push(...unlocksAt(next.id));
   }
   return res;
+}
+
+// Texte d'un objectif d'étoile
+export function objectiveText(obj) {
+  if (obj.type === 'time') {
+    const m = Math.floor(obj.max / 60), s = obj.max % 60;
+    return 'Gagner en moins de ' + m + ' min' + (s ? ' ' + String(s).padStart(2, '0') : '');
+  }
+  if (obj.type === 'losses') return 'Perdre ' + obj.max + ' unités maximum';
+  if (obj.type === 'baseHp') return 'Garder ' + Math.round(obj.min * 100) + ' % des PV de ta base';
+  return '';
 }
 
 // ---------- Atelier ----------

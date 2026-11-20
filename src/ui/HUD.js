@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=9';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=9';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=9';
+import { CONFIG } from '../config.js?v=10';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=10';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=10';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -102,6 +102,7 @@ export class HUD {
     this._hpBar(ctx, W - 16 - BAR_W, 12, BAR_W, 34, game.bases.enemy, COL.bad, 'NID MUTANT', true);
     this._minimap(ctx, game, camera);
     this._bossBar(ctx, game);
+    this._objectives(ctx, game);
 
     // Barre du bas : panneau de tôle ondulée
     const barY = this.barY;
@@ -153,6 +154,26 @@ export class HUD {
       ctx.fillStyle = 'rgba(25,15,8,0.8)'; ctx.fill();
       text(ctx, msg, W / 2, barY - 27, 20, COL.text, 'center', 'middle');
     }
+  }
+
+  // Objectifs d'étoiles, sous ma barre de PV : vert si encore rempli, rouge si raté
+  _objectives(ctx, game) {
+    const objs = game.objectives;
+    if (!objs.length) return;
+    const x = 16, y = 52, w = 250, lh = 26;
+    roundRectPath(ctx, x, y, w, 10 + objs.length * lh, 8);
+    ctx.fillStyle = 'rgba(25,15,8,0.65)'; ctx.fill();
+    objs.forEach(({ obj, ok }, i) => {
+      const cy = y + 5 + lh / 2 + i * lh;
+      drawStar(ctx, x + 16, cy, 8, ok);
+      let label = '';
+      if (obj.type === 'time') {
+        const left = Math.max(0, obj.max - game.time);
+        label = ok ? 'Victoire avant ' + Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0') : 'Temps dépassé';
+      } else if (obj.type === 'losses') label = 'Pertes : ' + game.stats.lost + ' / ' + obj.max;
+      else if (obj.type === 'baseHp') label = 'Base ≥ ' + Math.round(obj.min * 100) + ' %';
+      text(ctx, label, x + 32, cy + 1, 16, ok ? COL.text : COL.bad, 'left', 'middle');
+    });
   }
 
   // Barre de vie du boss, sous la mini-carte, tant qu'il est vivant

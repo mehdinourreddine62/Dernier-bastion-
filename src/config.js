@@ -92,8 +92,12 @@ export const CONFIG = {
   },
 
   // ---------- Étoiles et récompenses ----------
+  // 1 étoile pour la victoire + 1 étoile par objectif rempli (voir levels[].objectives).
+  // Types d'objectif : { type: 'time', max: secondes }      gagner en moins de…
+  //                    { type: 'losses', max: n }           perdre au plus n unités
+  //                    { type: 'baseHp', min: 0.7 }         garder au moins 70 % des PV de ta base
   stars: {
-    twoStarsAbove: 0.3,       // PV de ma base restants > 30 % => 2 étoiles
+    twoStarsAbove: 0.3,       // (secours si un niveau n'a pas d'objectifs) PV restants > 30 % => 2 étoiles
     threeStarsAbove: 0.7,     // > 70 % => 3 étoiles
     partsPerStar: 30,         // pièces détachées par NOUVELLE étoile obtenue
     firstWinBonus: 20,        // pièces en plus à la première victoire d'un niveau
@@ -265,51 +269,61 @@ export const CONFIG = {
       enemyTurret: { damage: 8, interval: 0.6, range: 300 },
       ai: { decisionInterval: 1, firstDelay: 6, buyChance: 0.8, weights: { goule: 3, cracheur: 2 },
             waves: { chance: 0, min: 4, max: 6 }, defenseDistance: 600, incomeUpgrades: 'none' },
+      objectives: [{ type: 'time', max: 240 }, { type: 'losses', max: 10 }],
       bosses: [] },
     { id: 2, name: 'Autoroute effondrée', enemyBaseHp: 1200, aiIncomeMult: 1.0, aiStartScrap: 200,
       enemyTurret: { damage: 9, interval: 0.6, range: 310 },
       ai: { decisionInterval: 1, firstDelay: 5, buyChance: 0.9, weights: { goule: 3, cracheur: 2, chien: 1 },
             waves: { chance: 0.15, min: 4, max: 6 }, defenseDistance: 600, incomeUpgrades: 'slow' },
+      objectives: [{ type: 'time', max: 240 }, { type: 'losses', max: 14 }],
       bosses: [] },
     { id: 3, name: 'Centrale', enemyBaseHp: 1400, aiIncomeMult: 1.2, aiStartScrap: 250,
       enemyTurret: { damage: 11, interval: 0.6, range: 320 },
       ai: { decisionInterval: 1, firstDelay: 5, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 1 },
             waves: { chance: 0.2, min: 4, max: 7 }, defenseDistance: 600, incomeUpgrades: 'normal' },
+      objectives: [{ type: 'time', max: 270 }, { type: 'losses', max: 15 }],
       bosses: [] },
     { id: 4, name: 'Port rouillé', enemyBaseHp: 1700, aiIncomeMult: 1.45, aiStartScrap: 300,
       enemyTurret: { damage: 14, interval: 0.55, range: 330 },
       ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 1, brute: 1 },
             waves: { chance: 0.25, min: 5, max: 8 }, defenseDistance: 600, incomeUpgrades: 'normal' },
+      objectives: [{ type: 'time', max: 300 }, { type: 'losses', max: 20 }],
       bosses: [] },
     { id: 5, name: 'Zone irradiée', enemyBaseHp: 2100, aiIncomeMult: 1.75, aiStartScrap: 350,
       enemyTurret: { damage: 17, interval: 0.55, range: 340 },
       ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1 },
             waves: { chance: 0.3, min: 5, max: 8 }, defenseDistance: 600, incomeUpgrades: 'normal' },
+      objectives: [{ type: 'time', max: 420 }, { type: 'losses', max: 35 }],
       bosses: [{ unit: 'abomination', atBaseHpRatio: 0.5 }] },
     { id: 6, name: 'Cité effondrée', enemyBaseHp: 2300, aiIncomeMult: 2.1, aiStartScrap: 400,
       enemyTurret: { damage: 19, interval: 0.5, range: 340 },
       ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1 },
             waves: { chance: 0.35, min: 6, max: 9 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 450 }, { type: 'losses', max: 45 }],
       bosses: [] },
     { id: 7, name: 'Raffinerie', enemyBaseHp: 2700, aiIncomeMult: 2.6, aiStartScrap: 450,
       enemyTurret: { damage: 25, interval: 0.5, range: 350 },
       ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1 },
             waves: { chance: 0.4, min: 6, max: 10 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 480 }, { type: 'losses', max: 55 }],
       bosses: [] },
     { id: 8, name: 'Marais toxique', enemyBaseHp: 3000, aiIncomeMult: 3.4, aiStartScrap: 500,
       enemyTurret: { damage: 32, interval: 0.5, range: 350 },
       ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 1 },
             waves: { chance: 0.45, min: 7, max: 11 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 540 }, { type: 'losses', max: 80 }],
       bosses: [] },
     { id: 9, name: 'Dernier rempart', enemyBaseHp: 3600, aiIncomeMult: 4.3, aiStartScrap: 600,
       enemyTurret: { damage: 42, interval: 0.45, range: 360 },
       ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 2 },
             waves: { chance: 0.5, min: 8, max: 12 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 480 }, { type: 'losses', max: 55 }],
       bosses: [] },
     { id: 10, name: 'Le Nid', enemyBaseHp: 4300, aiIncomeMult: 5.0, aiStartScrap: 700,
       enemyTurret: { damage: 51, interval: 0.45, range: 370 },
       ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 2 },
             waves: { chance: 0.55, min: 8, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 900 }, { type: 'losses', max: 180 }],
       bosses: [{ unit: 'abomination', atBaseHpRatio: 0.6 }, { unit: 'abomination', atBaseHpRatio: 0.3 }] },
   ],
 

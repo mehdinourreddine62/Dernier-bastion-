@@ -1,10 +1,10 @@
-import { CONFIG } from '../config.js?v=9';
-import { Unit, bonusMultiplier } from './Unit.js?v=9';
-import { Base } from './Base.js?v=9';
-import { ProjectilePool } from './Projectile.js?v=9';
-import { Particles } from './Particles.js?v=9';
-import { Spells } from './Spell.js?v=9';
-import { AI } from './AI.js?v=9';
+import { CONFIG } from '../config.js?v=10';
+import { Unit, bonusMultiplier } from './Unit.js?v=10';
+import { Base } from './Base.js?v=10';
+import { ProjectilePool } from './Projectile.js?v=10';
+import { Particles } from './Particles.js?v=10';
+import { Spells } from './Spell.js?v=10';
+import { AI } from './AI.js?v=10';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -27,6 +27,7 @@ export class Game {
     this.resultTime = 0;      // temps écoulé depuis la fin de partie
     this.banner = null;       // annonce à l'écran { text, time }
     this.events = [];         // événements de l'image (sons, secousses)
+    this.stats = { lost: 0, killed: 0, recruited: 0 };   // pour les objectifs et le bilan
 
     this.sides = {
       player: this._makeSide(1),
@@ -150,6 +151,7 @@ export class Game {
     const x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
     this.units.push(u);
+    if (side === 'player') this.stats.recruited++;
     this.fx.dust(x, u.y, 4);
     this.emit('spawn', x, { side, id: defId });
     return u;
@@ -171,6 +173,7 @@ export class Game {
 
     if (!target.alive && !target.isBase) {
       target.die();
+      if (target.side === 'player') this.stats.lost++; else this.stats.killed++;
       const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio);
       this.sides[attackerSide].scrap += bounty;
       this.emit('death', target.x, { id: target.defId });
@@ -342,8 +345,22 @@ export class Game {
   }
 
   // Nombre d'étoiles (0 si défaite)
+  // État de chaque objectif : { obj, ok (rempli pour l'instant), failed (raté définitivement) }
+  get objectives() {
+    return (this.level.objectives || []).map((obj) => {
+      let ok = false, failed = false;
+      if (obj.type === 'time') { ok = this.time <= obj.max; failed = !ok; }
+      else if (obj.type === 'losses') { ok = this.stats.lost <= obj.max; failed = !ok; }
+      else if (obj.type === 'baseHp') { ok = this.bases.player.hp / this.bases.player.maxHp >= obj.min; failed = !ok; }
+      return { obj, ok, failed };
+    });
+  }
+
+  // 1 étoile pour la victoire + 1 par objectif rempli (0 si défaite)
   get stars() {
     if (this.result !== 'won') return 0;
+    const objs = this.objectives;
+    if (objs.length) return Math.min(3, 1 + objs.filter((o) => o.ok).length);
     const r = this.bases.player.hp / this.bases.player.maxHp;
     const c = CONFIG.stars;
     return r > c.threeStarsAbove ? 3 : r > c.twoStarsAbove ? 2 : 1;
