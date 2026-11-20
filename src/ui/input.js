@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=8';
+import { CONFIG } from '../config.js?v=9';
 
 // Entrées unifiées souris + tactile (Pointer Events) + clavier.
 // - Un toucher qui commence sur un bouton déclenche le bouton s'il se termine dessus

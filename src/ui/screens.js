@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=8';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=8';
+import { CONFIG } from '../config.js?v=9';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=9';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -67,17 +67,17 @@ export function drawTitle(ctx, buttons, pressed, progress, stats) {
 
 // ---------- Options (depuis le titre) ----------
 export function optionsButtons(view, settings, qualityLabel) {
-  const h = Math.max(66, minSize(view));
-  const gap = 14, w = 300, full = 2 * w + gap;
+  const h = Math.max(62, minSize(view));
+  const gap = 12, w = 300, full = 2 * w + gap;
   const x0 = (W - full) / 2, x1 = x0 + w + gap;
-  let y = 170;
+  let y = 150;
   const b = (id, label, x, bw, primary) => ({ id, label, x, y, w: bw, h, enabled: true, primary });
-  const out = [
-    b('toggleSound', 'SON : ' + (settings.sound ? 'OUI' : 'NON'), x0, w),
-    b('toggleShake', 'SECOUSSES : ' + (settings.shake ? 'OUI' : 'NON'), x1, w),
-  ];
+  const yes = (v) => (v ? 'OUI' : 'NON');
+  const out = [b('toggleSound', 'SON : ' + yes(settings.sound), x0, w), b('toggleMusic', 'MUSIQUE : ' + yes(settings.music), x1, w)];
   y += h + gap;
-  out.push(b('quality', 'QUALITÉ : ' + qualityLabel, x0, w), b('replayTuto', 'REVOIR LE TUTORIEL', x1, w));
+  out.push(b('toggleShake', 'SECOUSSES : ' + yes(settings.shake), x0, w), b('quality', 'QUALITÉ : ' + qualityLabel, x1, w));
+  y += h + gap;
+  out.push(b('replayTuto', 'REVOIR LE TUTORIEL', x0, full));
   y += h + gap;
   out.push(b('eraseSave', 'EFFACER LA SAUVEGARDE', x0, full));
   y += h + gap;
@@ -87,7 +87,7 @@ export function optionsButtons(view, settings, qualityLabel) {
 
 export function drawOptions(ctx, buttons, pressed) {
   dim(ctx, 0.55);
-  bigTitle(ctx, 'OPTIONS', 120, 64);
+  bigTitle(ctx, 'OPTIONS', 82, 56);
   drawAll(ctx, buttons, pressed, 26);
 }
 
@@ -104,7 +104,7 @@ export function pauseButtons(view, settings) {
   y += h + gap;
   const hw = (w - 12) / 2;
   btns.push({ id: 'toggleSound', label: 'SON : ' + (settings.sound ? 'OUI' : 'NON'), enabled: true, x, y, w: hw, h, small: true });
-  btns.push({ id: 'toggleShake', label: 'SECOUSSES : ' + (settings.shake ? 'OUI' : 'NON'), enabled: true, x: x + hw + 12, y, w: hw, h, small: true });
+  btns.push({ id: 'toggleMusic', label: 'MUSIQUE : ' + (settings.music ? 'OUI' : 'NON'), enabled: true, x: x + hw + 12, y, w: hw, h, small: true });
   y += h + gap;
   btns.push({ id: 'restart', label: 'RECOMMENCER', enabled: true, x, y, w, h });
   y += h + gap;

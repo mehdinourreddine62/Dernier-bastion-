@@ -1,16 +1,17 @@
-import { CONFIG } from './config.js?v=8';
-import { Game } from './game/Game.js?v=8';
-import { Camera } from './game/Camera.js?v=8';
-import { Renderer } from './render/Renderer.js?v=8';
-import { HUD } from './ui/HUD.js?v=8';
-import { Input } from './ui/input.js?v=8';
-import * as screens from './ui/screens.js?v=8';
-import * as campaign from './ui/campaign.js?v=8';
-import * as workshop from './ui/workshop.js?v=8';
-import { Tutorial } from './ui/tutorial.js?v=8';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=8';
-import { Sfx } from './audio/sfx.js?v=8';
-import { loadSave, writeSave } from './save.js?v=8';
+import { CONFIG } from './config.js?v=9';
+import { Game } from './game/Game.js?v=9';
+import { Camera } from './game/Camera.js?v=9';
+import { Renderer } from './render/Renderer.js?v=9';
+import { HUD } from './ui/HUD.js?v=9';
+import { Input } from './ui/input.js?v=9';
+import * as screens from './ui/screens.js?v=9';
+import * as campaign from './ui/campaign.js?v=9';
+import * as workshop from './ui/workshop.js?v=9';
+import { Tutorial } from './ui/tutorial.js?v=9';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=9';
+import { Sfx } from './audio/sfx.js?v=9';
+import { Music } from './audio/music.js?v=9';
+import { loadSave, writeSave } from './save.js?v=9';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
@@ -63,6 +64,9 @@ const hud = new HUD();
 const input = new Input(canvas, view);
 const sfx = new Sfx();
 sfx.setEnabled(settings.sound);
+const music = new Music(sfx);
+if (settings.music === undefined) settings.music = true;
+music.setEnabled(settings.music);
 applyQuality();
 let buttons = [];
 let shake = 0;                           // intensité de la secousse d'écran (0..1)
@@ -276,6 +280,11 @@ input.onButton = (b) => {
       sfx.setEnabled(settings.sound);
       saveSettings();
       break;
+    case 'toggleMusic':
+      settings.music = !settings.music;
+      music.setEnabled(settings.music);
+      saveSettings();
+      break;
     case 'toggleShake':
       settings.shake = !settings.shake;
       saveSettings();
@@ -337,6 +346,17 @@ function handleEvents() {
   game.events.length = 0;
 }
 
+// Intensité de la musique : calme dans les menus, plus forte en partie, danger si boss ou base menacée
+function musicIntensity() {
+  if (screen !== 'playing' || !game || game.result) return 0;
+  const base = game.bases.player;
+  for (const u of game.units) {
+    if (!u.alive || u.side !== 'enemy') continue;
+    if (u.tags.includes('boss') || u.x - base.faceX < 600) return 2;
+  }
+  return 1;
+}
+
 // ---------- Boucle principale ----------
 let last = performance.now();
 let acc = 0;
@@ -387,6 +407,7 @@ function frame(now) {
     }
   }
   if (screen === 'playing') handleEvents();
+  music.update(musicIntensity());
   shake = Math.max(0, shake - delta * 2.2);
   if (toast && (toast.time -= delta) <= 0) toast = null;
 

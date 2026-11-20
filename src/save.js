@@ -6,7 +6,7 @@
 const KEY = 'dernier-bastion-save-v1';
 
 const DEFAULTS = {
-  settings: { sound: true, shake: true, speedIndex: 0 },
+  settings: { sound: true, music: true, shake: true, speedIndex: 0 },
   progress: {},
 };
 
