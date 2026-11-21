@@ -1,10 +1,11 @@
-import { CONFIG } from '../config.js?v=11';
-import { Unit, bonusMultiplier } from './Unit.js?v=11';
-import { Base } from './Base.js?v=11';
-import { ProjectilePool } from './Projectile.js?v=11';
-import { Particles } from './Particles.js?v=11';
-import { Spells } from './Spell.js?v=11';
-import { AI } from './AI.js?v=11';
+import { CONFIG } from '../config.js?v=12';
+import { Unit, bonusMultiplier } from './Unit.js?v=12';
+import { Base } from './Base.js?v=12';
+import { ProjectilePool } from './Projectile.js?v=12';
+import { Particles } from './Particles.js?v=12';
+import { Spells } from './Spell.js?v=12';
+import { AI } from './AI.js?v=12';
+import { effectiveLevel } from '../progress.js?v=12';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -18,7 +19,8 @@ export class Game {
   // opts.unlockedUpTo : niveau atteint dans la campagne (débloque unités et sorts)
   constructor(levelIndex = 0, opts = {}) {
     this.levelIndex = levelIndex;
-    this.level = CONFIG.levels[levelIndex];
+    this.mode = opts.mode || 'normal';
+    this.level = effectiveLevel(levelIndex, this.mode);   // renforcé en Difficile / Cauchemar
     this.unlockId = Math.max(this.level.id, opts.unlockedUpTo || 0);
     this.time = 0;
     this.speed = 1;
@@ -197,6 +199,7 @@ export class Game {
     for (const u of this.units) {
       if (u.side === attackerSide || !u.alive) continue;
       if (Math.abs(u.x - x) > radius) continue;
+      if (u.def.flying && look !== 'big') continue;   // seul le mortier atteint les volants
       const mult = attackerDef ? bonusMultiplier(attackerDef, u) : 1;
       this.dealDamage(attackerSide, u, damage * mult, mult > 1);
     }
@@ -224,7 +227,7 @@ export class Game {
     const def = unit.def;
     const tol = CONFIG.combat.targetBehindTolerance;
     for (const e of this.units) {
-      if (e.side === unit.side || !e.alive) continue;
+      if (e.side === unit.side || !e.alive || e.def.flying) continue;
       const d = (e.x - unit.x) * unit.dir;
       if (d < -tol || d > def.range) continue;
       const mult = bonusMultiplier(def, e);

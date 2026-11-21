@@ -13,7 +13,7 @@ const MAX_VOICES = 28;
 // Son d'attaque de chaque unité
 const ATTACK_SOUND = {
   pillard: 'melee', tireur: 'shot', motard: 'melee', blinde: 'cannon',
-  goule: 'claw', cracheur: 'spit', chien: 'bite', brute: 'smash', abomination: 'slam',
+  goule: 'claw', cracheur: 'spit', chien: 'bite', brute: 'smash', abomination: 'slam', charognard: 'claw',
 };
 
 export class Sfx {
@@ -183,7 +183,7 @@ export class Sfx {
       case 'slam': this.play('slam', e.x); break;
       case 'death':
         if (e.data.id === 'blinde') break;
-        this.play(['goule', 'cracheur', 'chien', 'brute', 'abomination'].includes(e.data.id) ? 'deathMutant' : 'deathHuman', e.x);
+        this.play(['goule', 'cracheur', 'chien', 'brute', 'abomination', 'rouilleur', 'charognard'].includes(e.data.id) ? 'deathMutant' : 'deathHuman', e.x);
         break;
       case 'spawn':
         if (e.data.side === 'player') this.play(e.data.id === 'motard' ? 'bike' : 'spawn', e.x);

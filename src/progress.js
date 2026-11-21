@@ -1,12 +1,25 @@
-import { CONFIG } from './config.js?v=11';
+import { CONFIG } from './config.js?v=12';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
 
+// La campagne se joue dans plusieurs modes (Normal, Difficile, Cauchemar) : chaque mode a
+// ses propres niveaux débloqués et ses étoiles (p.modes[mode]). Les pièces et l'atelier sont communs.
+// p.unlocked = niveau atteint en Normal : il débloque les unités et les sorts.
 export function normalizeProgress(p) {
-  p.unlocked = Math.max(1, Math.min(CONFIG.levels.length, p.unlocked || 1));  // plus haut niveau jouable (id)
-  p.stars = p.stars || {};          // meilleures étoiles par niveau : { "1": 3, ... }
-  p.won = p.won || {};              // niveaux déjà gagnés au moins une fois
+  if (!p.modes) {
+    // Ancienne sauvegarde (une seule campagne) : elle devient le mode Normal
+    p.modes = { normal: { unlocked: p.unlocked || 1, stars: p.stars || {}, won: p.won || {} } };
+    delete p.stars; delete p.won;
+  }
+  for (const m of CONFIG.modeOrder) {
+    const mp = p.modes[m] = p.modes[m] || {};
+    mp.unlocked = Math.max(1, Math.min(CONFIG.levels.length, mp.unlocked || 1));
+    mp.stars = mp.stars || {};
+    mp.won = mp.won || {};
+  }
+  p.unlocked = Math.max(p.unlocked || 1, p.modes.normal.unlocked);
+  if (!CONFIG.modes[p.mode]) p.mode = 'normal';   // mode choisi sur la carte
   p.parts = p.parts || 0;           // pièces détachées disponibles
   p.upgrades = p.upgrades || {};    // niveau de chaque amélioration de l'atelier
   for (const id of CONFIG.workshop.order) p.upgrades[id] = p.upgrades[id] || 0;
@@ -15,8 +28,31 @@ export function normalizeProgress(p) {
 
 export function totalStars(p) {
   let n = 0;
-  for (const k in p.stars) n += p.stars[k];
+  for (const m of CONFIG.modeOrder) for (const k in p.modes[m].stars) n += p.modes[m].stars[k];
   return n;
+}
+export const maxStars = () => CONFIG.levels.length * 3 * CONFIG.modeOrder.length;
+
+// Un mode est débloqué quand le mode précédent a été terminé (dernier niveau gagné)
+export function isModeUnlocked(p, mode) {
+  const after = CONFIG.modes[mode].unlockAfter;
+  if (!after) return true;
+  return !!p.modes[after].won[CONFIG.levels[CONFIG.levels.length - 1].id];
+}
+
+// Niveau tel qu'il se joue dans un mode : ennemi renforcé, mutants et boss en plus
+export function effectiveLevel(index, mode = 'normal') {
+  const base = CONFIG.levels[index];
+  const m = CONFIG.modes[mode] || CONFIG.modes.normal;
+  const lv = JSON.parse(JSON.stringify(base));
+  lv.mode = mode;
+  lv.enemyBaseHp = Math.round(base.enemyBaseHp * m.enemyBaseHp);
+  lv.aiIncomeMult = +(base.aiIncomeMult * m.aiIncomeMult).toFixed(2);
+  lv.aiStartScrap = (base.aiStartScrap || CONFIG.economy.startScrap) + m.aiStartScrap;
+  lv.enemyTurret.damage = Math.round(base.enemyTurret.damage * m.turretDamage);
+  for (const id in m.extraWeights) lv.ai.weights[id] = (lv.ai.weights[id] || 0) + m.extraWeights[id];
+  if (m.extraBosses.includes(base.id) && !lv.bosses.length) lv.bosses = [{ unit: 'abomination', atBaseHpRatio: 0.5 }];
+  return lv;
 }
 
 // Unités et sorts qui deviennent disponibles avec le niveau `levelId`
@@ -31,29 +67,46 @@ export function unlocksAt(levelId) {
   return out;
 }
 
+// Pièces gagnées par étoile / à la première victoire dans un mode
+export function partsFor(mode) {
+  const k = CONFIG.modes[mode].partsMult;
+  return { star: Math.round(CONFIG.stars.partsPerStar * k), firstWin: Math.round(CONFIG.stars.firstWinBonus * k) };
+}
+
 // Enregistre le résultat d'une partie. Renvoie ce qui a été gagné (pour l'écran de fin).
-export function recordResult(p, levelIndex, won, stars) {
+export function recordResult(p, mode, levelIndex, won, stars) {
   const id = CONFIG.levels[levelIndex].id;
+  const mp = p.modes[mode];
+  const pay = partsFor(mode);
   const res = { parts: 0, newStars: 0, firstWin: false, messages: [] };
   if (!won) return res;
-  const before = p.stars[id] || 0;
+  const before = mp.stars[id] || 0;
   if (stars > before) {
     res.newStars = stars - before;
-    p.stars[id] = stars;
+    mp.stars[id] = stars;
   }
-  res.parts += res.newStars * CONFIG.stars.partsPerStar;
-  if (!p.won[id]) {
-    p.won[id] = true;
+  res.parts += res.newStars * pay.star;
+  if (!mp.won[id]) {
+    mp.won[id] = true;
     res.firstWin = true;
-    res.parts += CONFIG.stars.firstWinBonus;
+    res.parts += pay.firstWin;
   }
   p.parts += res.parts;
-  // Débloque le niveau suivant
+  // Débloque le niveau suivant dans ce mode
   const next = CONFIG.levels[levelIndex + 1];
-  if (next && p.unlocked < next.id) {
-    p.unlocked = next.id;
+  if (next && mp.unlocked < next.id) {
+    mp.unlocked = next.id;
     res.messages.push('Niveau ' + next.id + ' débloqué : ' + next.name);
-    res.messages.push(...unlocksAt(next.id));
+    if (mode === 'normal') {
+      p.unlocked = Math.max(p.unlocked, next.id);
+      res.messages.push(...unlocksAt(next.id));
+    }
+  }
+  // Dernier niveau gagné : le mode suivant s'ouvre
+  if (!next && res.firstWin) {
+    const nextMode = CONFIG.modeOrder[CONFIG.modeOrder.indexOf(mode) + 1];
+    if (nextMode) res.messages.push('Mode ' + CONFIG.modes[nextMode].name + ' débloqué ! (sur la carte)');
+    else res.messages.push('Campagne terminée dans tous les modes. Bravo, commandant !');
   }
   return res;
 }

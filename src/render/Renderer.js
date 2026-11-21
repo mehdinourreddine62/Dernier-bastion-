@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=11';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=11';
-import { Backdrop } from './background.js?v=11';
-import { drawFort, drawNest } from './bases.js?v=11';
+import { CONFIG } from '../config.js?v=12';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=12';
+import { Backdrop } from './background.js?v=12';
+import { drawFort, drawNest } from './bases.js?v=12';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -163,8 +163,10 @@ export class Renderer {
     ctx.save();
     ctx.translate(u.x, u.y);
     // ombre
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(0, 1, def.bodyWidth * 0.55, 5, 0, 0, Math.PI * 2); ctx.fill();
+    // ombre au sol (plus petite et plus pâle pour un volant)
+    ctx.fillStyle = u.alt > 0 ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 1, def.bodyWidth * (u.alt > 0 ? 0.35 : 0.55), u.alt > 0 ? 3.5 : 5, 0, 0, Math.PI * 2); ctx.fill();
+    if (u.alt > 0) ctx.translate(0, -u.alt);
     if (u.dir < 0) ctx.scale(-1, 1);
 
     const pose = this.pose;
@@ -225,7 +227,7 @@ export class Renderer {
   }
 
   _hpBar(ctx, u) {
-    const w = Math.max(34, u.def.bodyWidth * 0.7), h = 5, x = u.x - w / 2, y = u.y - u.def.bodyHeight - 12;
+    const w = Math.max(34, u.def.bodyWidth * 0.7), h = 5, x = u.x - w / 2, y = u.y - u.alt - u.def.bodyHeight - 12;
     const r = u.hp / u.maxHp;
     ctx.fillStyle = 'rgba(15,8,4,0.75)';
     ctx.fillRect(x - 1.5, y - 1.5, w + 3, h + 3);

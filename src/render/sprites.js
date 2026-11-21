@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=11';
+import { CONFIG } from '../config.js?v=12';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).
@@ -528,12 +528,71 @@ function abomination() {
   blob(ex, ey, 9, 9, '#5a2040');
 }
 
-const DRAWERS = { pillard, tireur, motard, lanceFlammes, blinde, goule, cracheur, chien, brute, abomination };
+// Rouilleur : petit rampant couvert de rouille, ventre-bombe qui rougeoie
+function rouilleur() {
+  const run = P.moving ? P.walk * 1.6 : P.time * 2;
+  X.translate(0, P.moving ? -Math.abs(Math.sin(run)) * 2.5 : 0);
+  const s1 = P.moving ? Math.sin(run) * 7 : 1.5;
+  limb([-8, -12, -10 - s1, -2], 3.5, shade('#5a4038'));
+  limb([8, -12, 10 + s1, -2], 3.5, shade('#5a4038'));
+  // corps trapu + plaques rouillées
+  blob(0, -17, 15, 11, '#6e5246');
+  poly([-12, -22, -4, -30, 6, -29, 10, -22], '#8a4a2a');
+  poly([-2, -30, 1, -37, 4, -30], '#a85a32');
+  poly([-9, -27, -7, -34, -4, -28], '#a85a32');
+  // ventre-bombe qui pulse
+  const pulse = 0.5 + Math.sin(P.time * 9) * 0.5;
+  if (!P.flash && !P.dark) {
+    X.fillStyle = `rgba(255,120,30,${0.25 + 0.25 * pulse})`;
+    X.beginPath(); X.arc(2, -11, 13, 0, Math.PI * 2); X.fill();
+  }
+  limb([-6, -12, -8 + s1, -2], 3.5, '#6e5246');
+  limb([10, -12, 12 - s1, -2], 3.5, '#6e5246');
+  blob(2, -11, 8, 6.5, P.flash ? '#ffffff' : pulse > 0.5 ? '#ff9a3a' : '#e0702a');
+  // tête
+  blob(14, -21, 6.5, 5.5, '#8a6a5a');
+  glowEye(17, -23, 1.6, '#f0e040');
+  poly([18, -19, 23, -18, 18, -17], '#e8e0c0', false);
+}
+
+// Charognard ailé : vautour mutant aux ailes de peau, crâne déplumé
+function wing(flap, color, dx) {
+  const tipY = -26 - flap * 26;
+  poly([dx + 2, -24, dx - 18, -30 - flap * 14, dx - 42, tipY, dx - 30, -16 + flap * 6, dx - 16, -14, dx - 4, -16], color);
+  X.strokeStyle = C('#2a1a22'); X.lineWidth = 1.5;
+  X.beginPath(); X.moveTo(dx + 2, -24); X.lineTo(dx - 18, -30 - flap * 14); X.lineTo(dx - 42, tipY); X.stroke();
+  X.beginPath(); X.moveTo(dx - 18, -30 - flap * 14); X.lineTo(dx - 26, -15); X.stroke();
+}
+function charognard() {
+  const flap = Math.sin(P.moving ? P.walk * 2.4 : P.time * 9);
+  const s = swing();
+  X.translate(s > 0 ? s * 10 : s * 3, flap * 2);
+  wing(flap * 0.8, '#4a3040', 6);                        // aile du fond
+  poly([-14, -20, -26, -26, -24, -16, -14, -16], '#3e2834');   // queue
+  blob(0, -20, 14, 8.5, '#5e3e4e', -0.15);               // corps
+  blob(-2, -17, 8, 4, '#7a5262', -0.15, false);
+  // pattes griffues (en avant quand il attaque)
+  const reach = s > 0 ? s * 8 : 0;
+  limb([2, -14, 4 + reach, -4], 2.5, '#8a7a5a');
+  limb([-4, -14, -3 + reach * 0.6, -4], 2.5, '#7a6a4a');
+  for (const cx of [4 + reach, -3 + reach * 0.6]) {
+    line(cx, -4, cx + 4, -1, 1.3, '#e8e0c0'); line(cx, -4, cx - 2, -1, 1.3, '#e8e0c0');
+  }
+  // cou + crâne déplumé + bec
+  limb([10, -22, 15, -27], 4, '#8a6a6a');
+  blob(18, -29, 7, 6, '#c8b8a0');
+  poly([23, -30, 34, -26, 23, -25], '#d8c070');
+  glowEye(19, -31, 1.6, '#ff5030');
+  wing(flap, '#5e3a4c', 0);                              // aile du premier plan
+}
+
+const DRAWERS = { pillard, tireur, motard, lanceFlammes, blinde, goule, cracheur, chien, brute, abomination, rouilleur, charognard };
 
 // Style de mort de chaque unité : 'fall' (tombe), 'melt' (s'affaisse), 'wreck' (épave)
 export const DEATH_STYLE = {
   pillard: 'fall', tireur: 'fall', motard: 'fall', lanceFlammes: 'fall', blinde: 'wreck',
   goule: 'melt', cracheur: 'melt', chien: 'fall', brute: 'fall', abomination: 'melt',
+  rouilleur: 'melt', charognard: 'fall',
 };
 
 export function drawSprite(ctx, defId, pose) {

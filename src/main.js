@@ -1,17 +1,17 @@
-import { CONFIG } from './config.js?v=11';
-import { Game } from './game/Game.js?v=11';
-import { Camera } from './game/Camera.js?v=11';
-import { Renderer } from './render/Renderer.js?v=11';
-import { HUD } from './ui/HUD.js?v=11';
-import { Input } from './ui/input.js?v=11';
-import * as screens from './ui/screens.js?v=11';
-import * as campaign from './ui/campaign.js?v=11';
-import * as workshop from './ui/workshop.js?v=11';
-import { Tutorial } from './ui/tutorial.js?v=11';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars } from './progress.js?v=11';
-import { Sfx } from './audio/sfx.js?v=11';
-import { Music } from './audio/music.js?v=11';
-import { loadSave, writeSave } from './save.js?v=11';
+import { CONFIG } from './config.js?v=12';
+import { Game } from './game/Game.js?v=12';
+import { Camera } from './game/Camera.js?v=12';
+import { Renderer } from './render/Renderer.js?v=12';
+import { HUD } from './ui/HUD.js?v=12';
+import { Input } from './ui/input.js?v=12';
+import * as screens from './ui/screens.js?v=12';
+import * as campaign from './ui/campaign.js?v=12';
+import * as workshop from './ui/workshop.js?v=12';
+import { Tutorial } from './ui/tutorial.js?v=12';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars } from './progress.js?v=12';
+import { Sfx } from './audio/sfx.js?v=12';
+import { Music } from './audio/music.js?v=12';
+import { loadSave, writeSave } from './save.js?v=12';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
@@ -83,7 +83,7 @@ function askConfirm(text, onYes) { confirm = { text, onYes }; }
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
-  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked });
+  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode });
   reward = null;
   tutorial = selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
   game.speed = CONFIG.loop.speeds[settings.speedIndex] || 1;
@@ -239,6 +239,14 @@ input.onButton = (b) => {
   }
   if (b.kind === 'spell') { startAim(b.spell); return; }
   sfx.play('click');
+  // Carte : choix du mode de difficulté
+  if (b.mode) {
+    if (b.lockedMode) {
+      const after = CONFIG.modes[CONFIG.modes[b.mode].unlockAfter].name;
+      showToast('Termine la campagne en mode ' + after + '\npour débloquer le mode ' + CONFIG.modes[b.mode].name + '.', 3);
+    } else { progress.mode = b.mode; saveAll(); }
+    return;
+  }
   // Carte : toucher une étape ouvre sa fiche
   if (b.id.startsWith('node:')) {
     if (b.locked) showToast('Termine le niveau précédent pour débloquer ce lieu.', 2.5);
@@ -428,7 +436,7 @@ function frame(now) {
     if (aim && (game.result || !game.spells.isReady(aim.spell))) cancelAim();
     // Fin de partie : étoiles, pièces, déblocages -> sauvegarde automatique
     if (game.result && !reward) {
-      reward = recordResult(progress, game.levelIndex, game.result === 'won', game.stars);
+      reward = recordResult(progress, game.mode, game.levelIndex, game.result === 'won', game.stars);
       saveAll();
     }
   }
@@ -469,7 +477,7 @@ function render(time) {
   if (screen !== 'playing') {
     renderer.drawBackdrop(ctx, 0, time);
     const p = input.pressed;
-    if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress) });
+    if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress), max: maxStars() });
     else if (screen === 'options') screens.drawOptions(ctx, buttons, p);
     else if (screen === 'map') {
       campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null), mapInfo === null ? p : new Set(), mapInfo, time);

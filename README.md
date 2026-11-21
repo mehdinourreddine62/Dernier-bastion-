@@ -50,7 +50,8 @@ Modifie un chiffre, enregistre, recharge la page : c'est pris en compte.
 | `units` | pour chaque unité : coût, PV, dégâts, cadence, portée, vitesse, recharge, bonus de type, niveau de déblocage |
 | `spells` | mortier et kit de soins : dégâts, rayon, recharge, niveau de déblocage |
 | `stars` | pièces détachées gagnées par étoile et à la première victoire |
-| `workshop` | atelier : coûts des 5 niveaux et effet de chaque amélioration |
+| `workshop` | atelier : coûts des 10 niveaux et effet de chaque amélioration |
+| `modes` | modes Normal / Difficile / Cauchemar : renforts de l'ennemi, mutants et boss en plus, multiplicateur de pièces |
 | `ai` | comportement commun de l'ordinateur : contres, durée max d'économie, profils d'amélioration du revenu |
 | `levels` | pour chacun des 10 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
 
@@ -63,11 +64,14 @@ Exemples :
 - Rendre le niveau 10 plus facile : baisser `aiIncomeMult` du niveau 10 (c'est le levier le plus fort).
 - Gagner plus de pièces : augmenter `stars.partsPerStar`.
 
-### Difficulté actuelle (première passe d'équilibrage)
-Mesurée avec un joueur automatique efficace (vagues d'unités, défense, sorts) :
-- niveaux 1 à 5 : gagnables sans passer par l'atelier ;
-- niveaux 6 et 7 : environ une victoire sur deux sans atelier ;
-- niveaux 8 à 10 : **l'atelier devient nécessaire** (presque aucune victoire sans amélioration).
+### Difficulté et durée de vie
+- **3 modes** : la campagne se rejoue en **Difficile** (débloqué en finissant le Normal), puis en
+  **Cauchemar**. Chaque mode a ses étoiles ; les pièces et l'atelier sont communs.
+- **Atelier sur 10 niveaux** : impossible de tout maximiser en une seule campagne.
+- **Mutants spécialisés** : le **Cracheur** ronge les blindés (×2), le **Chien** fonce sur les tireurs,
+  le **Rouilleur** (dès le niveau 4) explose sur les blindés, le **Charognard ailé** (dès le niveau 6)
+  survole la mêlée pour attaquer les tireurs — seuls les Tireurs, la tourelle et le mortier le touchent.
+  Une armée d'un seul type ne suffit plus.
 
 ---
 
@@ -84,7 +88,7 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=11` par `?v=12` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=12` par `?v=13` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
 Pour un simple test, ouvre la page en **navigation privée**.

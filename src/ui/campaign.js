@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=11';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=11';
-import { unlocksAt, objectiveText } from '../progress.js?v=11';
+import { CONFIG } from '../config.js?v=12';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=12';
+import { unlocksAt, objectiveText, isModeUnlocked, partsFor, effectiveLevel } from '../progress.js?v=12';
 
 // Carte de campagne : une route qui traverse les 10 lieux en ruine.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -29,14 +29,24 @@ export function mapButtons(view, progress, selected) {
       { id: 'closeInfo', label: 'RETOUR', enabled: true, x: W / 2 + 10, y: 560, w: 220, h },
     ];
   }
+  const mp = progress.modes[progress.mode];
   const btns = [
     { id: 'back', label: '◀ MENU', enabled: true, x: 30, y: 18, w: Math.max(150, m), h: bh },
     { id: 'workshop', label: 'ATELIER', enabled: true, x: W - 30 - Math.max(180, m), y: 18, w: Math.max(180, m), h: bh, primary: true },
   ];
+  // Onglets des modes de difficulté
+  const tw = 165, gap = 8;
+  let tx = W / 2 - (CONFIG.modeOrder.length * tw + (CONFIG.modeOrder.length - 1) * gap) / 2 - 60;
+  for (const id of CONFIG.modeOrder) {
+    const open = isModeUnlocked(progress, id);
+    btns.push({ id: 'mode:' + id, mode: id, label: CONFIG.modes[id].name.toUpperCase(), enabled: true,
+      lockedMode: !open, selected: progress.mode === id, x: tx, y: 18, w: tw, h: bh });
+    tx += tw + gap;
+  }
   const s = Math.max(R * 2 + 10, m);
   NODES.forEach(([x, y], i) => {
     btns.push({ id: 'node:' + i, level: i, x: x - s / 2, y: y - s / 2, w: s, h: s, enabled: true,
-      locked: CONFIG.levels[i].id > progress.unlocked });
+      locked: CONFIG.levels[i].id > mp.unlocked });
   });
   return btns;
 }
@@ -96,6 +106,7 @@ function padlock(ctx, x, y) {
 }
 
 export function drawMap(ctx, progress, buttons, pressed, selected, time) {
+  const mp = progress.modes[progress.mode];
   ctx.fillStyle = 'rgba(15,8,4,0.55)';
   ctx.fillRect(0, 0, W, H);
 
@@ -124,11 +135,14 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time) {
   const rg = ctx.createRadialGradient(470, 220, 10, 470, 220, 260);
   rg.addColorStop(0, 'rgba(140,30,50,0.35)'); rg.addColorStop(1, 'rgba(140,30,50,0)');
   ctx.fillStyle = rg; ctx.fillRect(BOARD.x, BOARD.y, BOARD.w, BOARD.h);
+  // teinte du mode (plus sombre et rouge en Difficile / Cauchemar)
+  const tint = CONFIG.modes[progress.mode].mapTint;
+  if (tint) { ctx.fillStyle = tint; ctx.fillRect(BOARD.x, BOARD.y, BOARD.w, BOARD.h); }
 
   // Route entre les étapes (pleine si parcourue, en pointillés sinon)
   for (let i = 0; i < NODES.length - 1; i++) {
     const [x1, y1] = NODES[i], [x2, y2] = NODES[i + 1];
-    const done = CONFIG.levels[i + 1].id <= progress.unlocked;
+    const done = CONFIG.levels[i + 1].id <= mp.unlocked;
     ctx.strokeStyle = done ? '#5a3a1e' : 'rgba(90,60,30,0.45)';
     ctx.lineWidth = done ? 7 : 5;
     ctx.setLineDash(done ? [] : [10, 9]);
@@ -142,9 +156,9 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time) {
   // Étapes
   NODES.forEach(([x, y], i) => {
     const lv = CONFIG.levels[i];
-    const locked = lv.id > progress.unlocked;
-    const stars = progress.stars[lv.id] || 0;
-    const current = !locked && !progress.won[lv.id];
+    const locked = lv.id > mp.unlocked;
+    const stars = mp.stars[lv.id] || 0;
+    const current = !locked && !mp.won[lv.id];
     landmark(ctx, i, x + (i % 2 ? -52 : 52), y - 6);
     if (current) {
       const p = 0.5 + Math.sin(time * 4) * 0.5;
@@ -152,14 +166,14 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time) {
       ctx.beginPath(); ctx.arc(x, y, R + 8 + p * 5, 0, Math.PI * 2); ctx.fill();
     }
     const press = pressed.has('node:' + i) ? 2 : 0;
-    ctx.fillStyle = locked ? '#5a5450' : progress.won[lv.id] ? '#5a7a3a' : '#c0693a';
+    ctx.fillStyle = locked ? '#5a5450' : mp.won[lv.id] ? '#5a7a3a' : '#c0693a';
     ctx.beginPath(); ctx.arc(x, y + press, R, 0, Math.PI * 2); ctx.fill();
     ctx.lineWidth = 4; ctx.strokeStyle = COL.dark; ctx.stroke();
     ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.25)';
     ctx.beginPath(); ctx.arc(x, y + press, R - 5, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
     if (locked) padlock(ctx, x, y + press + 2);
     else text(ctx, String(lv.id), x, y + press + 1, 28, '#fff', 'center', 'middle');
-    if (lv.bosses.length) {
+    if (effectiveLevel(i, progress.mode).bosses.length) {
       roundRectPath(ctx, x + 14, y - R - 10, 44, 18, 6);
       ctx.fillStyle = '#8a1e1e'; ctx.fill();
       text(ctx, 'BOSS', x + 36, y - R - 1, 12, '#fff', 'center', 'middle');
@@ -175,21 +189,31 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time) {
   ctx.restore();
 
   // Barre du haut
-  text(ctx, 'CARTE DE CAMPAGNE', W / 2, 46, 34, COL.text, 'center', 'middle');
   text(ctx, 'Pièces : ' + progress.parts, W - 240, 46, 20, COL.yellow, 'right', 'middle');
-  for (const b of buttons) if (b.id === 'back' || b.id === 'workshop') drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
+  for (const b of buttons) {
+    if (b.id === 'back' || b.id === 'workshop') drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
+    else if (b.mode) {
+      drawButton(ctx, b, b.lockedMode ? '' : b.label, pressed.has(b.id), { primary: b.selected, size: 19 });
+      if (b.lockedMode) {
+        text(ctx, b.label, b.x + b.w / 2 + 10, b.y + b.h / 2 + 1, 17, COL.dim, 'center', 'middle');
+        padlock(ctx, b.x + 22, b.y + b.h / 2 + 2);
+      }
+    }
+  }
 }
 
 // Fiche d'un niveau
 export function drawLevelInfo(ctx, progress, index, buttons, pressed) {
-  const lv = CONFIG.levels[index];
+  const lv = effectiveLevel(index, progress.mode);
+  const mp = progress.modes[progress.mode];
+  const pay = partsFor(progress.mode);
   ctx.fillStyle = 'rgba(15,8,4,0.6)';
   ctx.fillRect(0, 0, W, H);
   const b0 = buttons[0];
   drawPanel(ctx, W / 2 - 330, 90, 660, b0.y + b0.h + 26 - 90, 16);
-  text(ctx, 'Niveau ' + lv.id, W / 2, 132, 22, COL.dim, 'center', 'middle');
+  text(ctx, 'Niveau ' + lv.id + ' — mode ' + CONFIG.modes[progress.mode].name, W / 2, 132, 22, progress.mode === 'normal' ? COL.dim : '#ff8a6a', 'center', 'middle');
   text(ctx, lv.name, W / 2, 172, 40, COL.yellow, 'center', 'middle');
-  const best = progress.stars[lv.id] || 0;
+  const best = mp.stars[lv.id] || 0;
   for (let k = 0; k < 3; k++) drawStar(ctx, W / 2 + (k - 1) * 44, 226, 17, k < best);
   const names = Object.keys(lv.ai.weights).map((id) => CONFIG.units[id].name);
   const lines = [
@@ -197,11 +221,17 @@ export function drawLevelInfo(ctx, progress, index, buttons, pressed) {
     ['Mutants : ' + names.join(', '), COL.text],
   ];
   if (lv.bosses.length) lines.push([`Boss : Abomination${lv.bosses.length > 1 ? ' ×' + lv.bosses.length : ''}`, '#ff8a6a']);
-  for (const m of unlocksAt(lv.id)) lines.push([m, COL.good]);
+  if (progress.mode === 'normal') for (const m of unlocksAt(lv.id)) lines.push([m, COL.good]);
   // Étoiles : victoire + objectifs
   for (const o of lv.objectives || []) lines.push(['★ ' + objectiveText(o), '#f2d27a']);
-  lines.push([`Récompense : ${CONFIG.stars.partsPerStar} pièces par nouvelle étoile` +
-    (progress.won[lv.id] ? '' : ` (+${CONFIG.stars.firstWinBonus} à la 1re victoire)`), COL.yellow]);
-  lines.forEach(([l, c], i) => text(ctx, l, W / 2, 278 + i * 34, 21, c, 'center', 'middle'));
+  lines.push([`Récompense : ${pay.star} pièces par nouvelle étoile` +
+    (mp.won[lv.id] ? '' : ` (+${pay.firstWin} à la 1re victoire)`), COL.yellow]);
+  lines.forEach(([l, c], i) => {
+    // le texte rétrécit s'il est trop long pour la fiche
+    let size = 21;
+    ctx.font = `bold ${size}px ${FONT}`;
+    while (size > 13 && ctx.measureText(l).width > 620) { size--; ctx.font = `bold ${size}px ${FONT}`; }
+    text(ctx, l, W / 2, 272 + i * 32, size, c, 'center', 'middle');
+  });
   for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 26 });
 }

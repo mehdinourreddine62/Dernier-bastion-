@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=11';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=11';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=11';
-import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel } from '../progress.js?v=11';
+import { CONFIG } from '../config.js?v=12';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=12';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=12';
+import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel } from '../progress.js?v=12';
 
 // Atelier : on dépense les pièces détachées en améliorations permanentes.
 // 9 cartes (5 unités + murailles, tourelle, récupération, sorts), 5 niveaux chacune.
@@ -81,7 +81,7 @@ export function drawWorkshop(ctx, progress, buttons, pressed) {
     fitText(ctx, nameOf(id), c.x + 90, c.y + 36, 22, avail ? COL.text : COL.dim, c.w - 100);
     for (let k = 0; k < maxLvl; k++) {
       ctx.fillStyle = k < lvl ? COL.good : 'rgba(0,0,0,0.45)';
-      ctx.fillRect(c.x + 90 + k * 24, c.y + 50, 18, 10);
+      ctx.fillRect(c.x + 90 + k * 19, c.y + 50, 14, 10);
     }
 
     const textW = c.w - 24 - (byId[id] ? byId[id].w + 12 : 0);

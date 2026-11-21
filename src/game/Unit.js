@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=11';
-import { Entity } from './Entity.js?v=11';
+import { CONFIG } from '../config.js?v=12';
+import { Entity } from './Entity.js?v=12';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -42,10 +42,20 @@ export class Unit extends Entity {
     this.attackAnim = 0;      // 1 -> 0 pendant l'animation d'attaque
     this.dying = false;
     this.deadTime = 0;
+    // Unités volantes : altitude (visuelle et pour la visée)
+    this.alt = def.flying ? 70 + Math.random() * 18 : 0;
   }
 
   get tags() { return this.def.tags; }
-  get aimY() { return this.y - this.def.bodyHeight * 0.55; }
+
+  // Puis-je attaquer cette unité ? Les volants ne sont touchés que par les unités anti-aériennes ;
+  // les volants, eux, n'attaquent que les unités à distance (ils survolent la mêlée).
+  canHit(e) {
+    if (e.def.flying) return !!this.def.antiAir;
+    if (this.def.flying) return e.def.tags.includes('ranged');
+    return true;
+  }
+  get aimY() { return this.y - this.alt - this.def.bodyHeight * 0.55; }
 
   die() {
     this.dying = true;
@@ -54,7 +64,11 @@ export class Unit extends Entity {
   }
 
   update(dt, game) {
-    if (this.dying) { this.deadTime += dt; return; }
+    if (this.dying) {
+      this.deadTime += dt;
+      if (this.alt > 0) this.alt = Math.max(0, this.alt - dt * 220);   // un volant abattu tombe
+      return;
+    }
 
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.cd = Math.max(0, this.cd - dt);
@@ -89,13 +103,19 @@ export class Unit extends Entity {
     // Liste des ennemis triée par position : on cherche le premier devant moi
     // (derrière moi : ignoré, on ne recule jamais)
     const L = game.byX[this.side === 'player' ? 'enemy' : 'player'];
-    let best = null;
     if (this.dir > 0) {
-      for (let i = lowerBound(L, this.x - tol); i < L.length; i++) if (L[i].alive) { best = L[i]; break; }
+      for (let i = lowerBound(L, this.x - tol); i < L.length; i++) {
+        const e = L[i];
+        if (e.x - this.x > range) break;
+        if (e.alive && this.canHit(e)) return e;
+      }
     } else {
-      for (let i = lowerBound(L, this.x + tol + 0.0001) - 1; i >= 0; i--) if (L[i].alive) { best = L[i]; break; }
+      for (let i = lowerBound(L, this.x + tol + 0.0001) - 1; i >= 0; i--) {
+        const e = L[i];
+        if (this.x - e.x > range) break;
+        if (e.alive && this.canHit(e)) return e;
+      }
     }
-    if (best && (best.x - this.x) * this.dir <= range) return best;
     if (unitsOnly) return null;
 
     const base = game.bases[this.side === 'player' ? 'enemy' : 'player'];
@@ -105,7 +125,7 @@ export class Unit extends Entity {
 
   // Les unités de mêlée attendent derrière un allié de mêlée qui combat (ou attend déjà).
   isBlocked(game) {
-    if (this.def.range > CONFIG.combat.meleeWaitRange) return false;
+    if (this.def.range > CONFIG.combat.meleeWaitRange || this.def.flying) return false;
     const gap = CONFIG.combat.blockGap;
     const L = game.byX[this.side];
     // Alliés juste devant moi (entre 0 et `gap`), via la liste triée
@@ -114,7 +134,7 @@ export class Unit extends Entity {
       const a = L[i];
       const d = (a.x - this.x) * this.dir;
       if (d >= gap) break;
-      if (a === this || d <= 0 || !a.alive) continue;
+      if (a === this || d <= 0 || !a.alive || a.def.flying) continue;
       // On ne s'arrête que derrière une autre unité de corps à corps :
       // on dépasse les tireurs, lance-flammes et blindés pour les protéger
       if (a.def.range > CONFIG.combat.meleeWaitRange) continue;
@@ -136,7 +156,7 @@ export class Unit extends Entity {
         game.projectiles.spawn({
           side: this.side,
           x: this.x + this.dir * def.bodyWidth * 0.55,
-          y: this.y - def.bodyHeight * 0.62,
+          y: this.y - this.alt - def.bodyHeight * 0.62,
           target, damage: this.damage, attackerDef: def,
           cfg: atk.projectile, splash: atk.splashRadius || 0,
         });
@@ -144,6 +164,15 @@ export class Unit extends Entity {
       case 'flame':
         game.flameAttack(this);
         break;
+      case 'suicide': {
+        // Kamikaze : explose sur la cible (bonus contre les blindés) et meurt
+        const cx = target.isBase ? target.faceX : target.x;
+        game.explode(this.side, cx, atk.splashRadius, this.damage, def, true, 'normal');
+        this.hp = 0;
+        this.die();
+        game.emit('death', this.x, { id: this.defId });
+        break;
+      }
       default: { // 'melee'
         if (atk.splashRadius) {
           const cx = target.isBase ? target.faceX : target.x;

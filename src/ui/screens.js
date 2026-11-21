@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=11';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=11';
-import { objectiveText } from '../progress.js?v=11';
+import { CONFIG } from '../config.js?v=12';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=12';
+import { objectiveText } from '../progress.js?v=12';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -69,7 +69,7 @@ export function drawTitle(ctx, buttons, pressed, progress, stats) {
   text(ctx, 'Survivants contre Mutants', W / 2, 230, 30, COL.text, 'center', 'middle');
   drawAll(ctx, buttons, pressed, 32);
   const last = buttons.find((b) => b.id === 'options');
-  text(ctx, `★ ${stats.stars} / ${CONFIG.levels.length * 3}     Pièces détachées : ${progress.parts}`,
+  text(ctx, `★ ${stats.stars} / ${stats.max}     Pièces détachées : ${progress.parts}`,
     W / 2, Math.min(H - 24, last.y + last.h + 40), 22, COL.yellow, 'center', 'middle');
 }
 
@@ -144,7 +144,8 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
   drawPanel(ctx, W / 2 - 370, 50, 740, Math.max(640, buttons[0].y + buttons[0].h + 24) - 50, 16);
   const won = game.result === 'won';
   text(ctx, won ? 'VICTOIRE !' : 'DÉFAITE', W / 2, 112, 56, won ? COL.yellow : COL.bad, 'center', 'middle');
-  text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name, W / 2, 162, 22, COL.dim, 'center', 'middle');
+  text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name + (game.mode !== 'normal' ? ' (' + CONFIG.modes[game.mode].name + ')' : ''),
+    W / 2, 162, 22, COL.dim, 'center', 'middle');
   for (let i = 0; i < 3; i++) drawStar(ctx, W / 2 + (i - 1) * 86, 228, 36, i < game.stars);
   const pct = Math.round(Math.max(0, game.bases.player.hp / game.bases.player.maxHp) * 100);
   const t = Math.round(game.time);
@@ -160,7 +161,7 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
   }
   y += 14;
   if (reward && reward.parts > 0) {
-    const detail = reward.firstWin ? ` (dont ${CONFIG.stars.firstWinBonus} de première victoire)` : '';
+    const detail = reward.firstWin ? ` (dont ${Math.round(CONFIG.stars.firstWinBonus * CONFIG.modes[game.mode].partsMult)} de première victoire)` : '';
     text(ctx, `+${reward.parts} pièces détachées${detail}`, W / 2, y, 24, COL.yellow, 'center', 'middle');
     y += 36;
   } else if (won) {

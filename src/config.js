@@ -107,7 +107,7 @@ export const CONFIG = {
   // Un bonus s'écrit dans une unité :  bonuses: { typeCible: multiplicateur }
   // Pour ajouter un type : l'ajouter ici, puis dans les tags des unités.
   typeNames: {
-    melee: 'corps à corps', ranged: 'à distance', fast: 'rapides',
+    melee: 'corps à corps', ranged: 'à distance', fast: 'rapides', flying: 'volantes',
     swarm: 'nuées', heavy: 'lourdes', boss: 'boss', base: 'bases',
   },
 
@@ -128,40 +128,40 @@ export const CONFIG = {
     // ===== SURVIVANTS =====
     pillard: {
       side: 'player', name: 'Pillard', role: 'Corps à corps, pas cher',
-      cost: 50, hp: 120, damage: 12, attackInterval: 1.0, range: 30, speed: 60,
+      cost: 50, hp: 140, damage: 12, attackInterval: 1.0, range: 30, speed: 60,
       recruitCooldown: 1.5, tags: ['melee'], bonuses: { ranged: 1.5 },
       attack: { kind: 'melee' }, unlockLevel: 1, bodyWidth: 30, bodyHeight: 68,
       strengths: 'Pas cher, bon contre les Cracheurs', weaknesses: 'Fragile face aux Brutes',
     },
     tireur: {
       side: 'player', name: 'Tireur', role: 'Fusil, à distance',
-      cost: 75, hp: 70, damage: 15, attackInterval: 1.2, range: 220, speed: 50,
-      recruitCooldown: 2, tags: ['ranged'], bonuses: { fast: 1.5 },
+      cost: 90, hp: 70, damage: 13, attackInterval: 1.2, range: 220, speed: 50,
+      recruitCooldown: 2, tags: ['ranged'], bonuses: { fast: 1.5 }, antiAir: true,
       attack: { kind: 'projectile', projectile: { shape: 'tracer', speed: 900, color: '#ffe9a0', length: 24, width: 2, arcHeight: 0 } },
       unlockLevel: 1, bodyWidth: 30, bodyHeight: 68,
-      strengths: 'Longue portée, abat les Chiens mutés', weaknesses: 'Très fragile au contact',
+      strengths: 'Longue portée, abat les Chiens et les volants', weaknesses: 'Très fragile au contact',
     },
     motard: {
       side: 'player', name: 'Motard', role: 'Rapide, harcèlement',
-      cost: 100, hp: 110, damage: 18, attackInterval: 0.8, range: 35, speed: 140,
+      cost: 100, hp: 150, damage: 18, attackInterval: 0.8, range: 35, speed: 140,
       recruitCooldown: 4, tags: ['fast'], bonuses: { ranged: 1.5 },
       attack: { kind: 'melee' }, unlockLevel: 2, bodyWidth: 50, bodyHeight: 62,
       strengths: 'Fonce sur les Cracheurs', weaknesses: 'Peu résistant',
     },
     lanceFlammes: {
       side: 'player', name: 'Lance-flammes', role: 'Dégâts de zone',
-      cost: 150, hp: 160, damage: 8, attackInterval: 0.25, range: 90, speed: 45,
+      cost: 150, hp: 230, damage: 10, attackInterval: 0.25, range: 90, speed: 45,
       recruitCooldown: 6, tags: ['melee'], bonuses: { swarm: 2 },
       attack: { kind: 'flame' }, unlockLevel: 3, bodyWidth: 34, bodyHeight: 70,
       strengths: 'Brûle tous les ennemis devant lui, ravage les Goules', weaknesses: 'Portée courte, lent',
     },
     blinde: {
       side: 'player', name: 'Blindé bricolé', role: 'Char lourd, canon',
-      cost: 300, hp: 900, damage: 40, attackInterval: 2.0, range: 160, speed: 25,
-      recruitCooldown: 15, tags: ['heavy'], bonuses: { base: 2 },
+      cost: 400, hp: 900, damage: 40, attackInterval: 2.0, range: 160, speed: 25,
+      recruitCooldown: 20, tags: ['heavy'], bonuses: { base: 2 },
       attack: { kind: 'cannon', splashRadius: 50, projectile: { shape: 'shell', speed: 500, color: '#ffb347', length: 0, width: 5, arcHeight: 70 } },
       unlockLevel: 5, bodyWidth: 96, bodyHeight: 72,
-      strengths: 'Énorme blindage, détruit les bases', weaknesses: 'Très lent et cher',
+      strengths: 'Énorme blindage, détruit les bases', weaknesses: 'Très lent et cher, l’acide le ronge',
     },
 
     // ===== MUTANTS =====
@@ -173,22 +173,37 @@ export const CONFIG = {
     },
     cracheur: {
       side: 'enemy', name: 'Cracheur', role: 'Distance, acide',
-      cost: 75, hp: 65, damage: 14, attackInterval: 1.3, range: 200, speed: 50,
-      recruitCooldown: 2, tags: ['ranged'], bonuses: {},
+      cost: 75, hp: 65, damage: 14, attackInterval: 1.3, range: 235, speed: 50,
+      recruitCooldown: 2, tags: ['ranged'], bonuses: { heavy: 2 },   // l'acide ronge les blindages
       attack: { kind: 'projectile', projectile: { shape: 'glob', speed: 420, color: '#9be22b', length: 0, width: 5, arcHeight: 40 } },
       bodyWidth: 34, bodyHeight: 60,
     },
     chien: {
       side: 'enemy', name: 'Chien muté', role: 'Rapide',
-      cost: 90, hp: 90, damage: 16, attackInterval: 0.7, range: 30, speed: 160,
-      recruitCooldown: 4, tags: ['fast'], bonuses: {},
+      cost: 90, hp: 130, damage: 16, attackInterval: 0.7, range: 30, speed: 160,
+      recruitCooldown: 4, tags: ['fast'], bonuses: { ranged: 1.5 },   // fonce sur les tireurs
       attack: { kind: 'melee' }, bodyWidth: 52, bodyHeight: 38,
     },
     brute: {
       side: 'enemy', name: 'Brute', role: 'Tank de mêlée',
       cost: 220, hp: 700, damage: 35, attackInterval: 1.8, range: 40, speed: 30,
-      recruitCooldown: 12, tags: ['heavy'], bonuses: {},
+      recruitCooldown: 12, tags: ['heavy'], bonuses: { heavy: 1.5 },  // écrase les blindés
       attack: { kind: 'melee', knockback: 14 }, bodyWidth: 54, bodyHeight: 104,
+    },
+    // Rouilleur : petit mutant kamikaze qui se jette sur les blindés et explose
+    rouilleur: {
+      side: 'enemy', name: 'Rouilleur', role: 'Kamikaze anti-blindé',
+      cost: 60, hp: 80, damage: 90, attackInterval: 1, range: 25, speed: 140,
+      recruitCooldown: 3, tags: ['fast'], bonuses: { heavy: 3 },
+      attack: { kind: 'suicide', splashRadius: 45 }, bodyWidth: 32, bodyHeight: 36,
+    },
+    // Charognard ailé : vole au-dessus de la mêlée et attaque les tireurs à l'arrière.
+    // Seuls les Tireurs, la tourelle et le mortier peuvent le toucher.
+    charognard: {
+      side: 'enemy', name: 'Charognard ailé', role: 'Volant',
+      cost: 85, hp: 110, damage: 20, attackInterval: 0.9, range: 30, speed: 85,
+      recruitCooldown: 3, tags: ['flying'], bonuses: { ranged: 2 }, flying: true,
+      attack: { kind: 'melee' }, bodyWidth: 64, bodyHeight: 40,
     },
     abomination: {
       side: 'enemy', name: 'Abomination', role: 'Boss',
@@ -223,15 +238,15 @@ export const CONFIG = {
   workshop: {
     order: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde', 'walls', 'turret', 'salvage', 'spells'],
     names: { walls: 'Murailles', turret: 'Tourelle', salvage: 'Récupération', spells: 'Sorts' },
-    maxLevel: 5,
-    costs: [10, 20, 35, 55, 80],     // pièces détachées par niveau
+    maxLevel: 10,
+    costs: [10, 20, 35, 55, 80, 110, 150, 200, 260, 330],   // pièces détachées par niveau
     unitHpBonus: 0.10,               // par niveau, pour chaque unité séparément
     unitDamageBonus: 0.10,
     wallHpBonus: 300,
-    turretDamageBonus: 0.25,
-    turretRangeBonus: 0.10,
+    turretDamageBonus: 0.20,
+    turretRangeBonus: 0.05,
     incomeBonus: 1,                  // ferraille/s de revenu de départ
-    spellCooldownReduction: 0.10,
+    spellCooldownReduction: 0.06,    // max -60 % au niveau 10
   },
 
   // ---------- IA : réglages communs à tous les niveaux ----------
@@ -242,9 +257,11 @@ export const CONFIG = {
       goule: ['ranged'],
       cracheur: ['melee', 'heavy'],
       chien: ['ranged'],
-      brute: ['melee', 'fast'],
+      brute: ['melee', 'fast', 'heavy'],
+      rouilleur: ['heavy'],
+      charognard: ['ranged'],
     },
-    counterStrength: 2,       // 0 = ignore la composition du joueur
+    counterStrength: 3,       // 0 = ignore la composition du joueur
     maxSaveTime: 40,          // durée max d'économie pour une vague (s)
     // Profils d'achat d'amélioration du revenu (référencés par levels[].ai.incomeUpgrades)
     incomeUpgradeProfiles: {
@@ -254,6 +271,20 @@ export const CONFIG = {
       fast:   { chance: 0.35, notBefore: 45, maxLevel: 5 },
     },
   },
+
+  // ---------- Modes de difficulté ----------
+  // Chaque mode rejoue la campagne avec un ennemi plus fort. Multiplicateurs appliqués aux niveaux.
+  // unlockAfter : mode à terminer (dernier niveau gagné) pour débloquer celui-ci.
+  // extraWeights : unités ajoutées à l'IA dans tous les niveaux ; extraBosses : boss en plus (id de niveau).
+  modes: {
+    normal: { name: 'Normal', unlockAfter: null, aiIncomeMult: 1, aiStartScrap: 0, enemyBaseHp: 1, turretDamage: 1,
+              extraWeights: {}, extraBosses: [], partsMult: 1, mapTint: null },
+    hard: { name: 'Difficile', unlockAfter: 'normal', aiIncomeMult: 1.6, aiStartScrap: 250, enemyBaseHp: 1.5, turretDamage: 1.5,
+            extraWeights: { rouilleur: 1, charognard: 1 }, extraBosses: [8], partsMult: 1.5, mapTint: 'rgba(140,40,20,0.22)' },
+    nightmare: { name: 'Cauchemar', unlockAfter: 'hard', aiIncomeMult: 2.4, aiStartScrap: 500, enemyBaseHp: 2, turretDamage: 2,
+                 extraWeights: { rouilleur: 2, charognard: 2, brute: 1 }, extraBosses: [3, 7, 8, 9], partsMult: 2, mapTint: 'rgba(60,10,60,0.35)' },
+  },
+  modeOrder: ['normal', 'hard', 'nightmare'],
 
   // ---------- Niveaux ----------
   // ai.weights      : poids de tirage de chaque unité ennemie (= unités disponibles)
@@ -285,43 +316,43 @@ export const CONFIG = {
       bosses: [] },
     { id: 4, name: 'Port rouillé', enemyBaseHp: 1700, aiIncomeMult: 1.45, aiStartScrap: 300,
       enemyTurret: { damage: 14, interval: 0.55, range: 330 },
-      ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 1, brute: 1 },
+      ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 1, brute: 1, rouilleur: 1 },
             waves: { chance: 0.25, min: 5, max: 8 }, defenseDistance: 600, incomeUpgrades: 'normal' },
       objectives: [{ type: 'time', max: 300 }, { type: 'losses', max: 20 }],
       bosses: [] },
     { id: 5, name: 'Zone irradiée', enemyBaseHp: 2100, aiIncomeMult: 1.75, aiStartScrap: 350,
       enemyTurret: { damage: 17, interval: 0.55, range: 340 },
-      ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1 },
+      ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1, rouilleur: 1 },
             waves: { chance: 0.3, min: 5, max: 8 }, defenseDistance: 600, incomeUpgrades: 'normal' },
       objectives: [{ type: 'time', max: 420 }, { type: 'losses', max: 35 }],
       bosses: [{ unit: 'abomination', atBaseHpRatio: 0.5 }] },
     { id: 6, name: 'Cité effondrée', enemyBaseHp: 2300, aiIncomeMult: 2.1, aiStartScrap: 400,
       enemyTurret: { damage: 19, interval: 0.5, range: 340 },
-      ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1 },
+      ai: { decisionInterval: 1, firstDelay: 4, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1, rouilleur: 1, charognard: 1 },
             waves: { chance: 0.35, min: 6, max: 9 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 450 }, { type: 'losses', max: 45 }],
       bosses: [] },
     { id: 7, name: 'Raffinerie', enemyBaseHp: 2700, aiIncomeMult: 2.6, aiStartScrap: 450,
       enemyTurret: { damage: 25, interval: 0.5, range: 350 },
-      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1, rouilleur: 2, charognard: 1 },
             waves: { chance: 0.4, min: 6, max: 10 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 480 }, { type: 'losses', max: 55 }],
       bosses: [] },
     { id: 8, name: 'Marais toxique', enemyBaseHp: 3000, aiIncomeMult: 3.4, aiStartScrap: 500,
       enemyTurret: { damage: 32, interval: 0.5, range: 350 },
-      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 1 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 1, rouilleur: 2, charognard: 2 },
             waves: { chance: 0.45, min: 7, max: 11 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 540 }, { type: 'losses', max: 80 }],
       bosses: [] },
     { id: 9, name: 'Dernier rempart', enemyBaseHp: 3600, aiIncomeMult: 4.3, aiStartScrap: 600,
       enemyTurret: { damage: 42, interval: 0.45, range: 360 },
-      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 2 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 2, rouilleur: 2, charognard: 2 },
             waves: { chance: 0.5, min: 8, max: 12 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 480 }, { type: 'losses', max: 55 }],
       bosses: [] },
     { id: 10, name: 'Le Nid', enemyBaseHp: 4300, aiIncomeMult: 5.0, aiStartScrap: 700,
       enemyTurret: { damage: 51, interval: 0.45, range: 370 },
-      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 2 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 2, rouilleur: 2, charognard: 2 },
             waves: { chance: 0.55, min: 8, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 900 }, { type: 'losses', max: 180 }],
       bosses: [{ unit: 'abomination', atBaseHpRatio: 0.6 }, { unit: 'abomination', atBaseHpRatio: 0.3 }] },
