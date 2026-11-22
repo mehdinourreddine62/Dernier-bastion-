@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=22';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=22';
-import { Backdrop } from './background.js?v=22';
-import { drawFort, drawNest } from './bases.js?v=22';
+import { CONFIG } from '../config.js?v=23';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=23';
+import { Backdrop } from './background.js?v=23';
+import { drawFort, drawNest } from './bases.js?v=23';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -53,9 +53,11 @@ export class Renderer {
       pose.walk = ((wf + 0.5) / 12) * TAU; pose.atk = 0; pose.time = 0;
     } else {
       const af = pose.atk > 0 ? 1 + Math.min(4, Math.floor(pose.atk * 5)) : 0;
-      const tf = Math.floor(pose.time * 1.2) % 2;
+      // repos : 4 images sur un cycle de respiration (≈ 2,9 s)
+      const cyc = (Math.PI * 2) / 2.2;
+      const tf = Math.floor((pose.time % cyc) / cyc * 4) % 4;
       key = 'i' + af + 't' + tf;
-      pose.atk = af ? (af - 0.5) / 5 : 0; pose.time = tf * 0.8; pose.walk = 0;
+      pose.atk = af ? (af - 0.5) / 5 : 0; pose.time = (tf + 0.5) * cyc / 4; pose.walk = 0;
     }
     if (pose.dark) key += 'D';
     key = u.defId + ':' + key;
@@ -69,10 +71,68 @@ export class Renderer {
       const c = cv.getContext('2d');
       c.setTransform(r, 0, 0, r, (w / 2) * r, (h - 12) * r);
       drawSprite(c, u.defId, pose);
+      if (!pose.flash && !pose.dark) this._light(cv, c, r);
       f = { cv, w, h, ox: w / 2, oy: h - 12 };
       this.cache.set(key, f);
     }
     return f;
+  }
+
+  // Éclairage d'une image d'animation (calculé une seule fois, à la mise en cache) :
+  // dégradé du haut (lumière) vers le bas (ombre), puis liseré de lumière sur le haut des formes.
+  _light(cv, c, r) {
+    const W = cv.width, H = cv.height;
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalCompositeOperation = 'source-atop';
+    const g = c.createLinearGradient(0, H * 0.15, 0, H);
+    g.addColorStop(0, 'rgba(255,236,200,0.22)');
+    g.addColorStop(0.45, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(20,8,0,0.42)');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    // côté dos (gauche du dessin) dans l'ombre, côté face légèrement éclairé
+    const gx = c.createLinearGradient(W * 0.3, 0, W * 0.7, 0);
+    gx.addColorStop(0, 'rgba(10,4,0,0.22)');
+    gx.addColorStop(0.5, 'rgba(0,0,0,0)');
+    gx.addColorStop(1, 'rgba(255,230,190,0.10)');
+    c.fillStyle = gx; c.fillRect(0, 0, W, H);
+    // liseré : silhouette éclairée moins la même silhouette décalée vers le bas
+    if (!this._rim) this._rim = document.createElement('canvas');
+    const rc = this._rim;
+    if (rc.width < W || rc.height < H) { rc.width = Math.max(rc.width, W); rc.height = Math.max(rc.height, H); }
+    const x = rc.getContext('2d');
+    x.globalCompositeOperation = 'source-over';
+    x.clearRect(0, 0, rc.width, rc.height);
+    x.drawImage(cv, 0, 0);
+    x.globalCompositeOperation = 'source-in';
+    x.fillStyle = 'rgb(255,232,190)'; x.fillRect(0, 0, W, H);
+    x.globalCompositeOperation = 'destination-out';
+    x.drawImage(cv, -Math.max(1, 1.2 * r), Math.max(1, 2.6 * r));
+    c.globalAlpha = 0.7;
+    c.drawImage(rc, 0, 0, W, H, 0, 0, W, H);
+    c.restore();
+  }
+
+  // Texture douce (disque flou) d'une couleur, mise en cache : fumée, lueurs, ombres, feu
+  _soft(color) {
+    if (!this._softs) this._softs = new Map();
+    let t = this._softs.get(color);
+    if (!t) {
+      t = document.createElement('canvas');
+      t.width = t.height = 64;
+      const c = t.getContext('2d');
+      const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+      if (color === 'fire') {
+        g.addColorStop(0, 'rgba(255,236,170,0.95)'); g.addColorStop(0.3, 'rgba(255,160,50,0.75)');
+        g.addColorStop(0.65, 'rgba(210,70,20,0.35)'); g.addColorStop(1, 'rgba(140,30,10,0)');
+      } else {
+        const n = parseInt(color.slice(1), 16), rgb = `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+        g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(0.5, `rgba(${rgb},0.6)`); g.addColorStop(1, `rgba(${rgb},0)`);
+      }
+      c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+      this._softs.set(color, t);
+    }
+    return t;
   }
 
   // Décor seul (écran titre)
@@ -171,10 +231,19 @@ export class Renderer {
     ctx.translate(u.x, u.y);
     // ombre
     // ombre au sol (plus petite et plus pâle pour un volant)
-    ctx.fillStyle = u.alt > 0 ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(0, 1, def.bodyWidth * (u.alt > 0 ? 0.35 : 0.55), u.alt > 0 ? 3.5 : 5, 0, 0, Math.PI * 2); ctx.fill();
+    {
+      const sw = def.bodyWidth * (u.alt > 0 ? 0.45 : 0.75), sh = u.alt > 0 ? 6 : 9;
+      ctx.globalAlpha = u.alt > 0 ? 0.35 : 0.6;
+      ctx.drawImage(this._soft('#000000'), -sw, 1 - sh / 2, sw * 2, sh);
+      ctx.globalAlpha = 1;
+    }
     if (u.alt > 0) ctx.translate(0, -u.alt);
     if (u.dir < 0) ctx.scale(-1, 1);
+    // recul et légère bascule quand l'unité est touchée
+    if (u.hitFlash > 0 && !u.dying && !def.tags.includes('boss') && def.speed > 0) {
+      const k = u.hitFlash / CONFIG.combat.hitFlashTime;
+      ctx.translate(-2.5 * k, 0); ctx.rotate(-0.05 * k);
+    }
 
     const pose = this.pose;
     pose.walk = u.walk;
@@ -371,12 +440,28 @@ export class Renderer {
       const k = p.life / p.maxLife;
       switch (p.kind) {
         case 'smoke':
-        case 'dust':
-          ctx.globalAlpha = (p.kind === 'dust' ? 0.35 : 0.5) * k;
+        case 'dust': {
+          // fumée douce qui grossit en montant ; elle apparaît en fondu
+          const fade = Math.min(1, (1 - k) * 6);
+          ctx.globalAlpha = (p.kind === 'dust' ? 0.45 : 0.62) * k * fade;
+          const r = p.size * (2.4 - k * 1.1);
+          ctx.drawImage(this._soft(p.color), p.x - r, p.y - r, r * 2, r * 2);
+          break;
+        }
+        case 'casing':
+          ctx.globalAlpha = Math.min(1, k * 3);
           ctx.fillStyle = p.color;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1.7 - k * 0.7), 0, Math.PI * 2); ctx.fill();
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillRect(-2, -1, 4, 2);
+          ctx.restore();
           break;
         case 'debris':
+          if (p.hot && k > 0.4 && !this.lowFx) {   // débris enflammé : petite traînée de feu
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = (k - 0.4) * 1.4;
+            ctx.drawImage(this._soft('fire'), p.x - 7, p.y - 7, 14, 14);
+            ctx.globalCompositeOperation = 'source-over';
+          }
           ctx.globalAlpha = Math.min(1, k * 3);
           ctx.fillStyle = p.color;
           ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
@@ -409,10 +494,10 @@ export class Renderer {
           ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.025, p.y - p.vy * 0.025); ctx.stroke();
           break;
         case 'fireball':
-          if (k < 0.45) {   // la boule de feu finit en fumée sombre
-            ctx.globalAlpha = k * 1.4;
-            ctx.fillStyle = '#3a2a22';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1.6 - k), 0, Math.PI * 2); ctx.fill();
+          if (k < 0.5) {   // la boule de feu finit en fumée sombre
+            ctx.globalAlpha = k * 1.5;
+            const r = p.size * (2.3 - k * 1.2);
+            ctx.drawImage(this._soft('#2e221c'), p.x - r, p.y - r, r * 2, r * 2);
           }
           break;
       }
@@ -423,19 +508,19 @@ export class Renderer {
       if (!p.active || p.x < minX || p.x > maxX) continue;
       const k = p.life / p.maxLife;
       if (p.kind === 'flame') {
-        ctx.globalAlpha = Math.min(1, k * 1.6);
-        ctx.fillStyle = k > 0.65 ? '#fff0a0' : k > 0.35 ? '#ffa040' : '#c83a1a';
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (2.4 - k), 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = Math.min(1, k * 1.6) * 0.9;
+        const r = p.size * (3.4 - k * 1.4);
+        ctx.drawImage(this._soft(k > 0.6 ? 'fire' : k > 0.3 ? '#ff8a30' : '#b8301a'), p.x - r, p.y - r, r * 2, r * 2);
       } else if (p.kind === 'fireball' && k >= 0.3) {
-        ctx.globalAlpha = Math.min(1, (k - 0.3) * 2.5);
-        ctx.fillStyle = k > 0.8 ? '#ffd27a' : k > 0.55 ? '#ff9a3a' : '#c8401e';
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1.5 - k * 0.6), 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = Math.min(0.75, (k - 0.3) * 2);
+        const r = p.size * (2.2 - k * 0.9);
+        ctx.drawImage(this._soft(k > 0.55 ? 'fire' : '#e0601e'), p.x - r, p.y - r, r * 2, r * 2);
       } else if (p.kind === 'glow' && !this.lowFx) {
-        const g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.size);
-        g.addColorStop(0, p.color); g.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.globalAlpha = k * 0.8;
-        ctx.fillStyle = g;
-        ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+        ctx.drawImage(this._soft(p.color), p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+      } else if (p.kind === 'flash' && !this.lowFx) {
+        ctx.globalAlpha = 0.5 * k * k;
+        ctx.drawImage(this._soft('#fff2d0'), p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
       } else if (p.kind === 'ember') {
         ctx.globalAlpha = k;
         ctx.fillStyle = p.color;

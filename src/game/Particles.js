@@ -1,8 +1,8 @@
-import { CONFIG } from '../config.js?v=22';
+import { CONFIG } from '../config.js?v=23';
 
 // Effets visuels : étincelles, fumée, flammes, explosions, débris, soins, chiffres.
 // Tout est en pool : on recycle les plus anciens au lieu de créer des objets.
-// Types (kind) : spark, smoke, dust, flame, glow, fireball, ring, plus, debris, ember, drop
+// Types (kind) : spark, smoke, dust, flame, glow, flash, fireball, ring, plus, debris, ember, drop, casing
 export class Particles {
   constructor() {
     this.parts = Array.from({ length: CONFIG.pools.particles }, () => ({ active: false }));
@@ -21,6 +21,7 @@ export class Particles {
     p.size = size; p.color = color; p.gravity = gravity;
     p.rot = Math.random() * 6.28; p.spin = (Math.random() - 0.5) * 12;
     p.floor = this.groundY + (Math.random() - 0.5) * 24;
+    p.hot = false;
     return p;
   }
 
@@ -85,25 +86,39 @@ export class Particles {
     this._part('ember', x, y, (Math.random() - 0.5) * 30, -40 - Math.random() * 40, 1 + Math.random(), 2, '#ffb347', -10);
   }
 
-  // Explosion : flash lumineux, boules de feu, onde de choc, débris, étincelles, fumée
+  // Explosion : éclair, boules de feu, onde de choc, poussière au sol, débris (certains en feu),
+  // étincelles, puis colonne de fumée qui monte lentement
   explosion(x, y, radius) {
-    this._part('glow', x, y, 0, 0, 0.22, radius * 2.2, '#c88a3a', 0);
-    this._part('ring', x, y + 6, 0, 0, 0.4, radius * 1.6, '#ffe8c0', 0);
-    for (let i = 0; i < 6; i++) {
-      this._part('fireball', x + (Math.random() - 0.5) * radius * 0.8, y - Math.random() * radius * 0.5,
-        (Math.random() - 0.5) * 60, -30 - Math.random() * 60,
-        0.45 + Math.random() * 0.35, radius * (0.28 + Math.random() * 0.22), '#ffb347', -30);
+    this._part('flash', x, y - radius * 0.3, 0, 0, 0.12, radius * 3.2, '#fff2d0', 0);
+    this._part('glow', x, y, 0, 0, 0.35, radius * 2.6, '#e09040', 0);
+    this._part('ring', x, y + 6, 0, 0, 0.45, radius * 1.9, '#ffe8c0', 0);
+    for (let i = 0; i < 9; i++) {
+      this._part('fireball', x + (Math.random() - 0.5) * radius * 0.9, y - Math.random() * radius * 0.6,
+        (Math.random() - 0.5) * 90, -40 - Math.random() * 90,
+        0.5 + Math.random() * 0.45, radius * (0.25 + Math.random() * 0.25), '#ffb347', -40);
     }
-    for (let i = 0; i < 7; i++) {
-      this._part('debris', x, y - 4, (Math.random() - 0.5) * 360, -160 - Math.random() * 260,
-        1.2 + Math.random() * 0.6, 2.5 + Math.random() * 3, Math.random() < 0.5 ? '#3a2a1e' : '#5a4636', 900);
+    // poussière chassée au ras du sol, des deux côtés
+    for (let i = 0; i < 8; i++) {
+      const d = i % 2 ? 1 : -1;
+      this._part('dust', x + d * Math.random() * 10, y + 4, d * (120 + Math.random() * 160), -10 - Math.random() * 20,
+        0.7 + Math.random() * 0.5, 8 + Math.random() * 8, '#9a8262', 0);
     }
-    this.sparks(x, y - 6, '#ffcf7a', 8, 300);
-    for (let i = 0; i < 6; i++) {
-      this._part('smoke', x + (Math.random() - 0.5) * radius, y - Math.random() * radius * 0.6,
-        (Math.random() - 0.5) * 40, -24 - Math.random() * 40,
-        1 + Math.random() * 0.8, 10 + Math.random() * 10, '#3e3028', 0);
+    for (let i = 0; i < 9; i++) {
+      const p = this._part('debris', x, y - 4, (Math.random() - 0.5) * 420, -180 - Math.random() * 300,
+        1.3 + Math.random() * 0.7, 2 + Math.random() * 3.5, Math.random() < 0.5 ? '#2e2218' : '#5a4636', 900);
+      p.hot = Math.random() < 0.4;
     }
+    this.sparks(x, y - 6, '#ffcf7a', 12, 340);
+    for (let i = 0; i < 8; i++) {
+      this._part('smoke', x + (Math.random() - 0.5) * radius, y - Math.random() * radius * 0.7,
+        (Math.random() - 0.5) * 30, -26 - Math.random() * 34,
+        2 + Math.random() * 1.6, 13 + Math.random() * 13, i % 3 ? '#3e3028' : '#5a4a3e', 0);
+    }
+  }
+
+  // Douille éjectée par une arme à feu (dir = sens du tir)
+  casing(x, y, dir, color = '#d8b040') {
+    this._part('casing', x, y, -dir * (40 + Math.random() * 60), -90 - Math.random() * 60, 1.1, 1, color, 700);
   }
 
   // Coup au sol (Abomination) : poussière et cailloux
@@ -149,7 +164,7 @@ export class Particles {
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.rot += p.spin * dt;
       // Débris et gouttes : rebond / arrêt au sol
-      if ((p.kind === 'debris' || p.kind === 'drop') && p.y > p.floor && p.vy > 0) {
+      if ((p.kind === 'debris' || p.kind === 'drop' || p.kind === 'casing') && p.y > p.floor && p.vy > 0) {
         p.y = p.floor;
         if (p.kind === 'drop') { p.vx = 0; p.vy = 0; p.gravity = 0; p.life = Math.min(p.life, 0.3); }
         else { p.vy *= -0.3; p.vx *= 0.5; p.spin *= 0.5; }

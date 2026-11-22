@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=22';
+import { CONFIG } from '../config.js?v=23';
 
 // Sorts du joueur : Frappe de mortier et Kit de soins.
 export class Spells {

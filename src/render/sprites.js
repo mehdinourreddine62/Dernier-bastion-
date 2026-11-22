@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=22';
+import { CONFIG } from '../config.js?v=23';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).
@@ -117,34 +117,69 @@ const armSwing = () => (P.moving ? Math.sin(P.walk) * 0.55 : 0);
 //  SURVIVANTS
 // =====================================================================
 
-// Pillard : blouson rapiécé, foulard, casquette, tuyau de plomb clouté
+// Pillard : blouson rapiécé, sac à dos, épaulière en pneu, foulard, casquette, tuyau clouté
 function pillard() {
   const s = swing();
   X.translate(s > 0 ? s * 5 : s * 2, -bobY(2));
+  const br = P.moving ? 0 : Math.sin(P.time * 2.2) * 0.7;          // respiration
+  const fl = P.moving ? Math.sin(P.walk * 2) * 2 : Math.sin(P.time * 3) * 1;   // foulard au vent
+  // sac à dos + couverture roulée
+  rr(-18, -53 - br, 10, 24, 3, '#5e4c34');
+  rr(-17, -48 - br, 8, 3, 1, '#4a3a26', false);
+  rr(-20, -58 - br, 13, 6, 3, '#8a4430');
+  line(-16, -58 - br, -16, -52 - br, 1, '#5a2a1e');
   // bras arrière
   const ba = 1.9 - armSwing();
   limb([-3, -46, -3 + Math.cos(ba) * 10, -46 + Math.sin(ba) * 10, -3 + Math.cos(ba - 0.4) * 19, -46 + Math.sin(ba - 0.4) * 19], 5, shade('#7f8552'));
+  dot(-3 + Math.cos(ba - 0.4) * 19, -46 + Math.sin(ba - 0.4) * 19, 2.6, shade('#d39a72'));
   legs(-25, 25, 6, '#4b4a36', '#2b241c', 10);
-  // torse : blouson kaki
-  poly([-9, -24, -10, -50, 9, -51, 10, -24], '#7f8552');
-  poly([-10, -50, -4, -51, -5, -24, -9, -24], '#62683f', false);
-  rr(1, -44, 7, 8, 1, '#8f6a3e', false);                 // pièce rapiécée
-  rr(-10, -29, 20, 4, 1, '#3b2c1e');                     // ceinture
-  rr(4, -30, 5, 6, 1, '#5a4430', false);                 // sacoche
-  // tête
-  blob(1, -59, 7.5, 8, '#d39a72');
-  poly([-5, -57, 8, -57, 9, -52, 2, -50, -5, -53], '#a8442b');   // foulard
-  dot(5, -61, 1.3, '#1a1008');
-  poly([-8, -61, -7, -67, 0, -69, 7, -66, 8, -62], '#56708a');   // casquette
-  poly([6, -63, 14, -62, 13, -60, 6, -61], '#46607a');
-  // bras avant + tuyau
+  // torse : blouson kaki (ombre au dos, reflet devant)
+  poly([-9, -24, -10, -50 - br, 9, -51 - br, 10, -24], '#7f8552');
+  poly([-10, -50 - br, -4, -51 - br, -5, -24, -9, -24], '#62683f', false);
+  poly([6, -50 - br, 9, -51 - br, 10, -25, 7, -25], '#979d68', false);
+  poly([-6, -51 - br, 7, -52 - br, 5, -47, -4, -47], '#6a7044');                   // col relevé
+  rr(1, -44, 7, 8, 1, '#8f6a3e', false);                                           // pièce rapiécée
+  X.strokeStyle = C('#5a4228'); X.lineWidth = 0.8;
+  X.beginPath(); for (let k = 0; k < 4; k++) { X.moveTo(1.5 + k * 2, -44.5); X.lineTo(2 + k * 2, -43); } X.stroke();
+  // bandoulière cloutée
+  line(-8, -49 - br, 9, -29, 3, '#4a3828');
+  for (let k = 0; k < 4; k++) dot(-5 + k * 4, -45 + k * 4.6, 0.9, '#c0b08a');
+  rr(-10, -29, 20, 4, 1, '#3b2c1e');                                               // ceinture
+  rr(-1, -29.5, 4, 5, 1, '#c0a060', false);                                        // boucle
+  rr(4, -30, 5, 6, 1, '#5a4430', false);                                           // sacoche
+  // épaulière en pneu
+  blob(5, -49 - br, 6, 3.8, '#3a3634');
+  dot(3, -49.5 - br, 0.9, '#8a8478'); dot(7, -49.5 - br, 0.9, '#8a8478');
+  // tête : cou, oreille, nez, sourcil
+  rr(-1, -54 - br, 5, 4, 1, '#bf8862', false);
+  blob(1, -59 - br, 7.5, 8, '#d39a72');
+  blob(-3, -58 - br, 3.5, 6, '#c08862', 0, false);
+  blob(-2, -58 - br, 1.6, 2.3, '#b07a56');
+  poly([8, -60 - br, 10.6, -57.6 - br, 8, -57 - br], '#c08862', false);
+  line(3.5, -63.2 - br, 6.8, -63.8 - br, 1.2, '#3a2614');
+  dot(5.2, -61 - br, 1.4, '#1a1008');
+  // foulard rouge + pan qui flotte
+  poly([-5, -57 - br, 8, -57 - br, 9, -52 - br, 2, -50 - br, -5, -53 - br], '#a8442b');
+  poly([-4, -55 - br, -12, -53 + fl - br, -13, -49 + fl - br, -5, -52 - br], '#8e3824');
+  // casquette + lunettes de soudeur relevées
+  poly([-8, -61 - br, -7, -67 - br, 0, -69 - br, 7, -66 - br, 8, -62 - br], '#56708a');
+  poly([-7, -64 - br, -6, -67 - br, -1, -68.5 - br, -2, -64 - br], '#4a6278', false);
+  poly([6, -63 - br, 14, -62 - br, 13, -60 - br, 6, -61 - br], '#46607a');
+  rr(-4, -66.5 - br, 10, 3.2, 1.5, '#2e2e2c');
+  dot(-1, -65 - br, 1.2, '#9fd3e8'); dot(3.5, -65 - br, 1.2, '#9fd3e8');
+  // bras avant + tuyau clouté (poignée scotchée)
   const a = P.atk > 0 ? (s < 0 ? -1.1 - (-s) * 1.3 : -2.4 + (s + 1) * 1.55) : -1.0 + armSwing() * 0.3;
   const hx = 5 + Math.cos(a + 1.2) * 4 + 8, hy = -46 + Math.sin(a + 1.2) * 4 + 9;
   limb([5, -46, (5 + hx) / 2 + 1, (-46 + hy) / 2 + 2, hx, hy], 5.5, '#7f8552');
   rr(5, -47, 5, 5, 1, '#f2c230', false);                 // brassard jaune
   const tx = hx + Math.cos(a) * 28, ty = hy + Math.sin(a) * 28;
   limb([hx, hy, tx, ty], 4, '#7a7570');
+  line(hx + Math.cos(a) * 12, hy + Math.sin(a) * 12, tx, ty, 1.2, '#a8a49c');     // reflet du métal
   line(hx, hy, hx + Math.cos(a) * 9, hy + Math.sin(a) * 9, 5, '#3b2c1e');
+  for (let k = 0; k < 2; k++) {
+    const bx = hx + Math.cos(a) * (2 + k * 4), by = hy + Math.sin(a) * (2 + k * 4);
+    line(bx + Math.cos(a - 1.57) * 2.5, by + Math.sin(a - 1.57) * 2.5, bx - Math.cos(a - 1.57) * 2.5, by - Math.sin(a - 1.57) * 2.5, 1.2, '#8a8478');
+  }
   for (let i = 0; i < 3; i++) {
     const k = 0.65 + i * 0.12;
     const nx = hx + Math.cos(a) * 28 * k, ny = hy + Math.sin(a) * 28 * k;
@@ -348,27 +383,46 @@ function goule() {
   const lunge = s > 0 ? s * 10 : s * 3;
   X.translate(lunge, -bobY(2.5));
   const sw = P.moving ? Math.sin(P.walk) : 0;
-  // bras arrière
+  const pant = P.moving ? 0 : Math.sin(P.time * 3) * 0.8;          // halètement
+  // bras arrière griffu
   limb([2, -42, 10 - sw * 6, -30, 16 - sw * 8, -18], 4, shade('#a8b48a'));
+  dot(10 - sw * 6, -30, 2.4, shade('#98a47a'));
+  for (let i = -1; i <= 1; i++) line(16 - sw * 8, -18, 21 - sw * 8, -16 + i * 3, 1.3, '#cfc8a8');
   legs(-22, 22, 5, '#8a9670', '#6a7454', 9, 8);
-  // haillons
+  // haillons déchirés
   poly([-8, -24, 8, -26, 10, -14, 4, -18, 0, -11, -4, -17, -9, -14], '#5a4636');
-  // torse voûté + côtes + colonne
-  blob(2, -36, 11, 15, '#a8b48a', 0.5);
+  poly([-8, -24, -2, -25, -4, -17, -9, -14], '#4a382a', false);
+  // torse voûté : peau pâle, reflet sur le dos, côtes, veines
+  blob(2, -36 - pant * 0.3, 11 + pant * 0.2, 15, '#a8b48a', 0.5);
+  blob(-2, -42, 6, 8, '#bcc8a0', 0.5, false);
   X.strokeStyle = C('#7d8a66'); X.lineWidth = 1.2;
   for (let i = 0; i < 3; i++) { X.beginPath(); X.arc(6, -36 + i * 5, 6, -0.6, 0.8); X.stroke(); }
-  for (let i = 0; i < 4; i++) dot(-5 + i * 3, -46 + i * 2, 1.5, '#8d9a72');
-  // tête basse projetée en avant
-  blob(14, -46, 8, 7.5, '#b8c49a');
+  X.strokeStyle = C('#7e5a8c'); X.lineWidth = 1;
+  X.beginPath(); X.moveTo(-6, -34); X.quadraticCurveTo(-2, -30, -5, -25); X.moveTo(8, -44); X.lineTo(12, -38); X.stroke();
+  // colonne vertébrale saillante
+  for (let i = 0; i < 4; i++) blob(-6 + i * 4, -45.5 + i * 2.6, 1.7, 1.3, '#cdd5b0', -0.6, false);
+  // tête basse projetée en avant : crâne, orbite creuse, oreille pointue
+  blob(14, -46, 8.5, 7.8, '#b8c49a');
+  blob(11, -50, 4, 3, '#cad4ae', 0, false);
+  poly([7, -49, 4, -55, 9, -51], '#a8b48a');
+  blob(16.5, -48.5, 3, 2.4, '#5a6a46', 0, false);
+  glowEye(17, -48.8, 1.8, '#f0e040');
   const open = P.atk > 0 ? 3.5 : 1.8 + Math.sin(P.time * 3) * 0.4;
-  poly([16, -44, 23, -44, 22, -44 + open * 2, 16, -42 + open], '#2a1218');
-  for (let i = 0; i < 3; i++) poly([17 + i * 2, -44, 18 + i * 2, -41.5, 19 + i * 2, -44], '#e8e0c0', false);
-  glowEye(16, -49, 1.8, '#f0e040');
-  // bras avant griffu
+  poly([16, -44, 23.5, -44, 22.5, -44 + open * 2, 16, -42 + open], '#2a1218');
+  for (let i = 0; i < 3; i++) poly([17 + i * 2, -44, 18 + i * 2, -40.8, 19 + i * 2, -44], '#ece4c4', false);
+  for (let i = 0; i < 2; i++) poly([18 + i * 2.5, -42 + open * 1.5, 19 + i * 2.5, -44 + open * 0.6, 20 + i * 2.5, -42 + open * 1.5], '#d8d0b0', false);
+  // bave qui pend
+  if (!P.dark) {
+    const d = 3 + ((P.time * 2) % 1) * 5;
+    line(21, -43 + open * 1.5, 21.4, -43 + open * 1.5 + d, 1.2, '#c8e890');
+  }
+  // bras avant griffu (coude noueux, griffes longues)
   const reach = P.atk > 0 ? 14 + Math.max(0, s) * 12 : 6 + sw * 6;
   const hx = 12 + reach, hy = P.atk > 0 ? -36 + Math.max(0, s) * 8 : -20;
-  limb([8, -42, (8 + hx) / 2, (-42 + hy) / 2 + 4, hx, hy], 4.5, '#a8b48a');
-  for (let i = -1; i <= 1; i++) line(hx, hy, hx + 6, hy + i * 3 + 2, 1.5, '#e8e2c0');
+  const ex = (8 + hx) / 2, ey = (-42 + hy) / 2 + 4;
+  limb([8, -42, ex, ey, hx, hy], 4.5, '#a8b48a');
+  dot(ex, ey, 2.6, '#98a47a');
+  for (let i = -1; i <= 1; i++) line(hx, hy, hx + 8, hy + i * 3.5 + 2, 1.6, '#e8e2c0');
 }
 
 // Cracheur : ventre-poche violet, veines vertes, gorge qui gonfle avant de cracher

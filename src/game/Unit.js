@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=22';
-import { Entity } from './Entity.js?v=22';
+import { CONFIG } from '../config.js?v=23';
+import { Entity } from './Entity.js?v=23';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -179,6 +179,11 @@ export class Unit extends Entity {
     const dmg = this.damage * this.damageFactor(game);   // Cri de ralliement, Hurleur
     if (atk.kind !== 'flame') game.emit('attack', this.x, { id: this.defId });
 
+    // douilles éjectées par les armes à feu des Survivants
+    if (this.side === 'player' && def.attack.projectile && def.attack.projectile.shape === 'tracer' && (!def.rapidFire || Math.random() < 0.4)) {
+      game.fx.casing(this.x + this.dir * 6, this.aimY + 6, this.dir);
+    }
+    if (atk.kind === 'shotgun') game.fx.casing(this.x + this.dir * 6, this.aimY + 6, this.dir, '#c0392b');
     switch (atk.kind) {
       case 'projectile':
       case 'cannon':

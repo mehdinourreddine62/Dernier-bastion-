@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=22';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=22';
-import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=22';
+import { CONFIG } from '../config.js?v=23';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=23';
+import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=23';
 
 // Carte de campagne : 2 chapitres de 10 lieux (onglets en haut), reliés par une route.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
