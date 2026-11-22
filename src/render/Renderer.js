@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=23';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=23';
-import { Backdrop } from './background.js?v=23';
-import { drawFort, drawNest } from './bases.js?v=23';
+import { CONFIG } from '../config.js?v=24';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=24';
+import { Backdrop } from './background.js?v=24';
+import { drawFort, drawNest } from './bases.js?v=24';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -138,6 +138,7 @@ export class Renderer {
   // Décor seul (écran titre)
   drawBackdrop(ctx, camX, time) {
     const b = this.backdrop;
+    b.lowFx = this.lowFx;
     b.drawSky(ctx, time);
     b.drawLayers(ctx, camX);
     b.drawAir(ctx, camX, time);
@@ -147,6 +148,7 @@ export class Renderer {
   // ---------- Scène complète ----------
   draw(ctx, game, camera, time) {
     const b = this.backdrop;
+    b.lowFx = this.lowFx;
     const V = CONFIG.display.width;
     b.drawSky(ctx, time);
     b.drawLayers(ctx, camera.x);
@@ -176,10 +178,26 @@ export class Renderer {
 
     // Qualité basse : on saute le premier plan, l'ambiance et le vignettage
     if (!this.lowFx) {
+      this._grade(ctx, b.theme);
       b.drawForeground(ctx, camera.x);
       b.drawAir(ctx, camera.x, time);
       this._vignette(ctx);
     }
+  }
+
+  // Teinte de lumière sur toute la scène : chaude du côté du soleil, plus froide de l'autre
+  _grade(ctx, theme) {
+    if (!this._gradeG || this._gradeTheme !== theme || this._gradeCtx !== ctx) {
+      this._gradeTheme = theme; this._gradeCtx = ctx;
+      const sx = theme.sun[0];
+      const g = ctx.createLinearGradient(sx > 640 ? 1280 : 0, 0, sx > 640 ? 0 : 1280, 0);
+      g.addColorStop(0, `rgba(${theme.glow},0.10)`);
+      g.addColorStop(0.6, `rgba(${theme.glow},0)`);
+      g.addColorStop(1, 'rgba(20,30,60,0.08)');
+      this._gradeG = g;
+    }
+    ctx.fillStyle = this._gradeG;
+    ctx.fillRect(0, 0, CONFIG.display.width, CONFIG.display.height);
   }
 
   _vignette(ctx) {

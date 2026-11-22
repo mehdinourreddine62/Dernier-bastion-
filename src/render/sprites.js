@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=23';
+import { CONFIG } from '../config.js?v=24';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).
@@ -203,6 +203,9 @@ function tireur() {
   poly([-9, -26, -9, -50, 9, -51, 9, -26], '#5b7288');
   poly([-9, -50, -4, -50, -4, -26, -9, -26], '#4a5e72', false);
   rr(-9, -31, 18, 3, 1, '#3b2c1e', false);
+  poly([5, -50, 9, -51, 9, -27, 6, -27], '#6e86a0', false);                       // reflet du manteau
+  for (const by of [-45, -39, -34]) dot(1.5, by, 1, '#2a2a2a');                   // boutons
+  for (let k = 0; k < 4; k++) rr(-7 + k * 3.4, -32, 2.2, 4.5, 0.8, '#d8b040', false);   // cartouches à la ceinture
   // écharpe
   poly([-6, -52, 8, -52, 8, -48, -6, -47], '#c7b07a');
   poly([-6, -50, -12, -40, -9, -39, -3, -48], '#b49c66');
@@ -212,11 +215,17 @@ function tireur() {
   rr(-12, -64, 26, 3.5, 1.5, '#6e5a40');
   poly([-6, -64, -5, -72, 7, -72, 8, -64], '#6e5a40');
   rr(-5, -67, 13, 2.5, 1, '#3e2e20', false);
+  blob(-3, -57, 1.5, 2.2, '#b07a56');                                              // oreille
+  poly([7.5, -59, 10, -57, 7.5, -56], '#c08862', false);                           // nez
+  line(3, -61.5, 6.5, -62, 1.1, '#3a2614');                                        // sourcil
+  X.fillStyle = C('#8a6a50'); X.fillRect(2, -55, 5, 1.2);                          // barbe de trois jours
   // fusil
   limb([-6, -40, 10, -43], 6, '#6a4a2e');                // crosse
   limb([8, -43, 30, -45], 4, '#2a2a2c');                 // corps
   limb([28, -45, 40, -45.6], 2.5, '#1e1e20');            // canon
   rr(10, -50, 12, 4, 1.5, '#1a1a1a');                    // lunette
+  dot(21, -48.5, 1, '#9fd3e8');                                                     // reflet de la lunette
+  line(-5, -39, 1, -29, 1.2, '#4a3828');                                            // sangle
   // bras avant sous le canon
   limb([5, -47, 12, -40, 20, -43], 5, '#5b7288');
   rr(5, -48, 5, 5, 1, '#f2c230', false);                 // brassard jaune
@@ -260,6 +269,9 @@ function motard() {
   limb([10, -36, 16, -38], 2.5, '#222');                  // guidon
   rr(-24, -31, 16, 5, 2, '#2c2620');                      // selle
   poly([24, -14, 28, -22, 32, -14], '#4a4a4a');           // garde-boue
+  line(-30, -21.5, -22, -17.5, 1, '#d8d8dc');                                       // reflet chromé
+  poly([0, -31, 7, -30.5, 6, -29, 0, -29.5], '#d07a4a', false);                     // reflet du réservoir
+  if (!P.dark) dot(21, -30, 1.6, '#fff3b0');                                       // ampoule du phare
   // pilote penché
   limb([-10, -30, 0, -22, 2, -12], 5, '#4a4a3a');
   rr(-1, -14, 8, 5, 2, '#2b241c');
@@ -269,6 +281,9 @@ function motard() {
   poly([-2, -66, 2, -76, 4, -66, 6, -74, 8, -66], '#a8442b');      // crête
   rr(4, -63, 8, 4, 1.5, '#9fd3e8');                       // lunettes
   poly([-1, -57, 10, -57, 10, -53, 0, -53], '#3a3a3c');   // bandana
+  for (let k = 0; k < 3; k++) poly([-6 + k * 4, -52, -4 + k * 4, -57, -2 + k * 4, -52], '#c0c0b0');   // clous de l'épaule
+  blob(0, -60, 1.5, 2.2, '#b07a56');                                                // oreille
+  blob(1, -22, 3.2, 2.6, '#3a3a3c');                                                // genouillère
   // bras + fléau
   limb([2, -50, 10, -42, 16, -37], 5, '#6d6d52');
   rr(3, -51, 5, 5, 1, '#f2c230', false);
@@ -291,16 +306,24 @@ function lanceFlammes() {
   X.fillStyle = C('#f2c230');
   for (let i = 0; i < 3; i++) X.fillRect(-15, -52 + i * 9, 9, 3);
   blob(-10, -62, 3, 3, '#c0c0b0');                        // manomètre
+  line(-10, -62, -9, -64, 0.8, '#a8372a');                                          // aiguille
+  rr(-19, -56, 2, 26, 1, '#d06a50', false); rr(-13, -58, 2, 28, 1, '#e0705a', false);   // reflets des réservoirs
+  poly([-12, -36, -10, -40, -8, -36], '#1a1a1a', false);                            // pictogramme danger
   // combinaison
   poly([-11, -24, -12, -54, 11, -55, 12, -24], '#6f6a4c');
   X.strokeStyle = C('#5a5640'); X.lineWidth = 1;
   for (let y = -50; y < -26; y += 6) { X.beginPath(); X.moveTo(-11, y); X.lineTo(11, y); X.stroke(); }
   rr(-12, -30, 24, 4, 1, '#3b2c1e');
+  blob(5, -42, 3.5, 2.5, '#4e4a36', 0.3, false);                                    // traces de brûlure
+  blob(-6, -36, 2.5, 2, '#4e4a36', 0, false);
+  rr(-3, -30.5, 4, 5, 1, '#8a7a5a', false);                                         // briquet à la ceinture
   // tête : cagoule + masque à gaz
   blob(2, -62, 9, 9, '#4a4a40');
   blob(7, -63, 3.5, 3.5, P.atk > 0 ? '#ffcf7a' : '#7ab8d0');
   blob(1, -63, 3, 3, P.atk > 0 ? '#ffcf7a' : '#7ab8d0');
   rr(5, -58, 8, 7, 3, '#3a3a32');                        // cartouche filtrante
+  for (let k = 0; k < 3; k++) line(6 + k * 2.4, -57, 6 + k * 2.4, -52.5, 0.8, '#5a5a50');   // grille du filtre
+  if (!P.dark && !P.flash) { dot(8, -64.5, 0.9, '#ffffff'); dot(2, -64.2, 0.8, '#ffffff'); }   // reflets des verres
   // tuyau
   X.strokeStyle = C('#2a2420'); X.lineWidth = 3;
   X.beginPath(); X.moveTo(-12, -32); X.quadraticCurveTo(-2, -18, 10, -38); X.stroke();
@@ -343,6 +366,12 @@ function blinde() {
   rr(8, -50, 18, 12, 1, '#6a6a5e');
   X.fillStyle = C('#a8a898');
   for (const [rx, ry] of [[-40, -44], [-26, -44], [-40, -33], [-26, -33], [10, -48], [23, -48], [10, -40], [23, -40]]) X.fillRect(rx, ry, 2, 2);
+  // coulures de rouille, jerrican à l'arrière, sacs de sable, phare
+  X.fillStyle = C('#8a4a2a');
+  for (const [rx, ry, h] of [[-15, -52, 12], [2, -54, 9], [32, -46, 14], [-36, -28, 6]]) X.fillRect(rx, ry, 1.6, h);
+  rr(-55, -42, 7, 14, 1.5, '#7a3a22'); rr(-54, -44, 3, 3, 1, '#5a2a18');
+  blob(22, -58, 7, 3.2, '#a8946a'); blob(32, -58, 6, 3, '#b4a078');
+  if (!P.dark) { dot(46, -36, 2.4, '#ffe9a0'); dot(46, -36, 1.2, '#ffffff'); }
   // fente de pilotage
   rr(28, -50, 14, 4, 1, '#14140e');
   if (!P.flash && !P.dark) { X.fillStyle = 'rgba(255,255,255,0.25)'; X.fillRect(30, -50, 4, 1.5); }
@@ -353,6 +382,7 @@ function blinde() {
   for (let i = 0; i < 3; i++) poly([62, -36 + i * 7, 70, -33 + i * 7, 62, -30 + i * 7], '#8a8478');
   // jupes
   rr(-48, -20, 96, 6, 1, '#3e4830');
+  for (let k = 0; k < 7; k++) blob(-42 + k * 14, -15, 5 + (k % 3), 2.2, '#5a4a32', 0, false);   // boue
   // tourelle + canon (+ chef de char)
   X.save();
   X.translate(recoil, 0);
@@ -360,6 +390,9 @@ function blinde() {
   poly([-11, -74, -10, -79, -1, -79, 0, -74], '#56708a');
   rr(-18, -70, 36, 16, 5, '#4c5a3e');
   rr(-18, -70, 36, 4, 2, '#5e6c4c', false);
+  rr(-6, -75, 8, 5, 1.5, '#3e4832');                                               // trappe
+  limb([6, -70, 6, -78], 2.4, '#2a2e28'); rr(4, -80, 5, 3, 1, '#2a2e28');           // périscope
+  X.fillStyle = C('#f2c230'); X.fillRect(-14, -64, 6, 2);                          // marquage
   limb([14, -63, 52, -64], 6, '#3a3f36');
   rr(50, -68, 9, 8, 2, '#2a2e28');
   if (P.atk > 0.65 && !P.dark) {
@@ -434,6 +467,8 @@ function cracheur() {
   limb([-6, -30, -12, -20], 4, shade('#6a4377'));
   // ventre
   blob(0, -28, 15 + swell * 0.5, 16 + swell * 0.3, '#7b4f8c');
+  blob(-5, -36, 7, 5, '#966aa8', 0.3, false);                                       // reflet du dos
+  for (const [sx, sy, r] of [[-9, -22, 2], [-3, -16, 1.5], [8, -36, 1.6]]) blob(sx, sy, r, r * 0.8, '#5e3a6c', 0, false);   // taches
   // poche translucide verte
   if (!P.flash && !P.dark) {
     X.fillStyle = 'rgba(155,226,43,0.45)';
@@ -456,6 +491,7 @@ function cracheur() {
   glowEye(7, -55, 1.4, '#e8e24a');
   const open = P.atk > 0 ? 0.3 + Math.max(0, (q - 0.4) / 0.6) * 0.9 : 0.15;
   poly([15, -49, 25, -49 - open * 9, 25, -49 + open * 9], '#2a0e22');
+  for (let i = 0; i < 2; i++) poly([16 + i * 3, -49 - open * 4, 17 + i * 3, -46, 18 + i * 3, -49 - open * 4], '#e8e0c0', false);   // crocs
   if (!P.flash && !P.dark) {
     dot(22, -42 + ((P.time * 12) % 8), 1.8, '#9be22b');   // bave d'acide
   }
@@ -480,6 +516,10 @@ function chien() {
   blob(0, -25, 23, 9.5, '#8a5a48');
   blob(-4, -24, 12, 6, '#b06a5a', 0, false);                         // chair à vif
   blob(6, -27, 6, 4, '#7e4e72', 0, false);                            // plaie violette
+  blob(-8, -31, 11, 3, '#a06a5a', 0, false);                                        // reflet de l'échine
+  rr(16, -35, 4, 8, 1, '#4a4a46'); dot(18, -27, 1.6, '#8a8a84');                    // collier rouillé
+  X.strokeStyle = C('#5a2e26'); X.lineWidth = 0.9;
+  X.beginPath(); X.moveTo(-14, -26); X.lineTo(-9, -21); X.moveTo(9, -22); X.lineTo(13, -25); X.stroke();   // cicatrices
   X.strokeStyle = C('#d8cfae'); X.lineWidth = 1.4;
   for (let i = 0; i < 3; i++) { X.beginPath(); X.moveTo(-6 + i * 5, -30); X.lineTo(-4 + i * 5, -20); X.stroke(); }
   for (let i = 0; i < 5; i++) poly([-16 + i * 7, -33, -13 + i * 7, -41 - (i % 2) * 3, -10 + i * 7, -33], '#d8cfae');
@@ -494,6 +534,7 @@ function chien() {
   for (let i = 0; i < 3; i++) poly([29 + i * 3, -27, 30.5 + i * 3, -24, 32 + i * 3, -27], '#e8e0c0', false);
   glowEye(25, -34, 1.6, '#f0e040');
   glowEye(29, -35, 1.1, '#f0e040');
+  if (!P.dark) line(36, -24 + open * 10, 36.4, -19 + open * 10 + ((P.time * 3) % 1) * 4, 1.1, '#e0d8c0');   // bave
   poly([17, -36, 19, -46, 23, -37], '#7a4a3e');                       // oreille
 }
 
@@ -509,6 +550,10 @@ function brute() {
   blob(-2, -64, 26, 30, '#b58374');
   blob(-14, -82, 16, 14, '#a87264');
   blob(6, -58, 14, 18, '#c49484', 0, false);
+  blob(-8, -78, 9, 7, '#cba090', 0, false);                                        // reflet de l'épaule
+  // plaque de tôle rivetée sur l'épaule arrière
+  poly([-26, -86, -10, -96, 2, -88, -12, -78], '#6a6a62');
+  for (const [px, py] of [[-20, -86], [-10, -91], [-6, -84]]) dot(px, py, 1, '#a8a898');
   // points de suture et veines
   X.strokeStyle = C('#5a2a2a'); X.lineWidth = 1.2;
   X.beginPath(); X.moveTo(-8, -76); X.lineTo(4, -60);
@@ -522,6 +567,7 @@ function brute() {
   // petite tête enfoncée avec mâchoire métallique
   blob(12, -94, 10, 9, '#a87264');
   rr(10, -91, 12, 6, 2, '#6a6a62');
+  for (let i = 0; i < 3; i++) line(12 + i * 3.5, -91, 12 + i * 3.5, -85, 0.8, '#4a4a44');   // grille de la mâchoire
   glowEye(16, -98, 2, '#f0e040');
   // bras-massue : coup de haut en bas
   const a = P.atk > 0 ? (s < 0 ? -0.6 + s * 1.6 : -2.2 + (s + 1) * 1.4) : -0.5 + armSwing() * 0.2;
@@ -556,6 +602,10 @@ function abomination() {
   blob(-26, -112, 30, 28, '#8a4466');
   blob(24, -66, 30, 30, '#8e4a6a');
   blob(-20, -60, 24, 20, '#6a2e4a', 0, false);
+  blob(-30, -116, 14, 10, '#a05478', 0, false); blob(10, -98, 18, 10, '#9a4c70', 0, false);   // reflets
+  X.strokeStyle = C('#4a1a34'); X.lineWidth = 2;
+  X.beginPath(); X.moveTo(-40, -70); X.quadraticCurveTo(-30, -50, -42, -36); X.moveTo(20, -50); X.quadraticCurveTo(30, -40, 22, -28); X.stroke();   // veines
+  glowEye(-12, -96, 2.2, '#f0e040'); glowEye(-4, -92, 1.6, '#f0e040');               // yeux supplémentaires
   // côtes apparentes
   X.strokeStyle = C('#d8cfae'); X.lineWidth = 3;
   for (let i = 0; i < 3; i++) { X.beginPath(); X.arc(-24, -78 + i * 9, 16, -0.4, 0.9); X.stroke(); }
@@ -594,6 +644,8 @@ function rouilleur() {
   poly([-12, -22, -4, -30, 6, -29, 10, -22], '#8a4a2a');
   poly([-2, -30, 1, -37, 4, -30], '#a85a32');
   poly([-9, -27, -7, -34, -4, -28], '#a85a32');
+  for (const [rx, ry] of [[-7, -20], [4, -24], [-2, -14]]) dot(rx, ry, 1.2, '#4a3028');   // trous de rouille
+  if (P.moving && !P.dark && !P.flash) { X.fillStyle = 'rgba(80,70,60,0.35)'; X.beginPath(); X.arc(-14, -26, 3 + (P.walk % 1) * 2, 0, 7); X.fill(); }
   // ventre-bombe qui pulse
   const pulse = 0.5 + Math.sin(P.time * 9) * 0.5;
   if (!P.flash && !P.dark) {
@@ -625,6 +677,7 @@ function charognard() {
   poly([-14, -20, -26, -26, -24, -16, -14, -16], '#3e2834');   // queue
   blob(0, -20, 14, 8.5, '#5e3e4e', -0.15);               // corps
   blob(-2, -17, 8, 4, '#7a5262', -0.15, false);
+  for (let k = 0; k < 4; k++) poly([6 + k * 2, -24, 8 + k * 2, -30 + (k % 2) * 2, 10 + k * 2, -23], '#3a2832');   // collerette de plumes
   // pattes griffues (en avant quand il attaque)
   const reach = s > 0 ? s * 8 : 0;
   limb([2, -14, 4 + reach, -4], 2.5, '#8a7a5a');
@@ -665,6 +718,12 @@ function hero_kane() {
   poly([-9, -66, -7, -73, 8, -74, 11, -67], '#6a2a2a');                    // béret
   dot(6, -64, 1.4, '#1a1008');
   line(2, -58, 8, -58, 2, '#5a3a2a');                                       // barbe
+  blob(-5, -62, 1.7, 2.4, '#b07a56');                                               // oreille
+  poly([8.5, -64, 11.5, -61.5, 8.5, -60.5], '#b87c56', false);                      // nez
+  line(-2, -67, 0.5, -62, 1, '#8a4a3a');                                            // cicatrice
+  dot(-4, -70, 1.8, '#f2c230');                                                     // insigne du béret
+  rr(-9, -38, 5, 6, 1, '#4a5040'); rr(4, -38, 5, 6, 1, '#4a5040');                  // poches du gilet
+  line(0, -55, 1, -48, 0.8, '#b0b0a8'); dot(1, -47.5, 1.2, '#c8c8c0');              // plaque d'identité
   // fusil à pompe
   limb([-6, -43, 12, -45], 6, '#5a3a24');
   limb([10, -45, 34, -46], 5, '#2a2a2c');
@@ -693,6 +752,11 @@ function hero_rosa() {
   blob(1, -59, 7.5, 8, '#d8a07a');
   poly([-8, -60, -6, -70, 4, -72, 10, -64, 8, -60], '#7a3a22');            // cheveux roux
   rr(-2, -64, 12, 5, 2, '#2a2a2a'); dot(4, -62, 2, '#5ab8d8'); dot(8, -62, 1.6, '#5ab8d8');   // lunettes de soudure
+  line(-8, -63, -2, -62.5, 1.4, '#2a2a2a');                                         // sangle des lunettes
+  for (const [fx, fy] of [[5, -57.5], [7, -58], [6, -56.5]]) dot(fx, fy, 0.6, '#a86a4a');   // taches de rousseur
+  blob(-3, -32, 3, 2, '#2e3e4a', 0, false); blob(5, -40, 2.4, 1.8, '#2e3e4a', 0, false);   // taches d'huile
+  rr(-11, -28, 22, 3.5, 1, '#5a3a24');                                              // ceinture à outils
+  rr(-9, -27, 3, 7, 1, '#8a8a8e'); rr(6, -27, 2.5, 6, 1, '#c09a2a');               // tournevis, mètre
   // lance-grenades
   limb([-4, -40, 10, -42], 6, '#4a3626');
   blob(14, -42, 7, 7, '#3a3a3e');                                           // barillet
@@ -716,6 +780,12 @@ function hero_vasquez() {
   blob(1, -60, 7.5, 8, '#b07a5a');
   poly([-8, -62, -7, -69, 7, -70, 9, -63], '#2a2a2a');                     // cheveux
   dot(5, -61, 1.4, '#1a1008');
+  blob(-3, -59, 1.5, 2.2, '#9a6a4a');                                               // oreille
+  poly([7.5, -61, 10, -59, 7.5, -58], '#a06e50', false);                            // nez
+  line(-6, -66, 4, -68, 1.2, '#5a5a5a');                                            // mèche grise
+  rr(-14, -38, 8, 9, 2, '#7a2a22');                                                 // trousse de soins
+  if (!P.flash && !P.dark) { X.fillStyle = '#ffffff'; X.fillRect(-11, -36, 2, 5); X.fillRect(-12.5, -34.5, 5, 2); }
+  for (const by of [-48, -42, -36]) dot(3, by, 0.9, '#8a8270');                    // boutons du manteau
   // fusil de précision (long)
   limb([-8, -42, 14, -45], 5, '#4a3626');
   limb([12, -45, 50, -47], 3.5, '#1e1e20');
@@ -740,6 +810,9 @@ function tourelleCampagne() {
   limb([10, -34, 36, -35], 4.5, '#2b2b2e');
   rr(4, -48, 5, 22, 1, '#5e6a70');
   X.fillStyle = C('#f2c230'); X.fillRect(4, -38, 5, 3);
+  X.setLineDash([1.6, 1.4]); line(8, -30, 2, -14, 2.4, '#d8b040'); X.setLineDash([]);   // bande de munitions
+  X.strokeStyle = C('#8a7650'); X.lineWidth = 0.8;
+  for (let i = 0; i < 3; i++) { X.beginPath(); X.moveTo(-14 + i * 12, -6); X.lineTo(-2 + i * 12, -6); X.stroke(); }   // coutures des sacs
   if (P.atk > 0.6 && !P.dark) poly([37, -35, 44, -40, 50, -35, 44, -30], '#fff3b0', false);
 }
 
@@ -767,6 +840,9 @@ function lanceRoquettes() {
   dot(5, -59, 1.3, '#1a1008');
   poly([-8, -60, -7, -68, 2, -71, 9, -68, 10, -61], '#e0b030');
   rr(-10, -62, 22, 3, 1.5, '#c8981e');
+  blob(-3, -58, 1.5, 2.2, '#b07a56');                                               // oreille
+  poly([7.5, -60, 10, -58, 7.5, -57], '#b07a56', false);                            // nez
+  X.fillStyle = C('#3a2a1a'); X.fillRect(-4, -65, 10, 1.2);                        // jugulaire
   // tube lance-roquettes sur l'épaule
   limb([-16, -54, 30, -58], 8, '#4e5a3a');
   rr(24, -63, 8, 10, 2, '#2e2e2a');                 // bouche
@@ -808,6 +884,7 @@ function mitrailleur() {
   rr(12, -47, 14, 10, 2, '#2a2a2c');
   for (let i = 0; i < 3; i++) limb([24, -45 + i * 3, 42 + shake, -45 + i * 3], 1.8, '#1e1e20');
   rr(-4, -36, 10, 8, 2, '#5a5a4a');                // boîte de munitions
+  X.setLineDash([1.8, 1.2]); line(1, -36, 14, -41, 2.4, '#d8b040'); X.setLineDash([]);   // bande de munitions
   limb([6, -49, 14, -40, 20, -43], 6, '#56603e');
   dot(20, -43, 3, '#b98260');
   if (P.atk > 0.3 && !P.dark && Math.sin(P.time * 60) > 0) {
@@ -835,6 +912,9 @@ function carapace() {
   poly([30, -38, 46, -44, 38, -32], '#d8cfae');      // corne
   poly([34, -26, 44, -24, 36, -21], '#e8e0c0', false);
   glowEye(32, -33, 1.8, '#f0a030');
+  X.strokeStyle = C('#4a3c2c'); X.lineWidth = 1;
+  X.beginPath(); X.moveTo(-18, -44); X.lineTo(-14, -38); X.moveTo(6, -46); X.lineTo(9, -40); X.stroke();   // fissures
+  blob(-20, -32, 4, 2, '#5a6a3a', 0, false); blob(12, -30, 3, 1.6, '#5a6a3a', 0, false);   // mousse
 }
 
 // Couveuse : sac de chair gonflé de larves qui bougent, pattes grêles
@@ -893,6 +973,7 @@ function hurleur() {
   // tête allongée, bouche grande ouverte
   blob(6, -72, 8, 9, '#8a7a9a');
   glowEye(9, -76, 1.8, '#ff70ff');
+  for (const [vx, vy] of [[-2, -50], [3, -42]]) blob(vx, vy, 1.6, 1.2, '#5a4a6a', 0, false);   // côtes saillantes
   const open = P.atk > 0 ? 6 : 3 + Math.sin(P.time * 4) * 1;
   blob(14, -69, 4, open * 0.8, '#2a0e22');
   limb([4, -56, 14, -48, 20, -54], 3.5, '#7a6a8a');
@@ -917,6 +998,7 @@ function epineux() {
   // corps voûté
   blob(0, -36, 16, 14, '#6e7e46', 0.3);
   blob(4, -32, 8, 7, '#86965a', 0, false);
+  for (const [sx, sy] of [[-8, -40], [-2, -44], [6, -40], [-6, -30]]) dot(sx, sy, 1.3, '#4e5c30');   // pustules
   limb([8, -38, 16, -28], 4, '#6e7e46');
   // tête plate
   blob(16, -46, 9, 7, '#7c8c52');

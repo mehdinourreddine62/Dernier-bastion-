@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=23';
+import { CONFIG } from '../config.js?v=24';
 
 // Classe de base : tout ce qui a des PV et peut être attaqué (unités, bases).
 export class Entity {

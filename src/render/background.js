@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=23';
+import { CONFIG } from '../config.js?v=24';
 
 // Décor en parallaxe : ciel (fixe), ruines lointaines, ruines proches, sol avec débris,
 // et quelques débris au premier plan. Les couches lointaines et le sol sont dessinés
@@ -233,6 +233,24 @@ function line(c, x1, y1, x2, y2, w, color) {
   c.strokeStyle = color; c.lineWidth = w; c.lineCap = 'round';
   c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
 }
+// Disque flou d'une couleur (nuages, fumée), mis en cache
+const softCache = new Map();
+function softDisc(rgb) {
+  let t = softCache.get(rgb);
+  if (!t) {
+    t = makeCanvas(64, 64);
+    const c = t.getContext('2d');
+    const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(0.55, `rgba(${rgb},0.55)`); g.addColorStop(1, `rgba(${rgb},0)`);
+    c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+    softCache.set(rgb, t);
+  }
+  return t;
+}
+const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
+// mélange de deux couleurs « r,g,b » (k = part de la seconde)
+const mix = (a, b, k) => { const A = a.split(',').map(Number), B = b.split(',').map(Number); return A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(','); };
+
 function makeCanvas(w, h) {
   const cv = document.createElement('canvas');
   cv.width = Math.max(1, Math.ceil(w)); cv.height = Math.max(1, Math.ceil(h));
@@ -649,6 +667,11 @@ export class Backdrop {
     }
     // Particules d'ambiance (calculées à partir du temps, sans état)
     this.air = Array.from({ length: 34 }, (_, i) => ({ a: rng(i + 1)(), b: rng(i + 40)(), c: rng(i + 80)() }));
+    // Colonnes de fumée qui montent des ruines (plan moyen) et corbeaux dans le ciel
+    const r2 = rng(levelId * 53 + 11);
+    this.plumes = Array.from({ length: 4 }, (_, i) => ({ x: 200 + i * 520 + r2() * 300, h: 120 + r2() * 90, ph: r2() }));
+    this.birds = Array.from({ length: 5 }, (_, i) => ({ s: r2(), y: 90 + r2() * 150, sp: 18 + r2() * 16, ph: r2() * 6 }));
+    this.lowFx = false;
   }
 
   // (Re)dessine les couches en mémoire à la résolution voulue
@@ -659,10 +682,74 @@ export class Backdrop {
     const W = CONFIG.world.width, V = CONFIG.display.width;
     const hz = CONFIG.world.horizonY;
     this.layers = {
+      horizon: this._layer(0.05, W * 0.05 + V + 8, 250, hz + 8, (c, w) => this._drawHorizon(c, w)),
       far: this._layer(0.12, W * 0.12 + V + 8, 170, hz + 8, (c, w) => this._drawFar(c, w)),
       mid: this._layer(0.35, W * 0.35 + V + 8, 140, hz + 14, (c, w) => this._drawMid(c, w)),
       ground: this._layer(1, W, hz - 70, CONFIG.display.height, (c, w) => this._drawGround(c, w)),
     };
+  }
+
+  // Montagnes / collines très lointaines, presque fondues dans la brume
+  _drawHorizon(c, w) {
+    const t = this.theme, hz = CONFIG.world.horizonY;
+    const r = rng(this.levelId * 17 + 3);
+    const col = mix(hexRgb(t.sky[2]), hexRgb(t.far), 0.45);
+    c.fillStyle = `rgb(${col})`;
+    c.beginPath(); c.moveTo(0, hz + 8);
+    let y = hz - 90 - r() * 60;
+    for (let x = 0; x <= w + 40; x += 40) {
+      y += (r() - 0.5) * 50; y = Math.max(hz - 200, Math.min(hz - 40, y));
+      c.lineTo(x, y);
+    }
+    c.lineTo(w, hz + 8); c.closePath(); c.fill();
+    // arêtes éclairées
+    c.strokeStyle = `rgba(${t.glow},0.18)`; c.lineWidth = 2; c.stroke();
+    this._fog(c, w, 250, hz + 8, 0.6);
+  }
+
+  // Nuages éclairés par le soleil (dessous plus sombre), sur une bande qui défile en boucle
+  _makeClouds() {
+    const t = this.theme, V = CONFIG.display.width;
+    const cw = V * 2, ch = 300;
+    const cv = makeCanvas(cw, ch);
+    const c = cv.getContext('2d');
+    const r = rng(this.levelId * 29 + 5);
+    const lit = mix(hexRgb(t.sky[2]), t.glow, 0.5), dark = mix(hexRgb(t.sky[0]), hexRgb(t.sky[1]), 0.5);
+    for (let i = 0; i < 9; i++) {
+      const x0 = r() * cw, y0 = 40 + r() * 170, n = 5 + Math.floor(r() * 6), sc = 0.6 + r() * 0.8;
+      for (let k = 0; k < n; k++) {
+        const x = x0 + (k - n / 2) * 34 * sc + (r() - 0.5) * 20, y = y0 + (r() - 0.5) * 18 * sc;
+        const rad = (30 + r() * 34) * sc;
+        for (const dx of [0, -cw, cw]) {      // copie pour que la bande se raccorde
+          c.globalAlpha = 0.32; c.drawImage(softDisc(dark), x + dx - rad, y - rad * 0.5, rad * 2, rad * 1.3);
+          c.globalAlpha = 0.28; c.drawImage(softDisc(lit), x + dx - rad * 0.9, y - rad * 0.75, rad * 1.8, rad * 1.1);
+        }
+      }
+    }
+    return cv;
+  }
+
+  // Rayons de lumière partant du soleil
+  _makeRays() {
+    const t = this.theme, V = CONFIG.display.width, hz = CONFIG.world.horizonY;
+    const cv = makeCanvas(V, hz + 40);
+    const c = cv.getContext('2d');
+    const [sx, sy] = t.sun;
+    const r = rng(this.levelId * 41 + 9);
+    for (let i = 0; i < 5; i++) {
+      const a = Math.PI * (0.2 + r() * 0.6), len = 760;
+      // chaque rayon = 3 passes de largeur croissante, très transparentes (bords doux)
+      for (const spread of [0.03, 0.06, 0.1]) {
+        const g = c.createLinearGradient(sx, sy, sx + Math.cos(a) * len, sy + Math.sin(a) * len);
+        g.addColorStop(0, `rgba(${t.glow},0)`); g.addColorStop(0.12, `rgba(${t.glow},0.035)`); g.addColorStop(1, `rgba(${t.glow},0)`);
+        c.fillStyle = g;
+        c.beginPath(); c.moveTo(sx, sy);
+        c.lineTo(sx + Math.cos(a - spread) * len, sy + Math.sin(a - spread) * len);
+        c.lineTo(sx + Math.cos(a + spread) * len, sy + Math.sin(a + spread) * len);
+        c.closePath(); c.fill();
+      }
+    }
+    return cv;
   }
 
   _layer(factor, w, y0, y1, draw) {
@@ -769,6 +856,29 @@ export class Backdrop {
         c.stroke();
       }
     }
+    // Traces de pneus le long de la route
+    if (t.road) {
+      c.strokeStyle = 'rgba(20,12,6,0.18)'; c.lineWidth = 3; c.setLineDash([14, 10]);
+      for (const dy of [-14, -4]) { c.beginPath(); c.moveTo(0, gy + dy); for (let x = 0; x <= w; x += 60) c.lineTo(x, gy + dy + Math.sin(x * 0.01) * 3); c.stroke(); }
+      c.setLineDash([]);
+    }
+    // Flaques qui reflètent le ciel (sauf désert)
+    if (t.air !== 'dust' || t.road) {
+      const sky = hexRgb(t.sky[2]);
+      for (let i = 0; i < w / 420; i++) {
+        const px = r() * w, py = bot + 14 + r() * 50, pw = 20 + r() * 40;
+        c.fillStyle = 'rgba(20,12,6,0.35)'; c.beginPath(); c.ellipse(px, py + 1, pw + 2, 4.5, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = `rgba(${sky},0.45)`; c.beginPath(); c.ellipse(px, py, pw, 3.5, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(px - pw * 0.5, py - 1, pw * 0.5, 1);
+      }
+    }
+    // Cailloux avec reflet
+    for (let i = 0; i < w / 40; i++) {
+      const px = r() * w, py = hz + 24 + r() * (H - hz - 30), sz = 2 + r() * 4;
+      if (py > top - 4 && py < bot + 4 && r() < 0.8) continue;
+      c.fillStyle = 'rgba(20,12,6,0.45)'; c.beginPath(); c.ellipse(px, py, sz * 1.3, sz * 0.7, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = 'rgba(255,235,200,0.18)'; c.beginPath(); c.ellipse(px - sz * 0.3, py - sz * 0.3, sz * 0.6, sz * 0.3, 0, 0, Math.PI * 2); c.fill();
+    }
     // Débris au fond du couloir (hors des bases)
     const types = t.organic ? ['bones', 'rubble', 'car', 'bones', 'tires']
       : ['car', 'rubble', 'barrier', 'tires', 'barrel', 'car', 'sign', 'rubble'];
@@ -782,6 +892,7 @@ export class Backdrop {
   // ---------- Dessin à chaque image ----------
   drawSky(ctx, time) {
     const t = this.theme, V = CONFIG.display.width, hz = CONFIG.world.horizonY;
+    this._time = time;
     if (!this._skyGrad || this._skyCtx !== ctx) {
       this._skyCtx = ctx;
       const g = ctx.createLinearGradient(0, 0, 0, hz);
@@ -800,21 +911,55 @@ export class Backdrop {
     const [sx, sy, sr] = t.sun;
     ctx.fillStyle = this._sunGrad;
     ctx.fillRect(sx - sr * 4.5, sy - sr * 4.5, sr * 9, sr * 9);
-    // nuages de poussière qui dérivent lentement
-    ctx.fillStyle = `rgba(${t.glow},0.08)`;
-    for (let i = 0; i < 6; i++) {
-      const x = ((i * 260 + time * (4 + i)) % (V + 400)) - 200;
-      const y = 70 + i * 34;
-      ctx.beginPath(); ctx.ellipse(x, y, 160 + i * 20, 10 + (i % 3) * 4, 0, 0, Math.PI * 2); ctx.fill();
+    // rayons de lumière (qualité haute)
+    const lum = hexRgb(t.sky[1]).split(',').reduce((m, v) => m + Number(v), 0) / 3;
+    if (!this.lowFx && lum > 90) {      // pas de rayons la nuit
+      if (!this._rays) this._rays = this._makeRays();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.75 + Math.sin(time * 0.4) * 0.25;
+      ctx.drawImage(this._rays, 0, 0);
+      ctx.restore();
     }
+    // nuages qui dérivent lentement (bande qui défile en boucle)
+    if (!this._clouds) this._clouds = this._makeClouds();
+    const cw = this._clouds.width, off = ((time * 6 + (this._camX || 0) * 0.04) % cw + cw) % cw;
+    ctx.drawImage(this._clouds, -off, 0); ctx.drawImage(this._clouds, cw - off, 0);
+    // corbeaux
+    if (!this.lowFx) {
+      ctx.strokeStyle = 'rgba(25,15,12,0.7)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+      for (const b of this.birds) {
+        const x = ((b.s * 2000 + time * b.sp) % (V + 300)) - 150, y = b.y + Math.sin(time * 0.5 + b.ph) * 12;
+        const f = Math.sin(time * 7 + b.ph) * 4;
+        ctx.beginPath(); ctx.moveTo(x - 7, y - f); ctx.quadraticCurveTo(x - 3, y - 2, x, y); ctx.quadraticCurveTo(x + 3, y - 2, x + 7, y - f); ctx.stroke();
+      }
+    }
+  }
+
+  // Colonnes de fumée qui montent des ruines (entre le plan moyen et le sol)
+  _drawPlumes(ctx, camX, time) {
+    const col = mix(hexRgb(this.theme.mid), '40,34,30', 0.5);
+    const tex = softDisc(col), V = CONFIG.display.width, hz = CONFIG.world.horizonY;
+    for (const p of this.plumes) {
+      const sx = p.x - camX * 0.35;
+      if (sx < -150 || sx > V + 150) continue;
+      for (let i = 0; i < 7; i++) {
+        const k = (time * 0.07 + p.ph + i / 7) % 1;
+        const r = 12 + k * 46;
+        ctx.globalAlpha = 0.42 * (1 - k) * Math.min(1, k * 6);
+        ctx.drawImage(tex, sx + k * k * 70 - r, hz - 20 - k * p.h * 1.6 - r, r * 2, r * 2);
+      }
+    }
+    ctx.globalAlpha = 1;
   }
 
   drawLayers(ctx, camX) {
     const V = CONFIG.display.width;
     const res = this.res;
-    for (const key of ['far', 'mid', 'ground']) {
+    this._camX = camX;
+    for (const key of ['horizon', 'far', 'mid', 'ground']) {
       const L = this.layers[key];
       ctx.drawImage(L.cv, camX * L.factor * res, 0, V * res, L.h * res, 0, L.y0, V, L.h);
+      if (key === 'mid' && !this.lowFx) this._drawPlumes(ctx, camX, this._time || 0);
     }
   }
 
