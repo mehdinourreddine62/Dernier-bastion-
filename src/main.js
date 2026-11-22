@@ -1,19 +1,19 @@
-import { CONFIG } from './config.js?v=20';
-import { Game } from './game/Game.js?v=20';
-import { Camera } from './game/Camera.js?v=20';
-import { Renderer } from './render/Renderer.js?v=20';
-import { HUD } from './ui/HUD.js?v=20';
-import { Input } from './ui/input.js?v=20';
-import * as screens from './ui/screens.js?v=20';
-import * as campaign from './ui/campaign.js?v=20';
-import * as workshop from './ui/workshop.js?v=20';
-import { Tutorial } from './ui/tutorial.js?v=20';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=20';
+import { CONFIG } from './config.js?v=21';
+import { Game } from './game/Game.js?v=21';
+import { Camera } from './game/Camera.js?v=21';
+import { Renderer } from './render/Renderer.js?v=21';
+import { HUD } from './ui/HUD.js?v=21';
+import { Input } from './ui/input.js?v=21';
+import * as screens from './ui/screens.js?v=21';
+import * as campaign from './ui/campaign.js?v=21';
+import * as workshop from './ui/workshop.js?v=21';
+import { Tutorial } from './ui/tutorial.js?v=21';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=21';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
-  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf } from './progress.js?v=20';
-import { Sfx } from './audio/sfx.js?v=20';
-import { Music } from './audio/music.js?v=20';
-import { loadSave, writeSave } from './save.js?v=20';
+  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf } from './progress.js?v=21';
+import { Sfx } from './audio/sfx.js?v=21';
+import { Music } from './audio/music.js?v=21';
+import { loadSave, writeSave } from './save.js?v=21';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -259,7 +259,7 @@ input.onButton = (b) => {
     return;
   }
   if (b.kind === 'spell') { startAim(b.spell); return; }
-  if (b.kind === 'hero') { game.useHeroAbility(); return; }
+  if (b.kind === 'hero') { game.heroAction(); return; }
   // Héros : amélioration (étoiles) et choix
   if (b.id.startsWith('heroUp:')) { if (buyHeroLevel(progress, b.hero)) { saveAll(); sfx.play('upgrade'); } return; }
   if (b.id.startsWith('heroPick:')) { progress.heroes.selected = b.hero; saveAll(); return; }
@@ -404,7 +404,7 @@ input.onKey = (e) => {
     return;
   }
   const k = e.key.toLowerCase();
-  if (k === 'e') { game.useHeroAbility(); return; }
+  if (k === 'e') { game.heroAction(); return; }
   for (const id of game.spells.available) {
     if (CONFIG.spells[id].key.toLowerCase() === k) startAim(id);
   }

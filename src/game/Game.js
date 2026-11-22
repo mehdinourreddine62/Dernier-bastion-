@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=20';
-import { Unit, bonusMultiplier } from './Unit.js?v=20';
-import { Base } from './Base.js?v=20';
-import { ProjectilePool } from './Projectile.js?v=20';
-import { Particles } from './Particles.js?v=20';
-import { Spells } from './Spell.js?v=20';
-import { AI } from './AI.js?v=20';
-import { levelFor } from '../progress.js?v=20';
-import { Survival, survivalLevel } from './Survival.js?v=20';
+import { CONFIG } from '../config.js?v=21';
+import { Unit, bonusMultiplier } from './Unit.js?v=21';
+import { Base } from './Base.js?v=21';
+import { ProjectilePool } from './Projectile.js?v=21';
+import { Particles } from './Particles.js?v=21';
+import { Spells } from './Spell.js?v=21';
+import { AI } from './AI.js?v=21';
+import { levelFor } from '../progress.js?v=21';
+import { Survival, survivalLevel } from './Survival.js?v=21';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -314,6 +314,24 @@ export class Game {
     return Math.abs(h.unit.x - x) <= h.cfg.aura.radius ? h.cfg.aura.value : 0;
   }
 
+  // Le commandant peut-il être déployé (pas sur le terrain, attente terminée) ?
+  heroDeployReady() {
+    const h = this.hero;
+    return !!h && !this.result && !h.unit && h.timer <= 0;
+  }
+
+  deployHero() {
+    if (!this.heroDeployReady()) return false;
+    const h = this.hero;
+    h.unit = this.spawnUnit('player', h.unitId);
+    this.fx.healRing(h.unit.x, CONFIG.world.groundY, 80);
+    this.emit('heroSpawn', h.unit.x);
+    return true;
+  }
+
+  // Bouton du commandant : le déployer s'il attend, sinon lancer sa capacité
+  heroAction() { return this.deployHero() || this.useHeroAbility(); }
+
   heroAbilityReady() {
     const h = this.hero;
     return !!h && !this.result && !!h.unit && h.unit.alive && h.abilityCd <= 0;
@@ -360,12 +378,7 @@ export class Game {
     if (!h) return;
     if (h.unit && !h.unit.alive) { h.unit = null; h.timer = CONFIG.heroes.respawnTime; }
     if (!h.unit) {
-      h.timer -= dt;
-      if (h.timer <= 0) {
-        h.unit = this.spawnUnit('player', h.unitId);
-        this.fx.healRing(h.unit.x, CONFIG.world.groundY, 80);
-        this.emit('heroSpawn', h.unit.x);
-      }
+      h.timer = Math.max(0, h.timer - dt);   // attend que le joueur le déploie
       return;
     }
     h.abilityCd = Math.max(0, h.abilityCd - dt);

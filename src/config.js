@@ -296,11 +296,12 @@ export const CONFIG = {
   },
 
   // ---------- Commandants (héros) ----------
-  // Un seul par partie, choisi dans l'onglet HÉROS. Il arrive seul après deployDelay secondes,
-  // revient respawnTime secondes après sa mort, et a une capacité (bouton portrait / touche E).
+  // Un seul par partie, choisi dans l'onglet HÉROS. C'est toi qui le déploies (portrait / touche E) :
+  // possible après deployDelay secondes en début de partie, puis respawnTime secondes après sa mort.
+  // Une fois sur le terrain, le même bouton lance sa capacité.
   // Amélioration : on dépense des étoiles (toutes celles gagnées dans la campagne).
   heroes: {
-    deployDelay: 10,
+    deployDelay: 0,
     respawnTime: 45,
     maxLevel: 10,
     costs: [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],   // étoiles par niveau (30 pour un héros au maximum)

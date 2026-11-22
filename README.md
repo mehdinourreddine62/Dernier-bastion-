@@ -69,8 +69,9 @@ Exemples :
 
 ### Commandants (héros)
 Dans **Atelier › Héros**, on choisit un commandant (Sergent Kane, Mécano Rosa, Doc Vasquez) et on
-l'améliore avec les **étoiles** gagnées dans la campagne (90 au maximum). En partie, il arrive seul
-après 10 s, revient 45 s après sa mort, et sa capacité se lance avec son portrait (touche **E**).
+l'améliore avec les **étoiles** gagnées dans la campagne (90 au maximum). En partie, c'est toi qui
+le déploies en touchant son portrait (touche **E**), quand tu veux dès le début ; après sa mort, il
+est de nouveau déployable au bout de 45 s. Sur le terrain, le même bouton lance sa capacité.
 
 ### Mode Survie
 Débloqué après le niveau 5 (bouton **MODE SURVIE** en bas à droite de la carte). Décor de nuit,
@@ -111,10 +112,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=20` par `?v=21` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=21` par `?v=22` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.20 » pour `?v=20`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.21 » pour `?v=21`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 

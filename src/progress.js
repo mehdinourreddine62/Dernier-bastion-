@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=20';
+import { CONFIG } from './config.js?v=21';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.

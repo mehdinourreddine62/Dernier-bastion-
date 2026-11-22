@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=20';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=20';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=20';
+import { CONFIG } from '../config.js?v=21';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=21';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=21';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -89,7 +89,7 @@ export class HUD {
       const alive = !!h.unit && h.unit.alive;
       btns.push({
         id: 'hero', kind: 'hero', key: 'E', x, y, w: bw, h: bh,
-        enabled: game.heroAbilityReady(), alive, hero: h,
+        enabled: game.heroAbilityReady() || game.heroDeployReady(), alive, deploy: game.heroDeployReady(), hero: h,
         cdRatio: alive ? h.abilityCd / h.cooldown : 0,
         tooltip: true,
       });
@@ -302,7 +302,8 @@ export class HUD {
       lines.push('Capacité : ' + c.ability.name + ' (touche E)');
       lines.push(c.ability.text);
       lines.push('Aura : ' + c.aura.text);
-      lines.push(b.alive ? 'Revient 45 s après sa mort' : 'Arrive bientôt sur le champ de bataille');
+      lines.push(b.alive ? `Après sa mort, redéployable au bout de ${CONFIG.heroes.respawnTime} s`
+        : b.deploy ? 'Touche le portrait pour le déployer' : 'Redéployable dans ' + Math.ceil(b.hero.timer) + ' s');
     } else if (b.kind === 'income') {
       const e = CONFIG.economy.incomeUpgrade;
       title = 'Amélioration du revenu';
@@ -404,11 +405,17 @@ export class HUD {
   _heroButton(ctx, b, pressed, game) {
     const h = b.hero;
     const dy = this._frame(ctx, b, pressed, b.enabled);
-    drawIcon(ctx, h.unitId, b.x + b.w / 2, b.y + dy + b.h * 0.4, b.h * 0.6, !b.alive);
-    if (!b.alive) {
+    drawIcon(ctx, h.unitId, b.x + b.w / 2, b.y + dy + b.h * 0.4, b.h * 0.6, !b.alive && !b.deploy);
+    if (b.deploy) {
+      // prêt : le joueur choisit le moment du déploiement (bouton qui pulse)
+      const k = 0.5 + Math.sin(game.time * 5) * 0.5;
+      ctx.save(); roundRectPath(ctx, b.x + 2, b.y + dy + 2, b.w - 4, b.h - 4, 9);
+      ctx.lineWidth = 3; ctx.strokeStyle = `rgba(242,194,48,${0.4 + 0.6 * k})`; ctx.stroke(); ctx.restore();
+      text(ctx, 'DÉPLOYER', b.x + b.w / 2, b.y + dy + b.h - 9, 13, COL.yellow, 'center');
+    } else if (!b.alive) {
       ctx.save(); roundRectPath(ctx, b.x, b.y + dy, b.w, b.h, 10); ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.restore();
       text(ctx, Math.ceil(Math.max(0, h.timer)) + ' s', b.x + b.w / 2, b.y + dy + b.h * 0.42, 24, COL.text, 'center', 'middle');
-      text(ctx, game.time < CONFIG.heroes.deployDelay ? 'ARRIVE' : 'RETOUR', b.x + b.w / 2, b.y + dy + b.h - 9, 14, COL.dim, 'center');
+      text(ctx, 'RETOUR', b.x + b.w / 2, b.y + dy + b.h - 9, 14, COL.dim, 'center');
     } else {
       this._dial(ctx, b, dy, b.cdRatio);
       if (h.abilityCd > 0) text(ctx, Math.ceil(h.abilityCd) + ' s', b.x + b.w / 2, b.y + dy + b.h / 2, 24, COL.text, 'center', 'middle');
