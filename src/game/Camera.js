@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=15';
+import { CONFIG } from '../config.js?v=16';
 
 // Caméra à défilement horizontal. x = bord gauche de la vue, en unités du monde.
 export class Camera {

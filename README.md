@@ -95,10 +95,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=15` par `?v=16` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=16` par `?v=17` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.15 » pour `?v=15`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.16 » pour `?v=16`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 

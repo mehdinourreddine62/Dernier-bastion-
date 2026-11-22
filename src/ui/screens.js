@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=15';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=15';
-import { objectiveText } from '../progress.js?v=15';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=15';
-import { ACHIEVEMENTS } from '../achievements.js?v=15';
-import { roundRectPath } from './widgets.js?v=15';
+import { CONFIG } from '../config.js?v=16';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=16';
+import { objectiveText } from '../progress.js?v=16';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=16';
+import { ACHIEVEMENTS } from '../achievements.js?v=16';
+import { roundRectPath } from './widgets.js?v=16';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -245,7 +245,9 @@ export function drawStats(ctx, game, buttons, pressed) {
   });
 
   // Tableau par source de dégâts
-  const sources = [...CONFIG.roster.player, 'turret', 'mortar']
+  // Commandant en premier (s'il a combattu), puis les unités, la tourelle posée, la tourelle du fort et le mortier
+  const heroIds = CONFIG.heroes.order.map((h) => 'hero_' + h);
+  const sources = [...heroIds, ...CONFIG.roster.player, 'tourelleCampagne', 'turret', 'mortar']
     .filter((id) => st.damage[id] || st.recruitedBy[id] || st.kills[id]);
   const maxDmg = Math.max(1, ...sources.map((id) => st.damage[id] || 0));
   let mvp = null;
@@ -264,8 +266,11 @@ export function drawStats(ctx, game, buttons, pressed) {
     else drawSpellIcon(ctx, id === 'mortar' ? 'mortar' : 'turret', x0 + 22, y, rowH - 18);
     const name = CONFIG.units[id] ? CONFIG.units[id].name : SOURCE_NAME[id];
     text(ctx, name + (id === mvp ? '  ★ MVP' : ''), x0 + 52, y + 1, 18, id === mvp ? COL.yellow : COL.text, 'left', 'middle');
-    text(ctx, CONFIG.units[id] ? String(st.recruitedBy[id] || 0) : '—', x0 + 300, y + 1, 19, COL.text, 'center', 'middle');
-    text(ctx, CONFIG.units[id] ? String(st.lostBy[id] || 0) : '—', x0 + 380, y + 1, 19, COL.text, 'center', 'middle');
+    // commandant : pas de recrutement, « perdues » = nombre de morts ; tourelles et mortier : —
+    const isHero = !!(CONFIG.units[id] && CONFIG.units[id].hero);
+    const recruitable = CONFIG.units[id] && !isHero && !CONFIG.units[id].lifetime;
+    text(ctx, recruitable ? String(st.recruitedBy[id] || 0) : '—', x0 + 300, y + 1, 19, COL.text, 'center', 'middle');
+    text(ctx, recruitable ? String(st.lostBy[id] || 0) : isHero ? String(st.heroDeaths || 0) : '—', x0 + 380, y + 1, 19, COL.text, 'center', 'middle');
     text(ctx, String(st.kills[id] || 0), x0 + 450, y + 1, 19, COL.text, 'center', 'middle');
     const dmg = st.damage[id] || 0;
     const bw = 165 * dmg / maxDmg;

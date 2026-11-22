@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=15';
-import { Entity } from './Entity.js?v=15';
+import { CONFIG } from '../config.js?v=16';
+import { Entity } from './Entity.js?v=16';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.

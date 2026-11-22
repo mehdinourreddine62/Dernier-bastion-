@@ -1,11 +1,11 @@
-import { CONFIG } from '../config.js?v=15';
-import { Unit, bonusMultiplier } from './Unit.js?v=15';
-import { Base } from './Base.js?v=15';
-import { ProjectilePool } from './Projectile.js?v=15';
-import { Particles } from './Particles.js?v=15';
-import { Spells } from './Spell.js?v=15';
-import { AI } from './AI.js?v=15';
-import { effectiveLevel } from '../progress.js?v=15';
+import { CONFIG } from '../config.js?v=16';
+import { Unit, bonusMultiplier } from './Unit.js?v=16';
+import { Base } from './Base.js?v=16';
+import { ProjectilePool } from './Projectile.js?v=16';
+import { Particles } from './Particles.js?v=16';
+import { Spells } from './Spell.js?v=16';
+import { AI } from './AI.js?v=16';
+import { effectiveLevel } from '../progress.js?v=16';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -212,7 +212,7 @@ export class Game {
       if (target.side === 'player') {
         // les morts du commandant et de la tourelle posée ne comptent pas dans les pertes
         if (!target.def.hero && !target.def.lifetime) { st.lost++; inc(st.lostBy, target.defId); }
-        if (target.def.hero) this.emit('heroDown', target.x);
+        if (target.def.hero) { st.heroDeaths = (st.heroDeaths || 0) + 1; this.emit('heroDown', target.x); }
       }
       else { st.killed++; inc(st.killedEnemy, target.defId); inc(st.kills, this.src || 'autre'); }
       const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio);

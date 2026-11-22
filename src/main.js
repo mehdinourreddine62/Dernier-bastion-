@@ -1,19 +1,19 @@
-import { CONFIG } from './config.js?v=15';
-import { Game } from './game/Game.js?v=15';
-import { Camera } from './game/Camera.js?v=15';
-import { Renderer } from './render/Renderer.js?v=15';
-import { HUD } from './ui/HUD.js?v=15';
-import { Input } from './ui/input.js?v=15';
-import * as screens from './ui/screens.js?v=15';
-import * as campaign from './ui/campaign.js?v=15';
-import * as workshop from './ui/workshop.js?v=15';
-import { Tutorial } from './ui/tutorial.js?v=15';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=15';
+import { CONFIG } from './config.js?v=16';
+import { Game } from './game/Game.js?v=16';
+import { Camera } from './game/Camera.js?v=16';
+import { Renderer } from './render/Renderer.js?v=16';
+import { HUD } from './ui/HUD.js?v=16';
+import { Input } from './ui/input.js?v=16';
+import * as screens from './ui/screens.js?v=16';
+import * as campaign from './ui/campaign.js?v=16';
+import * as workshop from './ui/workshop.js?v=16';
+import { Tutorial } from './ui/tutorial.js?v=16';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=16';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
-  heroForGame, buyHeroLevel, resetHeroes } from './progress.js?v=15';
-import { Sfx } from './audio/sfx.js?v=15';
-import { Music } from './audio/music.js?v=15';
-import { loadSave, writeSave } from './save.js?v=15';
+  heroForGame, buyHeroLevel, resetHeroes } from './progress.js?v=16';
+import { Sfx } from './audio/sfx.js?v=16';
+import { Music } from './audio/music.js?v=16';
+import { loadSave, writeSave } from './save.js?v=16';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
