@@ -1,19 +1,19 @@
-import { CONFIG } from './config.js?v=16';
-import { Game } from './game/Game.js?v=16';
-import { Camera } from './game/Camera.js?v=16';
-import { Renderer } from './render/Renderer.js?v=16';
-import { HUD } from './ui/HUD.js?v=16';
-import { Input } from './ui/input.js?v=16';
-import * as screens from './ui/screens.js?v=16';
-import * as campaign from './ui/campaign.js?v=16';
-import * as workshop from './ui/workshop.js?v=16';
-import { Tutorial } from './ui/tutorial.js?v=16';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=16';
+import { CONFIG } from './config.js?v=17';
+import { Game } from './game/Game.js?v=17';
+import { Camera } from './game/Camera.js?v=17';
+import { Renderer } from './render/Renderer.js?v=17';
+import { HUD } from './ui/HUD.js?v=17';
+import { Input } from './ui/input.js?v=17';
+import * as screens from './ui/screens.js?v=17';
+import * as campaign from './ui/campaign.js?v=17';
+import * as workshop from './ui/workshop.js?v=17';
+import { Tutorial } from './ui/tutorial.js?v=17';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=17';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
-  heroForGame, buyHeroLevel, resetHeroes } from './progress.js?v=16';
-import { Sfx } from './audio/sfx.js?v=16';
-import { Music } from './audio/music.js?v=16';
-import { loadSave, writeSave } from './save.js?v=16';
+  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked } from './progress.js?v=17';
+import { Sfx } from './audio/sfx.js?v=17';
+import { Music } from './audio/music.js?v=17';
+import { loadSave, writeSave } from './save.js?v=17';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -57,6 +57,7 @@ let tutorial = null;     // tutoriel en cours (niveau 1, première fois)
 let showStats = false;   // écran BILAN ouvert par-dessus l'écran de fin
 let achPage = 0;         // page de l'écran des succès
 let workshopTab = 'workshop';   // onglet de l'atelier : 'workshop' | 'heroes'
+let survivalRun = false;        // la partie en cours est-elle en mode Survie ?
 // Qualité : 'auto' (baisse toute seule si le jeu rame), 'high' ou 'low'
 if (!settings.quality) settings.quality = 'auto';
 let autoLow = false;
@@ -93,10 +94,12 @@ function askConfirm(text, onYes) { confirm = { text, onYes }; }
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
-  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode, hero: heroForGame(progress) });
+  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode,
+    hero: heroForGame(progress), survival: survivalRun });
+  game.survivalBest = progress.survival.bestWave;
   reward = null;
   showStats = false;
-  tutorial = selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
+  tutorial = !survivalRun && selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
   game.speed = CONFIG.loop.speeds[settings.speedIndex] || 1;
   camera.reset();
   cancelAim();
@@ -205,6 +208,7 @@ function overlayState() {
   if (game.paused) return 'pause';
   if (game.result && game.resultTime > CONFIG.combat.resultOverlayDelay) return showStats ? 'stats' : 'end';
   if (tutorial && tutorial.showing && !game.result) return 'tuto';
+  if (game.survival && game.survival.offer && !game.result) return 'cards';
   return 'hud';
 }
 
@@ -218,6 +222,7 @@ function buildButtons() {
     case 'pause': return screens.pauseButtons(view, settings);
     case 'end': return screens.endButtons(view, game);
     case 'stats': return screens.statsButtons(view);
+    case 'cards': return screens.cardsButtons(view, game.survival.offer);
     case 'achievements': return screens.achievementsButtons(view, achPage);
     case 'tuto': {
       // Pendant une bulle : seuls les boutons utiles à l'étape restent actifs
@@ -256,6 +261,7 @@ input.onButton = (b) => {
   if (b.id.startsWith('heroUp:')) { if (buyHeroLevel(progress, b.hero)) { saveAll(); sfx.play('upgrade'); } return; }
   if (b.id.startsWith('heroPick:')) { progress.heroes.selected = b.hero; saveAll(); return; }
   if (b.id.startsWith('tab:')) { workshopTab = b.id.slice(4); return; }
+  if (b.id.startsWith('card:')) { game.survival.choose(b.card); return; }
   sfx.play('click');
   // Carte : choix du mode de difficulté
   if (b.mode) {
@@ -318,7 +324,11 @@ input.onButton = (b) => {
       });
       break;
     // --- carte ---
-    case 'launch': selectedLevel = mapInfo; mapInfo = null; startGame(); break;
+    case 'launch': selectedLevel = mapInfo; mapInfo = null; survivalRun = false; startGame(); break;
+    case 'survival':
+      if (!isSurvivalUnlocked(progress)) showToast('Termine le niveau ' + CONFIG.survival.unlockAfterLevel + ' en mode Normal\npour débloquer la Survie.', 3);
+      else { survivalRun = true; startGame(); }
+      break;
     case 'closeInfo': mapInfo = null; break;
     // --- en partie ---
     case 'income': if (game.upgradeIncome('player') && tutorial) tutorial.notify('income'); break;
@@ -385,7 +395,7 @@ input.onKey = (e) => {
     if (!game.result) { game.paused = !game.paused; cancelAim(); }
     return;
   }
-  if (game.paused || game.result || overlayState() === 'tuto') return;
+  if (game.paused || game.result || ['tuto', 'cards'].includes(overlayState())) return;
   const m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
   if (m) {
     const id = CONFIG.roster.player.filter((u) => game.isUnlocked('player', u))[Number(m[1]) - 1];
@@ -459,7 +469,7 @@ function frame(now) {
     if (tutorial.showing && tutorial.step.wait === 'scroll' && camera.x > 250) tutorial.notify('scroll');
     if (tutorial.done) { progress.tutorialDone = true; saveAll(); tutorial = null; }
   }
-  const frozen = tutorial && tutorial.showing;
+  const frozen = (tutorial && tutorial.showing) || (game && game.survival && game.survival.offer);
 
   // Simulation à pas fixe
   if (screen === 'playing' && !game.paused && !frozen) {
@@ -471,7 +481,8 @@ function frame(now) {
     if (aim && (game.result || !game.spells.isReady(aim.spell))) cancelAim();
     // Fin de partie : étoiles, pièces, déblocages -> sauvegarde automatique
     if (game.result && !reward) {
-      reward = recordResult(progress, game.mode, game.levelIndex, game.result === 'won', game.stars);
+      reward = game.survival ? recordSurvival(progress, game)
+        : recordResult(progress, game.mode, game.levelIndex, game.result === 'won', game.stars);
       reward.achievements = checkAchievements(progress, game);
       if (reward.achievements.length) sfx.play('upgrade');
       saveAll();
@@ -554,6 +565,7 @@ function render(time) {
   if (state === 'pause') screens.drawPause(ctx, buttons, input.pressed);
   else if (state === 'end') screens.drawEnd(ctx, game, buttons, input.pressed, reward);
   else if (state === 'stats') screens.drawStats(ctx, game, buttons, input.pressed);
+  else if (state === 'cards') screens.drawCards(ctx, buttons, input.pressed);
   if (toast) hud.drawToast(ctx, toast.text);
 }
 

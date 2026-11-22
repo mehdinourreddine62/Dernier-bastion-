@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=16';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=16';
-import { unlocksAt, objectiveText, isModeUnlocked, partsFor, effectiveLevel } from '../progress.js?v=16';
+import { CONFIG } from '../config.js?v=17';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=17';
+import { unlocksAt, objectiveText, isModeUnlocked, partsFor, effectiveLevel, isSurvivalUnlocked } from '../progress.js?v=17';
 
 // Carte de campagne : une route qui traverse les 10 lieux en ruine.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -43,6 +43,10 @@ export function mapButtons(view, progress, selected) {
       lockedMode: !open, selected: progress.mode === id, x: tx, y: 18, w: tw, h: bh });
     tx += tw + gap;
   }
+  // Bouton du mode Survie (en bas à droite de la carte)
+  const sh = Math.max(60, m), sw = 220;
+  btns.push({ id: 'survival', label: 'SURVIE', enabled: true, lockedSurvival: !isSurvivalUnlocked(progress),
+    x: W - 38 - sw, y: H - 22 - sh, w: sw, h: sh });
   const s = Math.max(R * 2 + 10, m);
   NODES.forEach(([x, y], i) => {
     btns.push({ id: 'node:' + i, level: i, x: x - s / 2, y: y - s / 2, w: s, h: s, enabled: true,
@@ -192,6 +196,13 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time) {
   text(ctx, 'Pièces : ' + progress.parts, W - 240, 46, 20, COL.yellow, 'right', 'middle');
   for (const b of buttons) {
     if (b.id === 'back' || b.id === 'workshop') drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
+    else if (b.id === 'survival') {
+      drawButton(ctx, b, '', pressed.has(b.id), { primary: !b.lockedSurvival });
+      text(ctx, 'MODE SURVIE', b.x + b.w / 2 + (b.lockedSurvival ? 12 : 0), b.y + b.h / 2 - 8, 20, b.lockedSurvival ? COL.dim : COL.text, 'center', 'middle');
+      text(ctx, b.lockedSurvival ? 'après le niveau ' + CONFIG.survival.unlockAfterLevel : 'record : vague ' + progress.survival.bestWave,
+        b.x + b.w / 2 + (b.lockedSurvival ? 12 : 0), b.y + b.h / 2 + 14, 14, COL.dim, 'center', 'middle');
+      if (b.lockedSurvival) padlock(ctx, b.x + 24, b.y + b.h / 2 + 2);
+    }
     else if (b.mode) {
       drawButton(ctx, b, b.lockedMode ? '' : b.label, pressed.has(b.id), { primary: b.selected, size: 19 });
       if (b.lockedMode) {

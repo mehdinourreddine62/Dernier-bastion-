@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=16';
+import { CONFIG } from '../config.js?v=17';
 
 // Décor en parallaxe : ciel (fixe), ruines lointaines, ruines proches, sol avec débris,
 // et quelques débris au premier plan. Les couches lointaines et le sol sont dessinés
@@ -78,6 +78,14 @@ const THEMES = {
     ground: ['#6a3a34', '#4a2622', '#241210'], road: false, organic: true,
     features: ['spire', 'deadTree', 'spire', 'skyscraper', 'spire'], farH: [100, 220], midH: [100, 220], air: 'spores',
   },
+};
+
+// Survie : nuit, lune rouge, ruines en feu
+THEMES[11] = {
+  sky: ['#06060f', '#1c1226', '#4a1e22'], sun: [960, 110, 26], glow: '255,110,90',
+  far: '#1e1826', mid: '#141018', midLight: '#241c28', fog: '110,40,40',
+  ground: ['#2a1c1a', '#1a1210', '#0a0606'], road: true,
+  features: ['skyscraper', 'flare', 'ruinGlow', 'pylon', 'skyscraper', 'flare'], farH: [120, 260], midH: [100, 220], air: 'embers',
 };
 
 export function themeFor(levelId) { return THEMES[levelId] || THEMES[1]; }

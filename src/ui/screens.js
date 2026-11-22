@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=16';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=16';
-import { objectiveText } from '../progress.js?v=16';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=16';
-import { ACHIEVEMENTS } from '../achievements.js?v=16';
-import { roundRectPath } from './widgets.js?v=16';
+import { CONFIG } from '../config.js?v=17';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=17';
+import { objectiveText } from '../progress.js?v=17';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=17';
+import { ACHIEVEMENTS } from '../achievements.js?v=17';
+import { roundRectPath } from './widgets.js?v=17';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -151,6 +151,7 @@ export function endButtons(view, game) {
 export function drawEnd(ctx, game, buttons, pressed, reward) {
   dim(ctx, 0.6);
   drawPanel(ctx, W / 2 - 370, 50, 740, Math.max(640, buttons[0].y + buttons[0].h + 24) - 50, 16);
+  if (game.survival) { drawSurvivalEnd(ctx, game, reward); drawAll(ctx, buttons, pressed, buttons.length > 3 ? 18 : 22); return; }
   const won = game.result === 'won';
   text(ctx, won ? 'VICTOIRE !' : 'DÉFAITE', W / 2, 112, 56, won ? COL.yellow : COL.bad, 'center', 'middle');
   text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name + (game.mode !== 'normal' ? ' (' + CONFIG.modes[game.mode].name + ')' : ''),
@@ -332,4 +333,52 @@ export function drawAchievements(ctx, progress, page, buttons, pressed) {
     }
   });
   for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
+}
+
+// ---------- Survie : choix d'une carte bonus ----------
+export function cardsButtons(view, offer) {
+  const n = offer.length, w = 330, gap = 24;
+  const x0 = (W - (n * w + (n - 1) * gap)) / 2;
+  return offer.map((id, i) => ({ id: 'card:' + id, card: id, enabled: true, x: x0 + i * (w + gap), y: 200, w, h: 340 }));
+}
+
+export function drawCards(ctx, buttons, pressed) {
+  dim(ctx, 0.7);
+  bigTitle(ctx, 'BOSS VAINCU !', 92, 52, COL.yellow);
+  text(ctx, 'Choisis un bonus pour le reste de la partie', W / 2, 150, 24, COL.text, 'center', 'middle');
+  for (const b of buttons) {
+    const c = CONFIG.survival.cards[b.card];
+    const dy = pressed.has(b.id) ? 3 : 0;
+    drawPanel(ctx, b.x, b.y + dy, b.w, b.h, 14);
+    roundRectPath(ctx, b.x, b.y + dy, b.w, b.h, 14);
+    ctx.lineWidth = 3; ctx.strokeStyle = COL.yellow; ctx.stroke();
+    roundRectPath(ctx, b.x + 20, b.y + dy + 20, b.w - 40, 140, 12);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+    if (CONFIG.units[c.icon]) drawIcon(ctx, c.icon, b.x + b.w / 2, b.y + dy + 90, 120);
+    else drawSpellIcon(ctx, c.icon, b.x + b.w / 2, b.y + dy + 90, 90);
+    text(ctx, c.name, b.x + b.w / 2, b.y + dy + 200, 24, COL.yellow, 'center', 'middle');
+    let size = 19;
+    ctx.font = `bold ${size}px ${FONT}`;
+    while (size > 13 && ctx.measureText(c.desc).width > b.w - 30) { size--; ctx.font = `bold ${size}px ${FONT}`; }
+    text(ctx, c.desc, b.x + b.w / 2, b.y + dy + 245, size, COL.text, 'center', 'middle');
+    text(ctx, 'Toucher pour choisir', b.x + b.w / 2, b.y + dy + b.h - 30, 16, COL.dim, 'center', 'middle');
+  }
+}
+
+function drawSurvivalEnd(ctx, game, reward) {
+  const sv = game.survival;
+  text(ctx, 'FIN DE LA SURVIE', W / 2, 112, 52, COL.bad, 'center', 'middle');
+  text(ctx, 'Ta base est tombée à la vague ' + sv.wave, W / 2, 168, 24, COL.text, 'center', 'middle');
+  text(ctx, 'Score : ' + sv.score, W / 2, 226, 44, COL.yellow, 'center', 'middle');
+  if (reward && reward.newRecord) text(ctx, '★ NOUVEAU RECORD ★', W / 2, 274, 26, COL.good, 'center', 'middle');
+  const t = Math.round(game.time);
+  text(ctx, `Vagues tenues : ${Math.max(0, sv.wave - 1)}   ·   Mutants tués : ${game.stats.killed}   ·   Durée : ${Math.floor(t / 60)} min ${String(t % 60).padStart(2, '0')}`,
+    W / 2, 318, 19, COL.dim, 'center', 'middle');
+  const cards = sv.cards.map((id) => CONFIG.survival.cards[id].name);
+  text(ctx, 'Bonus choisis : ' + (cards.length ? cards.join(', ') : 'aucun'), W / 2, 352, 17, COL.text, 'center', 'middle');
+  let y = 396;
+  if (reward && reward.parts > 0) { text(ctx, '+' + reward.parts + ' pièces détachées', W / 2, y, 24, COL.yellow, 'center', 'middle'); y += 34; }
+  for (const m of (reward && reward.messages) || []) { text(ctx, m, W / 2, y, 19, COL.good, 'center', 'middle'); y += 28; }
+  const ach = (reward && reward.achievements) || [];
+  if (ach.length) text(ctx, '🏆 Succès : ' + ach.map((a) => a.name).join(', ') + ' (+' + ach.reduce((n, a) => n + a.reward, 0) + ' pièces)', W / 2, Math.min(y, 540), 18, COL.yellow, 'center', 'middle');
 }

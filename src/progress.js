@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=16';
+import { CONFIG } from './config.js?v=17';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
@@ -26,6 +26,8 @@ export function normalizeProgress(p) {
   for (const id of CONFIG.heroes.order) p.heroes.levels[id] = p.heroes.levels[id] || 0;
   p.heroes.starsSpent = p.heroes.starsSpent || 0;
   if (!CONFIG.heroes.list[p.heroes.selected]) p.heroes.selected = CONFIG.heroes.order[0];
+  // Mode Survie : records et paliers déjà récompensés
+  p.survival = Object.assign({ bestWave: 0, bestScore: 0, tier: 0 }, p.survival || {});
   p.parts = p.parts || 0;           // pièces détachées disponibles
   p.upgrades = p.upgrades || {};    // niveau de chaque amélioration de l'atelier
   for (const id of CONFIG.workshop.order) p.upgrades[id] = p.upgrades[id] || 0;
@@ -229,4 +231,25 @@ export function heroForGame(p) {
   const id = p.heroes.selected;
   if (!id || !heroUnlocked(p, id)) return null;
   return { id, level: p.heroes.levels[id] };
+}
+
+// ---------- Mode Survie ----------
+export const isSurvivalUnlocked = (p) => !!p.modes.normal.won[CONFIG.survival.unlockAfterLevel];
+
+// Fin d'une partie de Survie : record, pièces (par vague + paliers atteints pour la 1re fois)
+export function recordSurvival(p, game) {
+  const S = CONFIG.survival, sv = game.survival;
+  const waves = Math.max(0, sv.wave - 1);          // vagues entièrement tenues
+  const score = sv.score;
+  const res = { parts: waves * S.rewards.perWave, waves, wave: sv.wave, score, newRecord: false, messages: [], survival: true };
+  const tier = Math.floor(waves / S.rewards.milestoneEvery);
+  for (let t = p.survival.tier + 1; t <= tier; t++) {
+    res.parts += S.rewards.milestonePieces * t;
+    res.messages.push('Palier ' + t * S.rewards.milestoneEvery + ' vagues atteint pour la 1re fois : +' + S.rewards.milestonePieces * t + ' pièces');
+  }
+  p.survival.tier = Math.max(p.survival.tier, tier);
+  if (score > p.survival.bestScore) { res.newRecord = p.survival.bestScore > 0; p.survival.bestScore = score; }
+  p.survival.bestWave = Math.max(p.survival.bestWave, sv.wave);
+  p.parts += res.parts;
+  return res;
 }

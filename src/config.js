@@ -269,6 +269,40 @@ export const CONFIG = {
     },
   },
 
+  // ---------- Mode Survie ----------
+  // Vagues infinies, sans pause : une nouvelle vague part toutes les waveDuration secondes,
+  // même si la précédente n'est pas finie. Le nid est indestructible. Fin quand ta base tombe.
+  survival: {
+    unlockAfterLevel: 5,          // finir ce niveau en Normal débloque la Survie
+    firstWaveDelay: 8,            // secondes avant la vague 1
+    waveDuration: 30,             // une vague toutes les 30 s
+    spawnWindow: 0.7,             // les mutants d'une vague arrivent pendant 70 % de sa durée
+    baseCount: 5, countPerWave: 1.4,          // nombre de mutants : 5 + 1,4 × (vague - 1)
+    hpPerWave: 0.08, damagePerWave: 0.05,     // renforcement des mutants à chaque vague
+    unitsFromWave: { goule: 1, cracheur: 1, chien: 3, rouilleur: 4, brute: 5, charognard: 6 },
+    weights: { goule: 4, cracheur: 3, chien: 2, rouilleur: 1.5, brute: 1, charognard: 1.5 },
+    specialEvery: 5,              // vague spéciale (une seule espèce, en nombre)
+    bossEvery: 10,                // vague de boss : 1 Abomination par tranche de 10 vagues
+    turret: { damage: 10, perWave: 0.6, interval: 0.6, range: 300 },
+    score: { perWave: 500, perKill: 10 },
+    rewards: { perWave: 3, milestoneEvery: 5, milestonePieces: 25 },   // pièces : 3 par vague + paliers
+    cardChoices: 3,               // cartes proposées après chaque vague de boss
+    cards: {
+      perforant:  { name: 'Munitions perforantes', desc: 'Tireurs : +25 % de dégâts', icon: 'tireur' },
+      gilets:     { name: 'Gilets renforcés', desc: 'Pillards et Motards : +30 % de PV', icon: 'pillard' },
+      napalm:     { name: 'Napalm', desc: 'Lance-flammes : +30 % de dégâts', icon: 'lanceFlammes' },
+      blindage:   { name: 'Blindage lourd', desc: 'Blindés : +35 % de PV', icon: 'blinde' },
+      recup:      { name: 'Récupération', desc: 'Ferraille des ennemis tués : +50 %', icon: 'income' },
+      revenu:     { name: 'Raffinerie de fortune', desc: '+4 ferraille par seconde', icon: 'income' },
+      barbeles:   { name: 'Barbelés électrifiés', desc: 'Les mutants près du fort perdent 15 PV/s', icon: 'walls' },
+      tourelle:   { name: 'Tourelle lourde', desc: 'Tourelle du fort : +50 % de dégâts', icon: 'turret' },
+      ravitaillement: { name: 'Ravitaillement', desc: 'Recharge des sorts : -25 %', icon: 'mortar' },
+      medecine:   { name: 'Médecine de terrain', desc: 'Toutes tes unités : +2 PV/s', icon: 'heal' },
+      veterans:   { name: 'Vétérans', desc: 'Toutes tes unités : +15 % de dégâts', icon: 'pillard' },
+      remparts:   { name: 'Remparts', desc: 'Ta base récupère 400 PV et +400 PV max', icon: 'walls' },
+    },
+  },
+
   // ---------- Sorts du joueur ----------
   spells: {
     mortar: {

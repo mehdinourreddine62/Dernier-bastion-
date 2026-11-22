@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=16';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=16';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=16';
+import { CONFIG } from '../config.js?v=17';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=17';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=17';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -111,7 +111,8 @@ export class HUD {
   draw(ctx, game, pressed, aim, camera) {
     // Barres de PV des deux bases
     this._hpBar(ctx, 16, 12, BAR_W, 34, game.bases.player, COL.good, 'MA BASE', false);
-    this._hpBar(ctx, W - 16 - BAR_W, 12, BAR_W, 34, game.bases.enemy, COL.bad, 'NID MUTANT', true);
+    if (game.survival) this._waveBox(ctx, game);
+    else this._hpBar(ctx, W - 16 - BAR_W, 12, BAR_W, 34, game.bases.enemy, COL.bad, 'NID MUTANT', true);
     this._minimap(ctx, game, camera);
     this._bossBar(ctx, game);
     this._objectives(ctx, game);
@@ -149,11 +150,13 @@ export class HUD {
       const a = Math.min(1, game.banner.time * 2);
       ctx.globalAlpha = a;
       ctx.lineJoin = 'round';
-      ctx.font = `bold 40px ${FONT}`;
+      let size = 40;
+      ctx.font = `bold ${size}px ${FONT}`;
+      while (size > 20 && ctx.measureText(game.banner.text).width > W - 80) { size -= 2; ctx.font = `bold ${size}px ${FONT}`; }
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineWidth = 8; ctx.strokeStyle = COL.dark;
       ctx.strokeText(game.banner.text, W / 2, 190);
-      ctx.fillStyle = COL.bad;
+      ctx.fillStyle = game.banner.color || COL.bad;
       ctx.fillText(game.banner.text, W / 2, 190);
       ctx.globalAlpha = 1;
     }
@@ -170,6 +173,22 @@ export class HUD {
   }
 
   // Objectifs d'étoiles, sous ma barre de PV : vert si encore rempli, rouge si raté
+  // Survie : vague en cours, temps avant la suivante, score et record
+  _waveBox(ctx, game) {
+    const sv = game.survival;
+    const x = W - 16 - BAR_W, y = 12, w = BAR_W, h = 34;
+    roundRectPath(ctx, x, y, w, h, 8);
+    ctx.fillStyle = 'rgba(40,10,14,0.85)'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = COL.dark; ctx.stroke();
+    const next = sv.wave === 0 ? 'début dans ' : 'suivante dans ';
+    text(ctx, (sv.wave ? 'VAGUE ' + sv.wave + ' · ' : '') + next + Math.ceil(Math.max(0, sv.timer)) + ' s',
+      x + w / 2, y + h / 2 + 1, 17, '#fff', 'center', 'middle');
+    roundRectPath(ctx, 16, 52, 250, 58, 8);
+    ctx.fillStyle = 'rgba(25,15,8,0.65)'; ctx.fill();
+    text(ctx, 'Score : ' + sv.score, 30, 70, 17, COL.yellow, 'left', 'middle');
+    text(ctx, 'Record : vague ' + (game.survivalBest || 0), 30, 96, 15, COL.dim, 'left', 'middle');
+  }
+
   _objectives(ctx, game) {
     const objs = game.objectives;
     if (!objs.length) return;

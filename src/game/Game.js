@@ -1,11 +1,12 @@
-import { CONFIG } from '../config.js?v=16';
-import { Unit, bonusMultiplier } from './Unit.js?v=16';
-import { Base } from './Base.js?v=16';
-import { ProjectilePool } from './Projectile.js?v=16';
-import { Particles } from './Particles.js?v=16';
-import { Spells } from './Spell.js?v=16';
-import { AI } from './AI.js?v=16';
-import { effectiveLevel } from '../progress.js?v=16';
+import { CONFIG } from '../config.js?v=17';
+import { Unit, bonusMultiplier } from './Unit.js?v=17';
+import { Base } from './Base.js?v=17';
+import { ProjectilePool } from './Projectile.js?v=17';
+import { Particles } from './Particles.js?v=17';
+import { Spells } from './Spell.js?v=17';
+import { AI } from './AI.js?v=17';
+import { effectiveLevel } from '../progress.js?v=17';
+import { Survival, survivalLevel } from './Survival.js?v=17';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -20,9 +21,9 @@ export class Game {
   // opts.unlockedUpTo : niveau atteint dans la campagne (débloque unités et sorts)
   constructor(levelIndex = 0, opts = {}) {
     this.levelIndex = levelIndex;
-    this.mode = opts.mode || 'normal';
-    this.level = effectiveLevel(levelIndex, this.mode);   // renforcé en Difficile / Cauchemar
-    this.unlockId = Math.max(this.level.id, opts.unlockedUpTo || 0);
+    this.mode = opts.survival ? 'survival' : opts.mode || 'normal';
+    this.level = opts.survival ? survivalLevel() : effectiveLevel(levelIndex, this.mode);   // renforcé en Difficile / Cauchemar
+    this.unlockId = opts.survival ? opts.unlockedUpTo || 1 : Math.max(this.level.id, opts.unlockedUpTo || 0);
     this.time = 0;
     this.speed = 1;
     this.paused = false;
@@ -73,6 +74,9 @@ export class Game {
     this.decals = Array.from({ length: CONFIG.pools.decals }, () => ({ active: false }));
     this.bossDone = this.level.bosses.map(() => false);
     this.ai = new AI(this);
+    // Mode Survie : vagues à la place de l'IA, nid indestructible
+    this.survival = opts.survival ? new Survival(this) : null;
+    if (this.survival) this.bases.enemy.invulnerable = true;
     this._boomTimer = 0;
   }
 
@@ -188,6 +192,7 @@ export class Game {
   // Applique des dégâts, gère effets, mort et prime en ferraille.
   dealDamage(attackerSide, target, damage, bonus, quiet = false) {
     if (!target.alive || damage <= 0) return;
+    if (target.invulnerable) { if (!quiet) this.fx.hit(target.faceX, target.aimY, 'base'); return; }
     // Aura de Kane : les unités de corps à corps proches encaissent moins
     if (target.side === 'player' && !target.isBase && target.def.range <= CONFIG.combat.meleeWaitRange) {
       const k = this.heroAura('armor', target.x);
@@ -215,7 +220,8 @@ export class Game {
         if (target.def.hero) { st.heroDeaths = (st.heroDeaths || 0) + 1; this.emit('heroDown', target.x); }
       }
       else { st.killed++; inc(st.killedEnemy, target.defId); inc(st.kills, this.src || 'autre'); }
-      const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio);
+      const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio * (this.survival && attackerSide === 'player' ? this.survival.bountyMult : 1));
+      if (this.survival && target.side === 'enemy') this.survival.onEnemyKilled(target);
       this.sides[attackerSide].scrap += bounty;
       if (attackerSide === 'player') st.scrapEarned += bounty;
       this.emit('death', target.x, { id: target.defId });
@@ -454,7 +460,7 @@ export class Game {
       this._processQueue(side);
     }
 
-    this.ai.update(dt);
+    if (this.survival) this.survival.update(dt); else this.ai.update(dt);
     this.spells.update(dt);
     this._updateHero(dt);
     this._sortUnits();

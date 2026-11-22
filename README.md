@@ -53,6 +53,7 @@ Modifie un chiffre, enregistre, recharge la page : c'est pris en compte.
 | `stars` | pièces détachées gagnées par étoile et à la première victoire |
 | `workshop` | atelier : coûts des 10 niveaux et effet de chaque amélioration |
 | `heroes` | commandants : stats, auras, capacités, coût en étoiles de chaque niveau, délais d'arrivée et de retour |
+| `survival` | mode Survie : rythme et taille des vagues, hausse des PV/dégâts, boss, score, pièces, cartes bonus |
 | `modes` | modes Normal / Difficile / Cauchemar : renforts de l'ennemi, mutants et boss en plus, multiplicateur de pièces |
 | `ai` | comportement commun de l'ordinateur : contres, durée max d'économie, profils d'amélioration du revenu |
 | `levels` | pour chacun des 10 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
@@ -70,6 +71,13 @@ Exemples :
 Dans **Atelier › Héros**, on choisit un commandant (Sergent Kane, Mécano Rosa, Doc Vasquez) et on
 l'améliore avec les **étoiles** gagnées dans la campagne (tous modes). En partie, il arrive seul
 après 10 s, revient 45 s après sa mort, et sa capacité se lance avec son portrait (touche **E**).
+
+### Mode Survie
+Débloqué après le niveau 5 (bouton **MODE SURVIE** en bas à droite de la carte). Décor de nuit,
+ta base contre des vagues sans fin : une vague toutes les 30 s, sans pause, de plus en plus
+nombreuses et résistantes. Une vague spéciale toutes les 5, un boss toutes les 10 ; chaque boss
+vaincu propose **3 cartes bonus** (on en choisit une pour la partie). Score, record, pièces par
+vague tenue et bonus aux paliers. Tout se règle dans la section `survival` de `config.js`.
 
 ### Difficulté et durée de vie
 - **3 modes** : la campagne se rejoue en **Difficile** (débloqué en finissant le Normal), puis en
@@ -95,10 +103,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=16` par `?v=17` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=17` par `?v=18` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.16 » pour `?v=16`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.17 » pour `?v=17`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 

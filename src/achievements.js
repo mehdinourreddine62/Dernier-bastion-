@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=16';
+import { CONFIG } from './config.js?v=17';
 
 // Succès : défis qui rapportent des pièces détachées.
 // - les succès « de partie » sont vérifiés à la fin de chaque partie (objet `ctx`) ;
@@ -33,6 +33,10 @@ export const ACHIEVEMENTS = [
     check: (c) => c.game.stats.maxPop >= 50 },
   { id: 'magnate', name: 'Magnat de la ferraille', desc: 'Améliorer le revenu au maximum dans une partie', reward: 30,
     check: (c) => c.game.sides.player.incomeLevel >= CONFIG.economy.incomeUpgrade.costs.length },
+  { id: 'survive10', name: 'Tenir la ligne', desc: 'Tenir 10 vagues en mode Survie', reward: 60,
+    check: (c) => !!c.game.survival && c.game.survival.wave - 1 >= 10 },
+  { id: 'survive25', name: 'Dernier rempart', desc: 'Tenir 25 vagues en mode Survie', reward: 150,
+    check: (c) => !!c.game.survival && c.game.survival.wave - 1 >= 25 },
   { id: 'exterminator', name: 'Exterminateur', desc: 'Tuer 1000 mutants au total', reward: 80,
     goal: 1000, total: (p) => p.totals.kills },
   { id: 'skyHunter', name: 'Chasseur de charognards', desc: 'Abattre 100 Charognards ailés au total', reward: 60,

@@ -195,6 +195,8 @@ export class Sfx {
       case 'heal': this.play('heal'); break;
       case 'ability': this.play(e.data.kind === 'snipe' ? 'cannon' : e.data.kind === 'rally' ? 'rally' : 'spawn', e.x); break;
       case 'heroSpawn': this.play('upgrade'); break;
+      case 'wave': this.play('rally'); break;
+      case 'cards': this.play('heal'); break;
       case 'upgrade': this.play('upgrade'); break;
       case 'boss': this.play('boss'); break;
       case 'win': this.play('win'); break;
