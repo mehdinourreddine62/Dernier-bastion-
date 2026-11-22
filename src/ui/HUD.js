@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=21';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=21';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=21';
+import { CONFIG } from '../config.js?v=22';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=22';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=22';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;

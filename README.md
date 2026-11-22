@@ -34,6 +34,7 @@ puis ouvre **http://localhost:8000** dans ton navigateur.
 | Défiler | molette, flèches, **A / D**, glisser, bord de l'écran | glisser le doigt, toucher la mini-carte |
 | Capacité du commandant | **E** | toucher son portrait |
 | Pause | **Espace** ou **Échap** | bouton **II** |
+| Vitesse ×1 / ×2 / ×3 | bouton **x1** | bouton **x1** |
 | Infobulle | survol d'un bouton | appui long sur un bouton |
 
 ---
@@ -72,6 +73,10 @@ Dans **Atelier › Héros**, on choisit un commandant (Sergent Kane, Mécano Ros
 l'améliore avec les **étoiles** gagnées dans la campagne (90 au maximum). En partie, c'est toi qui
 le déploies en touchant son portrait (touche **E**), quand tu veux dès le début ; après sa mort, il
 est de nouveau déployable au bout de 45 s. Sur le terrain, le même bouton lance sa capacité.
+
+### Bestiaire
+Bouton **📖 BESTIAIRE** de l'écran titre : tous les mutants rencontrés, avec leurs statistiques, le
+nombre que tu as tués et comment les contrer. Les textes sont dans la section `bestiary` de `config.js`.
 
 ### Mode Survie
 Débloqué après le niveau 5 (bouton **MODE SURVIE** en bas à droite de la carte). Décor de nuit,
@@ -112,10 +117,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=21` par `?v=22` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=22` par `?v=23` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.21 » pour `?v=21`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.22 » pour `?v=22`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 
@@ -133,6 +138,10 @@ aussi à la liste `FILES` de `sw.js`) et `icons/` (icônes, générées par `too
 La progression (niveaux, étoiles, pièces, atelier, réglages) est enregistrée automatiquement
 dans le navigateur (`localStorage`), après chaque partie et chaque achat.
 Pour repartir de zéro : **Options → Effacer la sauvegarde**.
+
+**Code de sauvegarde** : **Options → Exporter la sauvegarde** copie un code (il commence par `DB1-`).
+Garde-le dans une note : **Options → Importer un code** le recharge, sur cet appareil ou un autre
+(utile si le navigateur efface ses données, ou pour passer du téléphone au PC).
 
 ---
 

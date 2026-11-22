@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=21';
+import { CONFIG } from './config.js?v=22';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
@@ -27,6 +27,20 @@ export function normalizeProgress(p) {
   if (!CONFIG.heroes.list[p.heroes.selected]) p.heroes.selected = CONFIG.heroes.order[0];
   // Étoiles des anciens modes disparues : si les héros en avaient coûté plus, ils sont remis à zéro
   if (p.heroes.starsSpent > totalStars(p)) resetHeroes(p);
+  // Bestiaire : mutants déjà rencontrés et nombre tués (p.bestiary[id] = tués).
+  // Ancienne sauvegarde : on considère rencontrés les mutants des niveaux déjà gagnés.
+  if (!p.bestiary) {
+    p.bestiary = {};
+    for (const lv of CONFIG.levels) {
+      if (!p.won[lv.id]) continue;
+      const ids = Object.keys(lv.ai.weights).concat(lv.bosses.map((b) => b.unit));
+      for (const id of ids) {
+        p.bestiary[id] = 0;
+        const s = CONFIG.units[id].spawnOnDeath || CONFIG.units[id].summon;
+        if (s) p.bestiary[s.unit] = 0;
+      }
+    }
+  }
   // Mode Survie : records et paliers déjà récompensés
   p.survival = Object.assign({ bestWave: 0, bestScore: 0, tier: 0 }, p.survival || {});
   p.parts = p.parts || 0;           // pièces détachées disponibles
@@ -225,4 +239,36 @@ export function recordSurvival(p, game) {
   p.survival.bestWave = Math.max(p.survival.bestWave, sv.wave);
   p.parts += res.parts;
   return res;
+}
+
+// ---------- Bestiaire ----------
+// À la fin (ou à l'abandon) d'une partie : mutants rencontrés et tués
+export function recordBestiary(p, game) {
+  if (game.bestiaryDone) return;
+  game.bestiaryDone = true;
+  for (const id in game.seen) p.bestiary[id] = p.bestiary[id] || 0;
+  for (const [id, n] of Object.entries(game.stats.killedEnemy)) p.bestiary[id] = (p.bestiary[id] || 0) + n;
+}
+
+// ---------- Code de sauvegarde (export / import) ----------
+// Code = « DB1- » + progression en JSON encodée en base64 (lettres et chiffres, facile à copier).
+export function exportCode(p) {
+  const bytes = new TextEncoder().encode(JSON.stringify(p));
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return 'DB1-' + btoa(bin);
+}
+
+// Renvoie la progression contenue dans le code, ou null si le code est invalide
+export function parseCode(code) {
+  try {
+    const raw = String(code || '').replace(/\s+/g, '');
+    if (!raw.startsWith('DB1-')) return null;
+    const bin = atob(raw.slice(4));
+    const p = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    if (!p || typeof p !== 'object' || typeof p.parts !== 'number') return null;
+    return p;
+  } catch (e) {
+    return null;
+  }
 }

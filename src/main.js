@@ -1,19 +1,21 @@
-import { CONFIG } from './config.js?v=21';
-import { Game } from './game/Game.js?v=21';
-import { Camera } from './game/Camera.js?v=21';
-import { Renderer } from './render/Renderer.js?v=21';
-import { HUD } from './ui/HUD.js?v=21';
-import { Input } from './ui/input.js?v=21';
-import * as screens from './ui/screens.js?v=21';
-import * as campaign from './ui/campaign.js?v=21';
-import * as workshop from './ui/workshop.js?v=21';
-import { Tutorial } from './ui/tutorial.js?v=21';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=21';
+import { CONFIG } from './config.js?v=22';
+import { Game } from './game/Game.js?v=22';
+import { Camera } from './game/Camera.js?v=22';
+import { Renderer } from './render/Renderer.js?v=22';
+import { HUD } from './ui/HUD.js?v=22';
+import { Input } from './ui/input.js?v=22';
+import * as screens from './ui/screens.js?v=22';
+import * as campaign from './ui/campaign.js?v=22';
+import * as workshop from './ui/workshop.js?v=22';
+import { Tutorial } from './ui/tutorial.js?v=22';
+import * as bestiary from './ui/bestiary.js?v=22';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=22';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
-  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf } from './progress.js?v=21';
-import { Sfx } from './audio/sfx.js?v=21';
-import { Music } from './audio/music.js?v=21';
-import { loadSave, writeSave } from './save.js?v=21';
+  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf,
+  recordBestiary, exportCode, parseCode } from './progress.js?v=22';
+import { Sfx } from './audio/sfx.js?v=22';
+import { Music } from './audio/music.js?v=22';
+import { loadSave, writeSave } from './save.js?v=22';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -59,6 +61,7 @@ let showStats = false;   // écran BILAN ouvert par-dessus l'écran de fin
 let achPage = 0;         // page de l'écran des succès
 let workshopTab = 'workshop';   // onglet de l'atelier : 'workshop' | 'heroes'
 let survivalRun = false;        // la partie en cours est-elle en mode Survie ?
+let beastSel = null;            // mutant sélectionné dans le bestiaire
 // Qualité : 'auto' (baisse toute seule si le jeu rame), 'high' ou 'low'
 if (!settings.quality) settings.quality = 'auto';
 let autoLow = false;
@@ -92,6 +95,34 @@ const portraitQuery = window.matchMedia('(orientation: portrait) and (pointer: c
 function saveSettings() { writeSave(save); }
 const saveAll = saveSettings;
 function askConfirm(text, onYes) { confirm = { text, onYes }; }
+
+// ---------- Code de sauvegarde ----------
+// Export : le code est copié dans le presse-papiers (sinon affiché dans une fenêtre pour le copier)
+async function exportSave() {
+  const code = exportCode(progress);
+  try {
+    await navigator.clipboard.writeText(code);
+    showToast('Code de sauvegarde copié !\nColle-le dans une note ou un message pour le garder.', 4);
+  } catch (e) {
+    window.prompt('Copie ce code de sauvegarde et garde-le précieusement :', code);
+  }
+}
+
+// Import : on colle un code, on vérifie, on demande confirmation avant de remplacer
+function importSave() {
+  const code = window.prompt('Colle ici ton code de sauvegarde (il commence par DB1-) :', '');
+  if (code === null || !code.trim()) return;
+  const data = parseCode(code);
+  if (!data) { showToast('Code invalide.\nVérifie qu’il est copié en entier.', 3); return; }
+  const p = normalizeProgress(data);
+  askConfirm(`Charger cette sauvegarde ?\nNiveau ${p.unlocked} · ★ ${totalStars(p)} · ${p.parts} pièces\n(ta progression actuelle sera remplacée)`, () => {
+    for (const k of Object.keys(progress)) delete progress[k];
+    Object.assign(progress, p);
+    normalizeAchievements(progress);
+    saveAll();
+    showToast('Sauvegarde chargée !', 2.5);
+  });
+}
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
@@ -225,6 +256,7 @@ function buildButtons() {
     case 'stats': return screens.statsButtons(view);
     case 'cards': return screens.cardsButtons(view, game.survival.offer);
     case 'achievements': return screens.achievementsButtons(view, achPage);
+    case 'bestiary': return bestiary.bestiaryButtons(view);
     case 'tuto': {
       // Pendant une bulle : seuls les boutons utiles à l'étape restent actifs
       const all = hud.build(game, view, aim && aim.spell, settings);
@@ -265,6 +297,7 @@ input.onButton = (b) => {
   if (b.id.startsWith('heroPick:')) { progress.heroes.selected = b.hero; saveAll(); return; }
   if (b.id.startsWith('tab:')) { workshopTab = b.id.slice(4); return; }
   if (b.id.startsWith('card:')) { game.survival.choose(b.card); return; }
+  if (b.id.startsWith('beast:')) { beastSel = b.beast; return; }
   sfx.play('click');
   // Carte : choix du chapitre
   if (b.chapter !== undefined) {
@@ -295,6 +328,12 @@ input.onButton = (b) => {
     case 'play': goToMap(); break;
     case 'options': screen = 'options'; break;
     case 'achievements': screen = 'achievements'; achPage = 0; break;
+    case 'bestiary':
+      screen = 'bestiary';
+      beastSel = bestiary.BEASTS.find((id) => progress.bestiary[id] !== undefined) || null;
+      break;
+    case 'exportSave': exportSave(); break;
+    case 'importSave': importSave(); break;
     case 'achPrev': achPage = Math.max(0, achPage - 1); break;
     case 'achNext': achPage = Math.min(screens.achievementPages() - 1, achPage + 1); break;
     case 'stats': showStats = true; break;
@@ -343,12 +382,12 @@ input.onButton = (b) => {
     }
     case 'replayTuto': progress.tutorialDone = false; saveAll(); showToast('Le tutoriel se lancera au niveau 1.', 2.5); break;
     case 'cancelAim': cancelAim(); break;
-    case 'restart': startGame(); break;
+    case 'restart': recordBestiary(progress, game); saveAll(); startGame(); break;
     case 'next': selectedLevel = Math.min(CONFIG.levels.length - 1, selectedLevel + 1); startGame(); break;
     case 'map': goToMap(); break;
     case 'pause': game.paused = true; cancelAim(); break;
     case 'resume': game.paused = false; break;
-    case 'abandon': goToMap(); break;
+    case 'abandon': recordBestiary(progress, game); saveAll(); goToMap(); break;
     case 'speed':
       settings.speedIndex = (settings.speedIndex + 1) % CONFIG.loop.speeds.length;
       game.speed = CONFIG.loop.speeds[settings.speedIndex];
@@ -485,6 +524,7 @@ function frame(now) {
       reward = game.survival ? recordSurvival(progress, game)
         : recordResult(progress, game.levelIndex, game.result === 'won', game.stars);
       reward.achievements = checkAchievements(progress, game);
+      recordBestiary(progress, game);
       if (reward.achievements.length) sfx.play('upgrade');
       saveAll();
     }
@@ -529,6 +569,7 @@ function render(time) {
     if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress), max: maxStars(), version: VERSION_LABEL });
     else if (screen === 'options') screens.drawOptions(ctx, buttons, p);
     else if (screen === 'achievements') screens.drawAchievements(ctx, progress, achPage, buttons, p);
+    else if (screen === 'bestiary') bestiary.drawBestiary(ctx, progress, beastSel, buttons, p);
     else if (screen === 'map') {
       campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null, mapChapter), mapInfo === null ? p : new Set(), mapInfo, time, mapChapter);
       if (mapInfo !== null && !confirm) campaign.drawLevelInfo(ctx, progress, mapInfo, buttons, p);

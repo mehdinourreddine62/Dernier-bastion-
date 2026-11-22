@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=21';
-import { Unit, bonusMultiplier } from './Unit.js?v=21';
-import { Base } from './Base.js?v=21';
-import { ProjectilePool } from './Projectile.js?v=21';
-import { Particles } from './Particles.js?v=21';
-import { Spells } from './Spell.js?v=21';
-import { AI } from './AI.js?v=21';
-import { levelFor } from '../progress.js?v=21';
-import { Survival, survivalLevel } from './Survival.js?v=21';
+import { CONFIG } from '../config.js?v=22';
+import { Unit, bonusMultiplier } from './Unit.js?v=22';
+import { Base } from './Base.js?v=22';
+import { ProjectilePool } from './Projectile.js?v=22';
+import { Particles } from './Particles.js?v=22';
+import { Spells } from './Spell.js?v=22';
+import { AI } from './AI.js?v=22';
+import { levelFor } from '../progress.js?v=22';
+import { Survival, survivalLevel } from './Survival.js?v=22';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -40,6 +40,7 @@ export class Game {
       scrapEarned: 0, baseDamage: 0, maxPop: 0, spells: {},
     };
     this.src = null;   // source des dégâts en cours (pour attribuer les statistiques)
+    this.seen = {};    // mutants apparus pendant la partie (bestiaire)
 
     this.sides = {
       player: this._makeSide(1),
@@ -188,6 +189,7 @@ export class Game {
     this.units.push(u);
     const def = CONFIG.units[defId];
     if (side === 'player' && !def.hero && !def.lifetime) { this.stats.recruited++; inc(this.stats.recruitedBy, defId); }
+    if (side === 'enemy') this.seen[defId] = true;
     this.fx.dust(x, u.y, 4);
     this.emit('spawn', x, { side, id: defId });
     return u;

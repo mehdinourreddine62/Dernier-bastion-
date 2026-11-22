@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=21';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=21';
-import { objectiveText } from '../progress.js?v=21';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=21';
-import { ACHIEVEMENTS } from '../achievements.js?v=21';
-import { roundRectPath } from './widgets.js?v=21';
+import { CONFIG } from '../config.js?v=22';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=22';
+import { objectiveText } from '../progress.js?v=22';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=22';
+import { ACHIEVEMENTS } from '../achievements.js?v=22';
+import { roundRectPath } from './widgets.js?v=22';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -51,7 +51,7 @@ function bigTitle(ctx, str, y, size, color = '#e8a04a') {
 }
 
 const drawAll = (ctx, buttons, pressed, size = 28) => {
-  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: b.small ? 17 : size });
+  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: b.size || (b.small ? 17 : size) });
 };
 
 // ---------- Titre ----------
@@ -62,6 +62,7 @@ export function titleButtons(view, canInstall) {
   {
     const w = Math.max(190, m), h = Math.max(54, m);
     btns.push({ id: 'achievements', label: '🏆 SUCCÈS', small: true, enabled: true, x: 20, y: H - h - 20, w, h });
+    btns.push({ id: 'bestiary', label: '📖 BESTIAIRE', small: true, enabled: true, x: 20 + w + 12, y: H - h - 20, w, h });
   }
   // Bouton « Installer » discret en bas à droite (absent si le jeu est déjà installé)
   if (canInstall) {
@@ -94,9 +95,12 @@ export function optionsButtons(view, settings, qualityLabel) {
   y += h + gap;
   out.push(b('toggleShake', 'SECOUSSES : ' + yes(settings.shake), x0, w), b('quality', 'QUALITÉ : ' + qualityLabel, x1, w));
   y += h + gap;
-  out.push(b('replayTuto', 'REVOIR LE TUTORIEL', x0, full));
+  // Sauvegarde : code à copier (autre appareil, sécurité) et effacement
+  out.push(Object.assign(b('exportSave', 'EXPORTER LA SAUVEGARDE', x0, w), { size: 20 }),
+    Object.assign(b('importSave', 'IMPORTER UN CODE', x1, w), { size: 20 }));
   y += h + gap;
-  out.push(b('eraseSave', 'EFFACER LA SAUVEGARDE', x0, full));
+  out.push(Object.assign(b('replayTuto', 'REVOIR LE TUTORIEL', x0, w), { size: 20 }),
+    Object.assign(b('eraseSave', 'EFFACER LA SAUVEGARDE', x1, w), { size: 20 }));
   y += h + gap;
   out.push(b('back', 'RETOUR', x0, full, true));
   return out;

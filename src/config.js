@@ -27,7 +27,7 @@ export const CONFIG = {
   loop: {
     fixedStep: 1 / 60,    // pas de simulation (secondes)
     maxDelta: 0.25,       // plafond du temps écoulé entre deux images
-    speeds: [1, 2],       // vitesses de jeu disponibles
+    speeds: [1, 2, 3],    // vitesses de jeu disponibles (bouton x1 / x2 / x3)
   },
 
   // ---------- Caméra ----------
@@ -293,6 +293,25 @@ export const CONFIG = {
                 banner: 'LE FLÉAU ENRAGE !' },
       attack: { kind: 'melee', splashRadius: 80 }, bodyWidth: 150, bodyHeight: 190,
     },
+  },
+
+  // ---------- Bestiaire (écran titre) ----------
+  // Mutants dans l'ordre d'affichage, avec leur description et comment les contrer.
+  bestiary: {
+    goule: { desc: 'Mutant de base, arrive en nombre.', weak: 'Lance-flammes (×2 contre les nuées), Mitrailleur.' },
+    cracheur: { desc: 'Crache de l’acide de loin ; ronge les blindages (×2 contre les lourds).', weak: 'Pillards et Motards (×1,5 contre les unités à distance).' },
+    chien: { desc: 'Très rapide, fonce sur les tireurs (×1,5).', weak: 'Tireurs (×1,5 contre les rapides).' },
+    brute: { desc: 'Colosse de mêlée qui repousse et écrase les blindés (×1,5).', weak: 'Lance-roquettes, Tireurs en nombre derrière une ligne de Pillards.' },
+    rouilleur: { desc: 'Kamikaze : explose au contact, ×3 contre les blindés.', weak: 'Tireurs et tourelle, avant qu’il n’arrive au contact.' },
+    charognard: { desc: 'Volant : survole la mêlée et attaque les unités à distance (×2).', weak: 'Seuls Tireurs, Mitrailleurs, tourelle, mortier et Vasquez l’atteignent.' },
+    carapace: { desc: 'Cuirassé : les balles ne lui font que 40 % des dégâts.', weak: 'Lance-roquettes, Blindé, mêlée et lance-flammes.' },
+    epineux: { desc: 'Artilleur : tire plus loin que les Tireurs, ×1,5 contre eux.', weak: 'Motards et unités rapides qui foncent dessus, Vasquez.' },
+    couveuse: { desc: 'Lente ; libère 4 larves à sa mort.', weak: 'Lance-flammes et Mitrailleur pour les larves.' },
+    larve: { desc: 'Petite et rapide, sort des Couveuses et de la Matriarche.', weak: 'Lance-flammes, Mitrailleur.' },
+    hurleur: { desc: 'Son cri accélère (+30 %) et renforce (+25 %) les mutants proches (zone violette).', weak: 'À abattre en priorité : Tireurs, Vasquez, mortier.' },
+    abomination: { desc: 'Boss : ses coups frappent toute une zone.', weak: 'Lance-roquettes (×2 contre les boss), Blindés, tir de précision de Vasquez.' },
+    matriarche: { desc: 'Boss : pond 3 larves toutes les 6 s.', weak: 'Lance-roquettes sur elle, Lance-flammes pour les larves.' },
+    fleau: { desc: 'Boss final : enrage à 66 % et à 33 % de ses PV et appelle des renforts.', weak: 'Lance-roquettes, Vasquez, mortier sur les renforts.' },
   },
 
   // ---------- Commandants (héros) ----------
