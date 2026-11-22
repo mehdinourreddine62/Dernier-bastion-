@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=18';
+import { CONFIG } from './config.js?v=19';
 
 // Succès : défis qui rapportent des pièces détachées.
 // - les succès « de partie » sont vérifiés à la fin de chaque partie (objet `ctx`) ;

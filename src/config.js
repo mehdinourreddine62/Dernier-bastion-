@@ -407,7 +407,7 @@ export const CONFIG = {
     order: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde', 'lanceRoquettes', 'mitrailleur', 'walls', 'turret', 'salvage', 'spells'],
     names: { walls: 'Murailles', turret: 'Tourelle', salvage: 'Récupération', spells: 'Sorts' },
     maxLevel: 10,
-    costs: [10, 20, 35, 55, 80, 110, 150, 200, 260, 330],   // pièces détachées par niveau
+    costs: [25, 40, 55, 70, 90, 115, 150, 200, 260, 330],   // pièces détachées par niveau (1 335 pour un niveau 10)
     unitHpBonus: 0.10,               // par niveau, pour chaque unité séparément
     unitDamageBonus: 0.10,
     wallHpBonus: 300,

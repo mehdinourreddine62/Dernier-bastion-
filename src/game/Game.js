@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=18';
-import { Unit, bonusMultiplier } from './Unit.js?v=18';
-import { Base } from './Base.js?v=18';
-import { ProjectilePool } from './Projectile.js?v=18';
-import { Particles } from './Particles.js?v=18';
-import { Spells } from './Spell.js?v=18';
-import { AI } from './AI.js?v=18';
-import { levelFor } from '../progress.js?v=18';
-import { Survival, survivalLevel } from './Survival.js?v=18';
+import { CONFIG } from '../config.js?v=19';
+import { Unit, bonusMultiplier } from './Unit.js?v=19';
+import { Base } from './Base.js?v=19';
+import { ProjectilePool } from './Projectile.js?v=19';
+import { Particles } from './Particles.js?v=19';
+import { Spells } from './Spell.js?v=19';
+import { AI } from './AI.js?v=19';
+import { levelFor } from '../progress.js?v=19';
+import { Survival, survivalLevel } from './Survival.js?v=19';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
