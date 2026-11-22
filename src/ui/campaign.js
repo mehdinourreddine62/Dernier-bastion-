@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=19';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=19';
-import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=19';
+import { CONFIG } from '../config.js?v=20';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=20';
+import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=20';
 
 // Carte de campagne : 2 chapitres de 10 lieux (onglets en haut), reliés par une route.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -18,6 +18,7 @@ const R = 30;
 
 const minSize = (view) => CONFIG.display.minButtonPx / view.scale;
 
+const n3 = (n) => (n > 2 ? 180 : 200);   // largeur des onglets de chapitre
 const bossNames = (lv) => lv.bosses.map((b) => CONFIG.units[b.unit].name);
 
 // chapter = index du chapitre affiché ; selected = index du niveau dont la fiche est ouverte (ou null)
@@ -36,7 +37,7 @@ export function mapButtons(view, progress, selected, chapter) {
     { id: 'workshop', label: 'ATELIER', enabled: true, x: W - 30 - Math.max(180, m), y: 18, w: Math.max(180, m), h: bh, primary: true },
   ];
   // Onglets des chapitres (un chapitre s'ouvre quand on atteint son premier niveau)
-  const tw = 200, gap = 10, n = CONFIG.chapters.length;
+  const tw = n3(CONFIG.chapters.length), gap = 10, n = CONFIG.chapters.length;
   let tx = W / 2 - (n * tw + (n - 1) * gap) / 2 - 40;
   CONFIG.chapters.forEach((ch, i) => {
     btns.push({ id: 'chapter:' + i, chapter: i, label: ch.name, enabled: true,
@@ -59,7 +60,10 @@ export function mapButtons(view, progress, selected, chapter) {
 }
 
 // Petit dessin du lieu à côté de chaque étape
+// Chapitre 3 : dessins repris des lieux qui ressemblent (maison, arbre, grue, usine…)
+const LANDMARK_CH3 = [0, 7, 3, 2, 17, 1, 5, 6, 8, 19];
 function landmark(ctx, i, x, y) {
+  if (i >= 20) i = LANDMARK_CH3[i - 20];
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = 'rgba(60,40,24,0.55)';
@@ -287,6 +291,7 @@ export function drawLevelInfo(ctx, progress, index, buttons, pressed) {
   }
   for (const m of unlocksAt(lv.id)) lines.push([m, COL.good]);
   // Étoiles : victoire + objectifs
+  if (lv.rules && lv.rules.text) lines.push(['⚠ ' + lv.rules.text, '#ff8a6a']);
   for (const o of lv.objectives || []) lines.push(['★ ' + objectiveText(o), '#f2d27a']);
   const hid = progress.heroes.selected, hcfg = CONFIG.heroes.list[hid];
   if (hcfg && hcfg.unlockLevel <= progress.unlocked) lines.push(['Commandant : ' + hcfg.name + ' (niv. ' + progress.heroes.levels[hid] + ') — à changer dans Atelier › Héros', '#9fd0ff']);

@@ -54,9 +54,9 @@ Modifie un chiffre, enregistre, recharge la page : c'est pris en compte.
 | `workshop` | atelier : coûts des 10 niveaux et effet de chaque amélioration |
 | `heroes` | commandants : stats, auras, capacités, coût en étoiles de chaque niveau, délais d'arrivée et de retour |
 | `survival` | mode Survie : rythme et taille des vagues, hausse des PV/dégâts, boss, score, pièces, cartes bonus |
-| `chapters` | les 2 chapitres de la campagne (onglets de la carte) : nom, premier et dernier niveau |
+| `chapters` | les 3 chapitres de la campagne (onglets de la carte) : nom, premier et dernier niveau |
 | `ai` | comportement commun de l'ordinateur : contres, durée max d'économie, profils d'amélioration du revenu |
-| `levels` | pour chacun des 20 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
+| `levels` | pour chacun des 30 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss, sa règle spéciale éventuelle (`rules`) |
 
 **Étoiles** : 1 étoile pour la victoire + 1 par objectif rempli. Chaque niveau a deux objectifs
 dans `levels[].objectives` (types : `time` = gagner en moins de X secondes, `losses` = perdre au plus
@@ -69,7 +69,7 @@ Exemples :
 
 ### Commandants (héros)
 Dans **Atelier › Héros**, on choisit un commandant (Sergent Kane, Mécano Rosa, Doc Vasquez) et on
-l'améliore avec les **étoiles** gagnées dans la campagne (60 au maximum). En partie, il arrive seul
+l'améliore avec les **étoiles** gagnées dans la campagne (90 au maximum). En partie, il arrive seul
 après 10 s, revient 45 s après sa mort, et sa capacité se lance avec son portrait (touche **E**).
 
 ### Mode Survie
@@ -80,8 +80,11 @@ vaincu propose **3 cartes bonus** (on en choisit une pour la partie). Score, rec
 vague tenue et bonus aux paliers. Tout se règle dans la section `survival` de `config.js`.
 
 ### Difficulté et durée de vie
-- **Campagne de 20 niveaux en 2 chapitres** : *Les Terres mortes* (1 à 10) puis *Le Fléau* (11 à 20),
-  de plus en plus durs. 3 étoiles par niveau.
+- **Campagne de 30 niveaux en 3 chapitres** : *Les Terres mortes* (1 à 10), *Le Fléau* (11 à 20)
+  et *La Reconquête* (21 à 30), de plus en plus durs. 3 étoiles par niveau.
+- **Chapitre 3** : pas de nouvelles troupes, mais chaque niveau a son armée (nuées, volants,
+  cuirassés, artillerie…) et certains une règle : pas de Motards (23), pas de Blindés (26),
+  revenu −15 % (28), mutants +15 % de PV (29). Le dernier niveau enchaîne 4 boss.
 - **Atelier sur 10 niveaux** : impossible de tout maximiser en une seule campagne.
 - **Chapitre 2** : nouvelles unités **Lance-roquettes** (niveau 11, perce les blindages, ×2,5 contre
   les lourds) et **Mitrailleur lourd** (niveau 13, fauche nuées et volants). Nouveaux mutants :
@@ -108,10 +111,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=19` par `?v=20` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=20` par `?v=21` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.19 » pour `?v=19`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.20 » pour `?v=20`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 

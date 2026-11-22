@@ -447,6 +447,7 @@ export const CONFIG = {
   chapters: [
     { name: 'CHAPITRE 1', title: 'Les Terres mortes', first: 1, last: 10 },
     { name: 'CHAPITRE 2', title: 'Le Fléau', first: 11, last: 20, mapTint: 'rgba(90,20,40,0.22)' },
+    { name: 'CHAPITRE 3', title: 'La Reconquête', first: 21, last: 30, mapTint: 'rgba(60,90,130,0.22)' },
   ],
 
   // ---------- Niveaux ----------
@@ -457,6 +458,9 @@ export const CONFIG = {
   // bosses          : boss lancés quand la base ennemie descend sous un % de PV
   // aiStartScrap    : ferraille de l'IA au début de la partie
   // bosses[].unit   : abomination, matriarche ou fleau
+  // rules (facultatif) : règle spéciale du niveau
+  //   banned: ['blinde']  unités interdites · playerIncome: 0.85  revenu du joueur ×0,85
+  //   enemyHp: 1.15       PV des mutants ×1,15 · text: phrase affichée sur la fiche du niveau
   // Difficulté : niveaux 1-5 gagnables sans atelier ; à partir du 7-8 l'atelier devient
   // nécessaire, et le chapitre 2 demande de l'améliorer régulièrement.
   // Le revenu de l'IA (aiIncomeMult) est le levier principal.
@@ -583,6 +587,71 @@ export const CONFIG = {
             waves: { chance: 0.65, min: 11, max: 16 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 1200 }, { type: 'losses', max: 300 }],
       bosses: [{ unit: 'abomination', atBaseHpRatio: 0.75 }, { unit: 'matriarche', atBaseHpRatio: 0.5 }, { unit: 'fleau', atBaseHpRatio: 0.25 }] },
+    // ===== Chapitre 3 : la Reconquête (mêmes troupes, armées et règles différentes) =====
+    { id: 21, name: 'Route du Nord', enemyBaseHp: 8000, aiIncomeMult: 9.0, aiStartScrap: 1300,
+      enemyTurret: { damage: 85, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 2, epineux: 2, couveuse: 1, hurleur: 1 },
+            waves: { chance: 0.6, min: 10, max: 15 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 840 }, { type: 'losses', max: 170 }],
+      bosses: [] },
+    { id: 22, name: 'Forêt pétrifiée', enemyBaseHp: 8300, aiIncomeMult: 9.6, aiStartScrap: 1300,
+      enemyTurret: { damage: 86, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 5, chien: 3, couveuse: 4, rouilleur: 2, hurleur: 1, cracheur: 1 },
+            waves: { chance: 0.65, min: 12, max: 18 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 840 }, { type: 'losses', max: 180 }],
+      bosses: [] },
+    { id: 23, name: 'Port gelé', enemyBaseHp: 8600, aiIncomeMult: 10.2, aiStartScrap: 1350,
+      enemyTurret: { damage: 88, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { charognard: 5, cracheur: 2, goule: 2, epineux: 2, carapace: 1, brute: 1 },
+            waves: { chance: 0.6, min: 10, max: 15 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      rules: { banned: ['motard'], text: 'Verglas : pas de Motards' },
+      objectives: [{ type: 'time', max: 870 }, { type: 'losses', max: 180 }],
+      bosses: [] },
+    { id: 24, name: 'Usine d’armement', enemyBaseHp: 9000, aiIncomeMult: 10.8, aiStartScrap: 1400,
+      enemyTurret: { damage: 95, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { carapace: 4, brute: 3, rouilleur: 3, goule: 2, cracheur: 1 },
+            waves: { chance: 0.6, min: 9, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 900 }, { type: 'losses', max: 180 }],
+      bosses: [] },
+    { id: 25, name: 'Les Arènes', enemyBaseHp: 9400, aiIncomeMult: 11.2, aiStartScrap: 1400,
+      enemyTurret: { damage: 92, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 2, epineux: 1, couveuse: 1, hurleur: 1 },
+            waves: { chance: 0.6, min: 10, max: 15 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 1020 }, { type: 'losses', max: 220 }],
+      bosses: [{ unit: 'abomination', atBaseHpRatio: 0.8 }, { unit: 'abomination', atBaseHpRatio: 0.6 }, { unit: 'matriarche', atBaseHpRatio: 0.35 }] },
+    { id: 26, name: 'Tunnel effondré', enemyBaseHp: 8800, aiIncomeMult: 9.0, aiStartScrap: 1450,
+      enemyTurret: { damage: 96, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { epineux: 2, cracheur: 2, goule: 3, chien: 2, hurleur: 1, carapace: 1, brute: 1 },
+            waves: { chance: 0.6, min: 10, max: 15 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      rules: { banned: ['blinde'], text: 'Tunnel trop étroit : pas de Blindés' },
+      objectives: [{ type: 'time', max: 930 }, { type: 'losses', max: 190 }],
+      bosses: [] },
+    { id: 27, name: 'Ville fantôme', enemyBaseHp: 10000, aiIncomeMult: 13.2, aiStartScrap: 1500,
+      enemyTurret: { damage: 98, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { chien: 4, hurleur: 3, goule: 3, rouilleur: 2, charognard: 2, brute: 1 },
+            waves: { chance: 0.65, min: 12, max: 18 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 930 }, { type: 'losses', max: 200 }],
+      bosses: [] },
+    { id: 28, name: 'Raffinerie en feu', enemyBaseHp: 10400, aiIncomeMult: 12.8, aiStartScrap: 1550,
+      enemyTurret: { damage: 100, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 2, epineux: 2, couveuse: 2, hurleur: 2 },
+            waves: { chance: 0.65, min: 11, max: 16 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      rules: { playerIncome: 0.85, text: 'Dépôts en feu : ton revenu −15 %' },
+      objectives: [{ type: 'time', max: 960 }, { type: 'losses', max: 210 }],
+      bosses: [{ unit: 'matriarche', atBaseHpRatio: 0.5 }] },
+    { id: 29, name: 'Mur du Nid', enemyBaseHp: 11200, aiIncomeMult: 13.4, aiStartScrap: 1600,
+      enemyTurret: { damage: 105, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 3, rouilleur: 2, charognard: 2, carapace: 3, epineux: 2, couveuse: 2, hurleur: 2 },
+            waves: { chance: 0.65, min: 11, max: 16 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      rules: { enemyHp: 1.15, text: 'Mutants endurcis : PV +15 %' },
+      objectives: [{ type: 'time', max: 1020 }, { type: 'losses', max: 230 }],
+      bosses: [{ unit: 'abomination', atBaseHpRatio: 0.6 }, { unit: 'matriarche', atBaseHpRatio: 0.3 }] },
+    { id: 30, name: 'Le Grand Nid', enemyBaseHp: 12500, aiIncomeMult: 14.0, aiStartScrap: 1800,
+      enemyTurret: { damage: 110, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 3, epineux: 2, couveuse: 2, hurleur: 2 },
+            waves: { chance: 0.7, min: 12, max: 17 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 1500 }, { type: 'losses', max: 350 }],
+      bosses: [{ unit: 'abomination', atBaseHpRatio: 0.85 }, { unit: 'matriarche', atBaseHpRatio: 0.65 }, { unit: 'fleau', atBaseHpRatio: 0.45 }, { unit: 'fleau', atBaseHpRatio: 0.2 }] },
   ],
 
   // ---------- Performance ----------

@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=19';
+import { CONFIG } from './config.js?v=20';
 
 // Succès : défis qui rapportent des pièces détachées.
 // - les succès « de partie » sont vérifiés à la fin de chaque partie (objet `ctx`) ;
@@ -51,9 +51,11 @@ export const ACHIEVEMENTS = [
     goal: 50, total: (p) => p.totals.carapace },
   { id: 'survivor', name: 'Survivant', desc: 'Terminer le chapitre 1', reward: 100,
     check: (c) => !!c.progress.won[CONFIG.chapters[0].last] },
-  { id: 'legend', name: 'Légende du Bastion', desc: 'Vaincre le Fléau et terminer la campagne', reward: 300,
+  { id: 'plagueSlayer', name: 'Tueur de Fléau', desc: 'Terminer le chapitre 2 en vainquant le Fléau', reward: 200,
+    check: (c) => !!c.progress.won[CONFIG.chapters[1].last] },
+  { id: 'legend', name: 'Légende du Bastion', desc: 'Terminer la campagne (Le Grand Nid)', reward: 400,
     check: (c) => !!c.progress.won[lastLevelId()] },
-  { id: 'perfectionist', name: 'Perfectionniste', desc: 'Obtenir 3 étoiles sur les 20 niveaux', reward: 250,
+  { id: 'perfectionist', name: 'Perfectionniste', desc: 'Obtenir 3 étoiles sur les ' + CONFIG.levels.length + ' niveaux', reward: 300,
     check: (c) => allStars(c.progress) },
 ];
 

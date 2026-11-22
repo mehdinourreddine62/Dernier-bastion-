@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=19';
+import { CONFIG } from '../config.js?v=20';
 
 // Décor en parallaxe : ciel (fixe), ruines lointaines, ruines proches, sol avec débris,
 // et quelques débris au premier plan. Les couches lointaines et le sol sont dessinés
@@ -16,7 +16,7 @@ export function rng(seed) {
 
 // ---------- Thèmes des 10 niveaux ----------
 // features : éléments du plan moyen (alternés avec des immeubles en ruine)
-// air : particules d'ambiance ('dust' poussière, 'ash' cendres, 'spores', 'embers' braises)
+// air : particules d'ambiance ('dust' poussière, 'ash' cendres, 'spores', 'embers' braises, 'snow' neige)
 const THEMES = {
   1: { // Banlieue morte
     sky: ['#9c5428', '#d98a48', '#f2c98c'], sun: [930, 150, 44], glow: '255,228,170',
@@ -141,6 +141,70 @@ Object.assign(THEMES, {
     far: '#3a1428', mid: '#1c0812', midLight: '#30101e', fog: '150,40,70',
     ground: ['#4a1c24', '#321218', '#16080a'], road: false, organic: true,
     features: ['spire', 'pod', 'spire', 'spire', 'pod', 'skyscraper'], farH: [120, 260], midH: [110, 240], air: 'spores',
+  },
+});
+
+// ---------- Chapitre 3 : la Reconquête ----------
+Object.assign(THEMES, {
+  21: { // Route du Nord (neige)
+    sky: ['#56636e', '#97a4ae', '#d6dade'], sun: [900, 150, 40], glow: '240,245,255',
+    far: '#8a96a0', mid: '#4e5860', midLight: '#6c7680', fog: '220,228,235',
+    ground: ['#cfd3d6', '#a2a8ae', '#545a62'], road: true,
+    features: ['house', 'pylon', 'deadTree', 'house', 'waterTower'], farH: [70, 170], midH: [70, 150], air: 'snow',
+  },
+  22: { // Forêt pétrifiée
+    sky: ['#3e4a40', '#7a8670', '#c4c6a4'], sun: [760, 170, 44], glow: '230,240,200',
+    far: '#6a7462', mid: '#363e32', midLight: '#4a5444', fog: '180,190,160',
+    ground: ['#6a6a52', '#4c4c3a', '#24241a'], road: false,
+    features: ['deadTree', 'deadTree', 'pod', 'deadTree', 'shack'], farH: [60, 140], midH: [60, 130], air: 'spores',
+  },
+  23: { // Port gelé (neige)
+    sky: ['#4a5868', '#8a9aa8', '#cfd6dc'], sun: [1050, 160, 38], glow: '235,242,255',
+    far: '#7e8c98', mid: '#44505a', midLight: '#5e6a76', fog: '215,225,235',
+    ground: ['#c4cad0', '#969ea6', '#4c525a'], road: false,
+    features: ['crane', 'containers', 'ship', 'crane', 'containers'], farH: [60, 140], midH: [70, 140], air: 'snow',
+  },
+  24: { // Usine d'armement
+    sky: ['#3a2a22', '#7a4a32', '#c8865a'], sun: [700, 200, 46], glow: '255,190,130',
+    far: '#6a4a3a', mid: '#34261e', midLight: '#4a382c', fog: '200,140,100',
+    ground: ['#6a5442', '#4a3a2e', '#221a14'], road: true,
+    features: ['chimney', 'hangar', 'tank', 'chimney', 'hangar'], farH: [90, 190], midH: [80, 160], air: 'ash',
+  },
+  25: { // Les Arènes
+    sky: ['#4a2c3a', '#a0566a', '#f0a888'], sun: [640, 210, 64], glow: '255,190,160',
+    far: '#8a5a68', mid: '#44283a', midLight: '#5e3a4e', fog: '230,150,140',
+    ground: ['#8a6a52', '#644a3a', '#30221c'], road: false,
+    features: ['dome', 'skyscraper', 'billboard', 'dome', 'pylon'], farH: [120, 240], midH: [90, 190], air: 'dust',
+  },
+  26: { // Tunnel effondré
+    sky: ['#1e1a18', '#3e342c', '#6e5a46'], sun: [640, 120, 18], glow: '200,170,120',
+    far: '#3e342c', mid: '#221c18', midLight: '#342a24', fog: '120,100,80',
+    ground: ['#4e4234', '#362e24', '#181410'], road: true,
+    features: ['overpass', 'wall', 'overpass', 'pylon'], farH: [160, 260], midH: [120, 220], air: 'dust',
+  },
+  27: { // Ville fantôme
+    sky: ['#0c1424', '#22304a', '#4a5a74'], sun: [1000, 110, 28], glow: '200,215,255',
+    far: '#26324a', mid: '#141c2c', midLight: '#22304a', fog: '90,110,150',
+    ground: ['#3a3a44', '#2a2a32', '#121216'], road: true,
+    features: ['skyscraper', 'skyscraper', 'billboard', 'skyscraper', 'watchTower'], farH: [160, 320], midH: [150, 300], air: 'ash',
+  },
+  28: { // Raffinerie en feu
+    sky: ['#1a0a06', '#6a200e', '#e0602a'], sun: [800, 240, 70], glow: '255,140,60',
+    far: '#5a2614', mid: '#2a120a', midLight: '#401c10', fog: '230,110,50',
+    ground: ['#5a3a28', '#3e281a', '#1c120c'], road: false,
+    features: ['flare', 'tank', 'flare', 'chimney', 'flare', 'tank'], farH: [80, 170], midH: [80, 160], air: 'embers',
+  },
+  29: { // Mur du Nid
+    sky: ['#24101a', '#5a2232', '#a04a4a'], sun: [960, 160, 50], glow: '255,140,130',
+    far: '#4a2430', mid: '#24121a', midLight: '#381c26', fog: '170,80,90',
+    ground: ['#5a3634', '#3e2424', '#1c1010'], road: false, organic: true,
+    features: ['wall', 'spire', 'watchTower', 'wall', 'spire'], farH: [120, 240], midH: [90, 190], air: 'spores',
+  },
+  30: { // Le Grand Nid
+    sky: ['#0a0408', '#300a1e', '#781c34'], sun: [640, 140, 90], glow: '255,70,100',
+    far: '#30101e', mid: '#16060e', midLight: '#280c18', fog: '140,30,60',
+    ground: ['#401820', '#2a1016', '#120608'], road: false, organic: true,
+    features: ['spire', 'pod', 'spire', 'pod', 'spire', 'pod'], farH: [140, 280], midH: [120, 260], air: 'spores',
   },
 });
 
@@ -797,6 +861,10 @@ export class Backdrop {
         x = ((p.a * V * 2 + Math.sin(time * 0.5 + p.b * 6) * 20 - camX * 0.5) % (V + 40) + V + 40) % (V + 40) - 20;
         y = 580 - ((p.b * 560 + time * (10 + p.c * 10)) % 560);
         size = 2 + p.c * 2; color = `rgba(170,240,90,${0.35 + 0.3 * Math.sin(time * 3 + p.a * 10)})`;
+      } else if (kind === 'snow') {
+        x = ((p.a * V * 2 + Math.sin(time * 0.8 + p.b * 6) * 24 + time * 12 - camX * 0.5) % (V + 40) + V + 40) % (V + 40) - 20;
+        y = ((p.b * 600 + time * (30 + p.c * 25)) % 580) + 10;
+        size = 2 + p.c * 2.5; color = 'rgba(255,255,255,0.75)';
       } else if (kind === 'embers') {
         x = ((p.a * V * 2 + Math.sin(time + p.b * 6) * 14 - camX * 0.5) % (V + 40) + V + 40) % (V + 40) - 20;
         y = 580 - ((p.b * 560 + time * (24 + p.c * 20)) % 560);

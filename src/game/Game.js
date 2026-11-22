@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=19';
-import { Unit, bonusMultiplier } from './Unit.js?v=19';
-import { Base } from './Base.js?v=19';
-import { ProjectilePool } from './Projectile.js?v=19';
-import { Particles } from './Particles.js?v=19';
-import { Spells } from './Spell.js?v=19';
-import { AI } from './AI.js?v=19';
-import { levelFor } from '../progress.js?v=19';
-import { Survival, survivalLevel } from './Survival.js?v=19';
+import { CONFIG } from '../config.js?v=20';
+import { Unit, bonusMultiplier } from './Unit.js?v=20';
+import { Base } from './Base.js?v=20';
+import { ProjectilePool } from './Projectile.js?v=20';
+import { Particles } from './Particles.js?v=20';
+import { Spells } from './Spell.js?v=20';
+import { AI } from './AI.js?v=20';
+import { levelFor } from '../progress.js?v=20';
+import { Survival, survivalLevel } from './Survival.js?v=20';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -46,6 +46,9 @@ export class Game {
       enemy: this._makeSide(this.level.aiIncomeMult),
     };
     if (this.level.aiStartScrap !== undefined) this.sides.enemy.scrap = this.level.aiStartScrap;
+    // Règle spéciale du niveau (chapitre 3) : unités interdites, revenu réduit, mutants endurcis
+    this.rules = this.level.rules || {};
+    if (this.rules.playerIncome) this.sides.player.incomeMult = this.rules.playerIncome;
     if (opts.mods) Object.assign(this.sides.player.mods, opts.mods);
     // Commandant (héros) : { id, level } ; ses bonus de niveau passent par les mods d'unité
     this.hero = null;
@@ -134,6 +137,7 @@ export class Game {
   isUnlocked(side, defId) {
     const def = CONFIG.units[defId];
     if (!def || def.side !== side) return false;
+    if (side === 'player' && this.rules.banned && this.rules.banned.includes(defId)) return false;
     return side === 'enemy' || def.unlockLevel <= this.unlockId;
   }
 
@@ -180,6 +184,7 @@ export class Game {
     const base = this.bases[side];
     if (x === null) x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
+    if (side === 'enemy' && this.rules.enemyHp) { u.maxHp *= this.rules.enemyHp; u.hp = u.maxHp; }
     this.units.push(u);
     const def = CONFIG.units[defId];
     if (side === 'player' && !def.hero && !def.lifetime) { this.stats.recruited++; inc(this.stats.recruitedBy, defId); }
