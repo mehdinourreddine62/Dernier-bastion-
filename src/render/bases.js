@@ -66,11 +66,25 @@ export function drawFort(c, time, b) {
     for (let k = 5; k < 26; k += 6) { c.beginPath(); c.moveTo(x + k, 0); c.lineTo(x + k + tilt, -h + 3); c.stroke(); }
     c.fillStyle = 'rgba(150,70,30,0.45)'; c.fillRect(x + 4, -h * 0.5, 10, 14);
   });
-  // barbelés
-  c.strokeStyle = '#2a2420'; c.lineWidth = 1.2;
-  c.beginPath(); c.moveTo(-104, -128);
-  for (let x = -100; x < 66; x += 8) c.lineTo(x, -128 + ((x / 8) % 2 ? -6 : 4));
-  c.stroke();
+  const wt = b.wallTier || 0, tt = b.turretTier || 0;   // paliers d'atelier (0 à 3)
+  // Murailles palier 1 : plaques d'acier rivetées sur la palissade
+  if (wt >= 1) {
+    for (const [x, y, w, h] of [[-100, -110, 24, 40], [-52, -104, 26, 46], [-4, -112, 24, 50], [38, -100, 24, 42]]) {
+      rect(c, x, y, w, h, '#7d848a');
+      c.fillStyle = '#c0c4c8';
+      for (const [rx, ry] of [[3, 3], [w - 5, 3], [3, h - 5], [w - 5, h - 5]]) c.fillRect(x + rx, y + ry, 2, 2);
+    }
+  }
+  if (wt >= 2) {
+    // palier 2 : pointes d'acier au sommet au lieu des barbelés
+    for (let x = -102; x < 64; x += 11) poly(c, [x, -122, x + 4, -140, x + 8, -122], '#9aa0a6');
+  } else {
+    // barbelés
+    c.strokeStyle = '#2a2420'; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(-104, -128);
+    for (let x = -100; x < 66; x += 8) c.lineTo(x, -128 + ((x / 8) % 2 ? -6 : 4));
+    c.stroke();
+  }
 
   // Tour de guet
   rect(c, -54, -158, 7, 158, '#4a3a2c'); rect(c, -20, -158, 7, 158, '#4a3a2c');
@@ -89,8 +103,16 @@ export function drawFort(c, time, b) {
   c.translate(-14, -182);
   c.rotate(b.turretAngle);
   rect(c, -10, -6, 14, 12, '#3a3a3e');
-  rect(c, 2, -3, 26, 6, '#2b2b2e');
-  rect(c, 26, -2.5, 6, 5, '#1a1a1c');
+  if (tt >= 2) {
+    // palier 2 : double canon
+    rect(c, 2, -6, 28, 4.5, '#2b2b2e'); rect(c, 2, 1.5, 28, 4.5, '#2b2b2e');
+    rect(c, 28, -6.5, 6, 5.5, '#1a1a1c'); rect(c, 28, 1, 6, 5.5, '#1a1a1c');
+  } else {
+    rect(c, 2, -3, 26, 6, '#2b2b2e');
+    rect(c, 26, -2.5, 6, 5, '#1a1a1c');
+  }
+  // palier 1 : bouclier blindé
+  if (tt >= 1) { rect(c, 4, -13, 5, 26, '#5e6a70'); c.fillStyle = '#f2c230'; c.fillRect(4, -2, 5, 4); }
   if (b.turretFlash > 0) {
     c.globalCompositeOperation = 'lighter';
     const g = c.createRadialGradient(36, 0, 1, 36, 0, 26);
@@ -136,9 +158,14 @@ export function drawFort(c, time, b) {
   for (const [rx, ry] of [[70, -72], [88, -72], [70, -40], [88, -40]]) c.fillRect(rx, ry, 2, 2);
   poly(c, [60, -84, 64, -98, 68, -84], '#6a6058'); poly(c, [92, -84, 96, -98, 100, -84], '#6a6058');
 
-  // Sacs de sable et pneus devant
+  // Sacs de sable et pneus devant (une rangée de plus au palier 1 des murailles)
   for (let i = 0; i < 4; i++) ell(c, 20 + i * 12, -8, 9, 7, '#a8946a');
   for (let i = 0; i < 3; i++) ell(c, 26 + i * 12, -19, 9, 7, '#b4a078');
+  if (wt >= 1) for (let i = 0; i < 2; i++) ell(c, 32 + i * 12, -30, 9, 7, '#a8946a');
+  // Murailles palier 3 : blocs de béton anti-chars devant la porte
+  if (wt >= 3) {
+    for (const x of [104, 140]) { poly(c, [x - 14, 0, x - 10, -12, x - 6, -26, x + 6, -26, x + 10, -12, x + 14, 0], '#8a8478'); c.fillStyle = '#b0402a'; c.fillRect(x - 6, -22, 12, 4); }
+  }
   ell(c, -112, -10, 12, 10, '#1e1a18'); ell(c, -112, -10, 5, 4, '#3a3330', false);
   // Baril qui brûle
   rect(c, 38, -60, 16, 24, '#8a3a22');
@@ -146,6 +173,29 @@ export function drawFort(c, time, b) {
   // Herses anti-chars devant la façade
   for (const hx of [112, 130]) {
     line(c, hx - 8, 0, hx + 8, -16, 3, '#3a3632'); line(c, hx + 8, 0, hx - 8, -16, 3, '#3a3632');
+  }
+
+  // Tourelle palier 3 : projecteur qui balaie le champ de bataille
+  if (tt >= 3) {
+    const a = Math.sin(time * 0.8) * 0.25 - 0.15;
+    c.save();
+    c.translate(-46, -200);
+    c.rotate(a);
+    c.globalCompositeOperation = 'lighter';
+    const g = c.createLinearGradient(0, 0, 260, 0);
+    g.addColorStop(0, 'rgba(255,245,200,0.35)'); g.addColorStop(1, 'rgba(255,245,200,0)');
+    c.fillStyle = g;
+    c.beginPath(); c.moveTo(6, -4); c.lineTo(260, -40); c.lineTo(260, 40); c.lineTo(6, 4); c.fill();
+    c.globalCompositeOperation = 'source-over';
+    rect(c, -6, -6, 14, 12, '#4a4a50');
+    ell(c, 8, 0, 3, 5, '#fff6d0', false);
+    c.restore();
+  }
+  // Murailles palier 2 : bandes de danger sur le bus et caisses de munitions
+  if (wt >= 2) {
+    c.fillStyle = '#f2c230';
+    for (let i = 0; i < 6; i++) c.fillRect(-100 + i * 20, -86, 10, 4);
+    rect(c, -26, -16, 18, 14, '#5a6a3a'); rect(c, -24, -28, 14, 12, '#5a6a3a');
   }
 
   // Dégâts

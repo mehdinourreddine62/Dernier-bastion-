@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=12';
+import { CONFIG } from './config.js?v=13';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
@@ -182,6 +182,7 @@ export function playerMods(p) {
   }
   return {
     units,
+    wallLevel: u.walls, turretLevel: u.turret,   // pour l'apparence du fort
     wallHp: w.wallHpBonus * u.walls,
     turretDamage: 1 + w.turretDamageBonus * u.turret,
     turretRange: 1 + w.turretRangeBonus * u.turret,

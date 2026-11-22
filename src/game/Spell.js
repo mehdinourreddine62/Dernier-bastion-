@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=12';
+import { CONFIG } from '../config.js?v=13';
 
 // Sorts du joueur : Frappe de mortier et Kit de soins.
 export class Spells {
@@ -28,6 +28,7 @@ export class Spells {
     if (!this.isReady(id)) return false;
     const cfg = CONFIG.spells[id];
     this.cooldowns[id] = this.cooldownOf(id);
+    this.game.stats.spells[id] = (this.game.stats.spells[id] || 0) + 1;
     if (id === 'mortar') {
       for (let i = 0; i < cfg.shells; i++) {
         const s = this.shells.find((o) => !o.active);
@@ -62,6 +63,7 @@ export class Spells {
       s.t += dt / cfg.fallTime;
       if (s.t >= 1) {
         s.active = false;
+        this.game.src = 'mortar';
         this.game.explode('player', s.x, cfg.shellBlastRadius, cfg.damagePerShell, null, cfg.hitsBases, 'big');
         this.game.addDecal('crater', s.x, cfg.shellBlastRadius * 0.8, cfg.craterTime);
       }

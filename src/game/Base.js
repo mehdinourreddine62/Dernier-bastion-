@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=12';
-import { Entity } from './Entity.js?v=12';
+import { CONFIG } from '../config.js?v=13';
+import { Entity } from './Entity.js?v=13';
 
 // Une base (fort des Survivants ou nid des Mutants), avec sa tourelle automatique :
 // mitrailleuse pour le fort, tentacule cracheur pour le nid.
@@ -15,6 +15,10 @@ export class Base extends Entity {
     // Côté tourné vers le champ de bataille : c'est là qu'on frappe la base
     this.faceX = this.x + this.dir * this.width / 2;
     this.shake = 0;         // secousse (s)
+    // Apparence du fort selon l'atelier : palier 1 dès le niveau 3, 2 dès le 6, 3 dès le 9
+    const tier = (l) => (l >= 9 ? 3 : l >= 6 ? 2 : l >= 3 ? 1 : 0);
+    this.wallTier = side === 'player' ? tier(mods.wallLevel || 0) : 0;
+    this.turretTier = side === 'player' ? tier(mods.turretLevel || 0) : 0;
     this.smokeTimer = 0;
 
     // Tourelle
@@ -93,7 +97,7 @@ export class Base extends Entity {
       side: this.side,
       x: this.pivot.x + Math.cos(this.turretAngle) * 24,
       y: this.pivot.y + Math.sin(this.turretAngle) * 24,
-      target, damage: t.damage, attackerDef: null, cfg: t.projectile, splash: 0,
+      target, damage: t.damage, attackerDef: null, cfg: t.projectile, splash: 0, source: 'turret',
     });
   }
 }

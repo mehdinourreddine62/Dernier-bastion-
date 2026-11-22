@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=12';
-import { Entity } from './Entity.js?v=12';
+import { CONFIG } from '../config.js?v=13';
+import { Entity } from './Entity.js?v=13';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -148,6 +148,7 @@ export class Unit extends Entity {
     const atk = def.attack;
     this.cd = def.attackInterval;
     this.attackAnim = 1;
+    game.src = this.defId;   // les dégâts qui suivent sont attribués à ce type d'unité
     if (atk.kind !== 'flame') game.emit('attack', this.x, { id: this.defId });
 
     switch (atk.kind) {
@@ -157,7 +158,7 @@ export class Unit extends Entity {
           side: this.side,
           x: this.x + this.dir * def.bodyWidth * 0.55,
           y: this.y - this.alt - def.bodyHeight * 0.62,
-          target, damage: this.damage, attackerDef: def,
+          target, damage: this.damage, attackerDef: def, source: this.defId,
           cfg: atk.projectile, splash: atk.splashRadius || 0,
         });
         break;

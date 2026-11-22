@@ -1,6 +1,9 @@
-import { CONFIG } from '../config.js?v=12';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=12';
-import { objectiveText } from '../progress.js?v=12';
+import { CONFIG } from '../config.js?v=13';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=13';
+import { objectiveText } from '../progress.js?v=13';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=13';
+import { ACHIEVEMENTS } from '../achievements.js?v=13';
+import { roundRectPath } from './widgets.js?v=13';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -54,9 +57,14 @@ const drawAll = (ctx, buttons, pressed, size = 28) => {
 // ---------- Titre ----------
 export function titleButtons(view, canInstall) {
   const btns = column(view, [['play', 'JOUER', true], ['workshop', 'ATELIER'], ['options', 'OPTIONS']], 300);
+  const m = minSize(view);
+  // Bouton « Succès » en bas à gauche
+  {
+    const w = Math.max(190, m), h = Math.max(54, m);
+    btns.push({ id: 'achievements', label: '🏆 SUCCÈS', small: true, enabled: true, x: 20, y: H - h - 20, w, h });
+  }
   // Bouton « Installer » discret en bas à droite (absent si le jeu est déjà installé)
   if (canInstall) {
-    const m = minSize(view);
     const w = Math.max(190, m), h = Math.max(54, m);
     btns.push({ id: 'install', label: '⬇ INSTALLER', small: true, enabled: true, x: W - w - 20, y: H - h - 20, w, h });
   }
@@ -133,9 +141,9 @@ export function endButtons(view, game) {
   const won = game.result === 'won';
   const hasNext = won && game.levelIndex + 1 < CONFIG.levels.length;
   const ids = won
-    ? [...(hasNext ? [['next', 'NIVEAU SUIVANT', true]] : []), ['restart', 'REJOUER', !hasNext], ['map', 'CARTE']]
-    : [['restart', 'RÉESSAYER', true], ['workshop', 'ATELIER'], ['map', 'CARTE']];
-  return row(view, ids, 560);
+    ? [...(hasNext ? [['next', 'NIVEAU SUIVANT', true]] : []), ['restart', 'REJOUER', !hasNext], ['stats', 'BILAN'], ['map', 'CARTE']]
+    : [['restart', 'RÉESSAYER', true], ['stats', 'BILAN'], ['workshop', 'ATELIER'], ['map', 'CARTE']];
+  return row(view, ids, 560, ids.length > 3 ? 168 : 210);
 }
 
 // reward = résultat de recordResult (pièces gagnées, messages de déblocage)
@@ -175,7 +183,17 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
     text(ctx, m, W / 2, y, 21, COL.good, 'center', 'middle');
     y += 32;
   }
-  drawAll(ctx, buttons, pressed, 22);
+  // Succès débloqués pendant cette partie
+  const ach = (reward && reward.achievements) || [];
+  if (ach.length) {
+    const gain = ach.reduce((n, a) => n + a.reward, 0);
+    const line = '🏆 Succès : ' + ach.map((a) => a.name).join(', ') + ' (+' + gain + ' pièces)';
+    let size = 21;
+    ctx.font = `bold ${size}px ${FONT}`;
+    while (size > 12 && ctx.measureText(line).width > 700) { size--; ctx.font = `bold ${size}px ${FONT}`; }
+    text(ctx, line, W / 2, Math.min(y, 540), size, COL.yellow, 'center', 'middle');
+  }
+  drawAll(ctx, buttons, pressed, buttons.length > 3 ? 18 : 22);
 }
 
 // ---------- Confirmation ----------
@@ -189,4 +207,123 @@ export function drawConfirm(ctx, msg, buttons, pressed) {
   drawPanel(ctx, W / 2 - 330, 200, 660, b.y + b.h + 30 - 200, 16);
   msg.split('\n').forEach((l, i) => text(ctx, l, W / 2, 262 + i * 34, 24, COL.text, 'center', 'middle'));
   drawAll(ctx, buttons, pressed);
+}
+
+// ---------- Bilan de la partie ----------
+const SOURCE_NAME = { turret: 'Tourelle', mortar: 'Mortier' };
+
+export function statsButtons(view) {
+  const h = Math.max(60, minSize(view));
+  return [{ id: 'closeStats', label: 'RETOUR', primary: true, enabled: true, x: W / 2 - 120, y: H - h - 24, w: 240, h }];
+}
+
+export function drawStats(ctx, game, buttons, pressed) {
+  dim(ctx, 0.75);
+  drawPanel(ctx, 30, 24, W - 60, H - 48, 16);
+  const st = game.stats;
+  text(ctx, 'BILAN — Niveau ' + game.level.id + ' · ' + game.level.name, W / 2, 62, 30, COL.yellow, 'center', 'middle');
+
+  // Colonne de gauche : totaux
+  const t = Math.round(game.time);
+  const lines = [
+    ['Durée', Math.floor(t / 60) + ' min ' + String(t % 60).padStart(2, '0')],
+    ['Ferraille gagnée', Math.round(st.scrapEarned)],
+    ['Unités recrutées', st.recruited],
+    ['Unités perdues', st.lost],
+    ['Mutants tués', st.killed],
+    ['Armée max.', st.maxPop],
+    ['Dégâts subis par la base', Math.round(st.baseDamage)],
+    ['Mortiers / soins lancés', (st.spells.mortar || 0) + ' / ' + (st.spells.heal || 0)],
+  ];
+  lines.forEach(([k, v], i) => {
+    const y = 128 + i * 52;
+    roundRectPath(ctx, 56, y - 20, 380, 42, 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fill();
+    text(ctx, k, 70, y + 1, 18, COL.dim, 'left', 'middle');
+    text(ctx, String(v), 422, y + 1, 22, COL.text, 'right', 'middle');
+  });
+
+  // Tableau par source de dégâts
+  const sources = [...CONFIG.roster.player, 'turret', 'mortar']
+    .filter((id) => st.damage[id] || st.recruitedBy[id] || st.kills[id]);
+  const maxDmg = Math.max(1, ...sources.map((id) => st.damage[id] || 0));
+  let mvp = null;
+  for (const id of sources) if (!mvp || (st.damage[id] || 0) > (st.damage[mvp] || 0)) mvp = id;
+  const x0 = 470;
+  text(ctx, 'recrutées', x0 + 300, 104, 14, COL.dim, 'center', 'middle');
+  text(ctx, 'perdues', x0 + 380, 104, 14, COL.dim, 'center', 'middle');
+  text(ctx, 'tués', x0 + 450, 104, 14, COL.dim, 'center', 'middle');
+  text(ctx, 'dégâts infligés', x0 + 610, 104, 14, COL.dim, 'center', 'middle');
+  const rowH = Math.min(60, 470 / Math.max(1, sources.length));
+  sources.forEach((id, i) => {
+    const y = 140 + i * rowH;
+    roundRectPath(ctx, x0 - 10, y - rowH / 2 + 4, 750, rowH - 8, 8);
+    ctx.fillStyle = id === mvp ? 'rgba(242,194,48,0.18)' : 'rgba(0,0,0,0.25)'; ctx.fill();
+    if (CONFIG.units[id]) drawIcon(ctx, id, x0 + 22, y, rowH - 14);
+    else drawSpellIcon(ctx, id === 'mortar' ? 'mortar' : 'turret', x0 + 22, y, rowH - 18);
+    const name = CONFIG.units[id] ? CONFIG.units[id].name : SOURCE_NAME[id];
+    text(ctx, name + (id === mvp ? '  ★ MVP' : ''), x0 + 52, y + 1, 18, id === mvp ? COL.yellow : COL.text, 'left', 'middle');
+    text(ctx, CONFIG.units[id] ? String(st.recruitedBy[id] || 0) : '—', x0 + 300, y + 1, 19, COL.text, 'center', 'middle');
+    text(ctx, CONFIG.units[id] ? String(st.lostBy[id] || 0) : '—', x0 + 380, y + 1, 19, COL.text, 'center', 'middle');
+    text(ctx, String(st.kills[id] || 0), x0 + 450, y + 1, 19, COL.text, 'center', 'middle');
+    const dmg = st.damage[id] || 0;
+    const bw = 165 * dmg / maxDmg;
+    ctx.fillStyle = id === mvp ? COL.yellow : '#c0693a';
+    ctx.fillRect(x0 + 500, y - 7, Math.max(2, bw), 14);
+    text(ctx, String(Math.round(dmg)), x0 + 735, y + 1, 16, COL.text, 'right', 'middle');
+  });
+  if (!sources.length) text(ctx, 'Aucune donnée pour cette partie.', x0 + 360, 200, 20, COL.dim, 'center', 'middle');
+  drawAll(ctx, buttons, pressed, 24);
+}
+
+// ---------- Succès ----------
+const PER_PAGE = 10;
+export const achievementPages = () => Math.ceil(ACHIEVEMENTS.length / PER_PAGE);
+
+export function achievementsButtons(view, page) {
+  const m = minSize(view);
+  const h = Math.max(56, m);
+  return [
+    { id: 'back', label: '◀ RETOUR', enabled: true, x: 24, y: 16, w: Math.max(170, m), h },
+    { id: 'achPrev', label: '◀', enabled: page > 0, x: W - 24 - 2 * Math.max(70, m) - 10, y: 16, w: Math.max(70, m), h },
+    { id: 'achNext', label: '▶', enabled: page < achievementPages() - 1, x: W - 24 - Math.max(70, m), y: 16, w: Math.max(70, m), h },
+  ];
+}
+
+function trophy(ctx, x, y, s, gold) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s / 40, s / 40);
+  ctx.fillStyle = gold ? '#f2c230' : '#5a5450';
+  ctx.strokeStyle = '#1d130c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-14, -16); ctx.lineTo(14, -16); ctx.quadraticCurveTo(13, 4, 0, 6); ctx.quadraticCurveTo(-13, 4, -14, -16); ctx.fill(); ctx.stroke();
+  ctx.fillRect(-3, 6, 6, 7); ctx.fillRect(-10, 13, 20, 5); ctx.strokeRect(-10, 13, 20, 5);
+  ctx.lineWidth = 3; ctx.strokeStyle = gold ? '#f2c230' : '#5a5450';
+  ctx.beginPath(); ctx.arc(-14, -9, 6, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke();
+  ctx.beginPath(); ctx.arc(14, -9, 6, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+  ctx.restore();
+}
+
+export function drawAchievements(ctx, progress, page, buttons, pressed) {
+  dim(ctx, 0.75);
+  const done = ACHIEVEMENTS.filter((a) => progress.achievements[a.id]).length;
+  text(ctx, 'SUCCÈS', W / 2, 40, 34, COL.text, 'center', 'middle');
+  text(ctx, done + ' / ' + ACHIEVEMENTS.length + ' débloqués · page ' + (page + 1) + '/' + achievementPages(), W / 2, 76, 18, COL.yellow, 'center', 'middle');
+  const list = ACHIEVEMENTS.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const cw = (W - 48 - 16) / 2, ch = (H - 110 - 4 * 10) / 5;
+  list.forEach((a, i) => {
+    const x = 24 + (i % 2) * (cw + 16), y = 100 + Math.floor(i / 2) * (ch + 10);
+    const ok = !!progress.achievements[a.id];
+    drawPanel(ctx, x, y, cw, ch, 10);
+    if (!ok) { roundRectPath(ctx, x, y, cw, ch, 10); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill(); }
+    trophy(ctx, x + 44, y + ch / 2 + 2, 44, ok);
+    text(ctx, a.name, x + 84, y + 32, 21, ok ? COL.yellow : COL.text, 'left', 'middle');
+    text(ctx, a.desc, x + 84, y + 60, 16, COL.dim, 'left', 'middle');
+    text(ctx, ok ? '✓ +' + a.reward : '+' + a.reward + ' pièces', x + cw - 16, y + 32, 18, ok ? COL.good : COL.yellow, 'right', 'middle');
+    if (a.goal && !ok) {
+      const v = Math.min(a.goal, a.total(progress));
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(x + 84, y + ch - 20, cw - 200, 8);
+      ctx.fillStyle = COL.good; ctx.fillRect(x + 84, y + ch - 20, (cw - 200) * v / a.goal, 8);
+      text(ctx, v + ' / ' + a.goal, x + cw - 16, y + ch - 16, 15, COL.text, 'right', 'middle');
+    }
+  });
+  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
 }

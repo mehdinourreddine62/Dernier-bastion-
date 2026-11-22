@@ -1,14 +1,15 @@
-import { CONFIG } from '../config.js?v=12';
-import { Unit, bonusMultiplier } from './Unit.js?v=12';
-import { Base } from './Base.js?v=12';
-import { ProjectilePool } from './Projectile.js?v=12';
-import { Particles } from './Particles.js?v=12';
-import { Spells } from './Spell.js?v=12';
-import { AI } from './AI.js?v=12';
-import { effectiveLevel } from '../progress.js?v=12';
+import { CONFIG } from '../config.js?v=13';
+import { Unit, bonusMultiplier } from './Unit.js?v=13';
+import { Base } from './Base.js?v=13';
+import { ProjectilePool } from './Projectile.js?v=13';
+import { Particles } from './Particles.js?v=13';
+import { Spells } from './Spell.js?v=13';
+import { AI } from './AI.js?v=13';
+import { effectiveLevel } from '../progress.js?v=13';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
+const inc = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
 const MAX_EVENTS = 120;
 
 // État d'une partie : bases, unités, ressources, file de recrutement, sorts, IA.
@@ -29,7 +30,15 @@ export class Game {
     this.resultTime = 0;      // temps écoulé depuis la fin de partie
     this.banner = null;       // annonce à l'écran { text, time }
     this.events = [];         // événements de l'image (sons, secousses)
-    this.stats = { lost: 0, killed: 0, recruited: 0 };   // pour les objectifs et le bilan
+    // Statistiques (objectifs d'étoiles, bilan de fin, succès)
+    this.stats = {
+      lost: 0, killed: 0, recruited: 0,        // totaux
+      recruitedBy: {}, lostBy: {},             // par type d'unité du joueur
+      damage: {}, kills: {},                   // dégâts / ennemis tués par source (unité, 'turret', 'mortar')
+      killedEnemy: {},                         // mutants tués, par type
+      scrapEarned: 0, baseDamage: 0, maxPop: 0, spells: {},
+    };
+    this.src = null;   // source des dégâts en cours (pour attribuer les statistiques)
 
     this.sides = {
       player: this._makeSide(1),
@@ -153,7 +162,7 @@ export class Game {
     const x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
     this.units.push(u);
-    if (side === 'player') this.stats.recruited++;
+    if (side === 'player') { this.stats.recruited++; inc(this.stats.recruitedBy, defId); }
     this.fx.dust(x, u.y, 4);
     this.emit('spawn', x, { side, id: defId });
     return u;
@@ -164,7 +173,12 @@ export class Game {
   // Applique des dégâts, gère effets, mort et prime en ferraille.
   dealDamage(attackerSide, target, damage, bonus, quiet = false) {
     if (!target.alive || damage <= 0) return;
+    const before = target.hp;
     target.takeDamage(damage);
+    const dealt = before - target.hp;
+    const st = this.stats;
+    if (attackerSide === 'player') inc(st.damage, this.src || 'autre', dealt);
+    else if (target.isBase) st.baseDamage += dealt;
     const tx = target.isBase ? target.faceX : target.x;
     if (!quiet) {
       this.fx.text(tx, target.aimY - 30, String(Math.round(damage)),
@@ -175,9 +189,11 @@ export class Game {
 
     if (!target.alive && !target.isBase) {
       target.die();
-      if (target.side === 'player') this.stats.lost++; else this.stats.killed++;
+      if (target.side === 'player') { st.lost++; inc(st.lostBy, target.defId); }
+      else { st.killed++; inc(st.killedEnemy, target.defId); inc(st.kills, this.src || 'autre'); }
       const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio);
       this.sides[attackerSide].scrap += bounty;
+      if (attackerSide === 'player') st.scrapEarned += bounty;
       this.emit('death', target.x, { id: target.defId });
       if (target.defId === 'blinde') {
         this.fx.explosion(target.x, target.y - 30, 60);
@@ -224,6 +240,7 @@ export class Game {
 
   // Lance-flammes : touche tous les ennemis devant lui jusqu'à sa portée
   flameAttack(unit) {
+    this.src = unit.defId;
     const def = unit.def;
     const tol = CONFIG.combat.targetBehindTolerance;
     for (const e of this.units) {
@@ -308,6 +325,7 @@ export class Game {
     for (const side of SIDES) {
       const s = this.sides[side];
       s.scrap += this.income(side) * dt;
+      if (side === 'player') this.stats.scrapEarned += this.income(side) * dt;
       for (const id in s.cooldowns) {
         if (s.cooldowns[id] > 0) s.cooldowns[id] = Math.max(0, s.cooldowns[id] - dt);
       }
@@ -325,6 +343,7 @@ export class Game {
     this.bases.enemy.update(dt, this);
     this.fx.update(dt);
     this._checkBosses();
+    this.stats.maxPop = Math.max(this.stats.maxPop, this.byX.player.length);
 
     // Retire les dépouilles anciennes
     const corpse = CONFIG.combat.corpseTime;

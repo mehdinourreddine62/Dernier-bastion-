@@ -8,7 +8,7 @@ const CACHE = 'dernier-bastion-' + VERSION;
 
 // Fichiers du jeu (les modules sont demandés avec ?v=VERSION)
 const FILES = [
-  'src/main.js', 'src/config.js', 'src/save.js', 'src/progress.js',
+  'src/main.js', 'src/config.js', 'src/save.js', 'src/progress.js', 'src/achievements.js',
   'src/game/Game.js', 'src/game/Camera.js', 'src/game/Entity.js', 'src/game/Unit.js', 'src/game/Base.js',
   'src/game/Projectile.js', 'src/game/Spell.js', 'src/game/AI.js', 'src/game/Particles.js',
   'src/render/Renderer.js', 'src/render/sprites.js', 'src/render/background.js', 'src/render/bases.js', 'src/render/appIcon.js',

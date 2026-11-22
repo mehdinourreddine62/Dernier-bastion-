@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=12';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=12';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=12';
-import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel } from '../progress.js?v=12';
+import { CONFIG } from '../config.js?v=13';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=13';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=13';
+import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel } from '../progress.js?v=13';
 
 // Atelier : on dépense les pièces détachées en améliorations permanentes.
 // 9 cartes (5 unités + murailles, tourelle, récupération, sorts), 5 niveaux chacune.

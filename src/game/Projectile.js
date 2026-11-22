@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=12';
-import { bonusMultiplier } from './Unit.js?v=12';
+import { CONFIG } from '../config.js?v=13';
+import { bonusMultiplier } from './Unit.js?v=13';
 
 // Un projectile visible (balle traçante, crachat d'acide, obus…) qui rejoint sa cible.
 // Les projectiles sont réutilisés (pool) : aucune création/destruction en jeu.
@@ -26,6 +26,7 @@ export class ProjectilePool {
     p.damage = o.damage;
     p.attackerDef = o.attackerDef || null;
     p.splash = o.splash || 0;
+    p.source = o.source || null;
     p.sx = o.x;
     p.sy = o.y;
     p.tx = o.target.isBase ? o.target.faceX : o.target.x;
@@ -60,6 +61,7 @@ export class ProjectilePool {
       if (p.t < 1) continue;
 
       p.active = false;
+      game.src = p.source;
       if (p.splash) {
         // Obus : explosion de zone (bonus calculé pour chaque cible)
         game.explode(p.side, p.x, p.splash, p.damage, p.attackerDef, true);

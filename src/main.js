@@ -1,17 +1,18 @@
-import { CONFIG } from './config.js?v=12';
-import { Game } from './game/Game.js?v=12';
-import { Camera } from './game/Camera.js?v=12';
-import { Renderer } from './render/Renderer.js?v=12';
-import { HUD } from './ui/HUD.js?v=12';
-import { Input } from './ui/input.js?v=12';
-import * as screens from './ui/screens.js?v=12';
-import * as campaign from './ui/campaign.js?v=12';
-import * as workshop from './ui/workshop.js?v=12';
-import { Tutorial } from './ui/tutorial.js?v=12';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars } from './progress.js?v=12';
-import { Sfx } from './audio/sfx.js?v=12';
-import { Music } from './audio/music.js?v=12';
-import { loadSave, writeSave } from './save.js?v=12';
+import { CONFIG } from './config.js?v=13';
+import { Game } from './game/Game.js?v=13';
+import { Camera } from './game/Camera.js?v=13';
+import { Renderer } from './render/Renderer.js?v=13';
+import { HUD } from './ui/HUD.js?v=13';
+import { Input } from './ui/input.js?v=13';
+import * as screens from './ui/screens.js?v=13';
+import * as campaign from './ui/campaign.js?v=13';
+import * as workshop from './ui/workshop.js?v=13';
+import { Tutorial } from './ui/tutorial.js?v=13';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=13';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars } from './progress.js?v=13';
+import { Sfx } from './audio/sfx.js?v=13';
+import { Music } from './audio/music.js?v=13';
+import { loadSave, writeSave } from './save.js?v=13';
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
@@ -39,6 +40,7 @@ resize();
 const save = loadSave();
 const settings = save.settings;          // { sound, shake, speedIndex }
 const progress = normalizeProgress(save.progress);
+normalizeAchievements(progress);
 // Écran courant : 'title' | 'options' | 'map' | 'workshop' | 'playing'
 let screen = 'title';
 let game = null;
@@ -47,6 +49,8 @@ let mapInfo = null;      // niveau dont la fiche est ouverte sur la carte
 let confirm = null;      // demande de confirmation { text, onYes }
 let reward = null;       // gains de la dernière partie (écran de fin)
 let tutorial = null;     // tutoriel en cours (niveau 1, première fois)
+let showStats = false;   // écran BILAN ouvert par-dessus l'écran de fin
+let achPage = 0;         // page de l'écran des succès
 // Qualité : 'auto' (baisse toute seule si le jeu rame), 'high' ou 'low'
 if (!settings.quality) settings.quality = 'auto';
 let autoLow = false;
@@ -85,6 +89,7 @@ function showToast(text, time = 4) { toast = { text, time }; }
 function startGame() {
   game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode });
   reward = null;
+  showStats = false;
   tutorial = selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
   game.speed = CONFIG.loop.speeds[settings.speedIndex] || 1;
   camera.reset();
@@ -192,7 +197,7 @@ function overlayState() {
   if (confirm) return 'confirm';
   if (screen !== 'playing') return screen;
   if (game.paused) return 'pause';
-  if (game.result && game.resultTime > CONFIG.combat.resultOverlayDelay) return 'end';
+  if (game.result && game.resultTime > CONFIG.combat.resultOverlayDelay) return showStats ? 'stats' : 'end';
   if (tutorial && tutorial.showing && !game.result) return 'tuto';
   return 'hud';
 }
@@ -206,6 +211,8 @@ function buildButtons() {
     case 'workshop': return workshop.workshopButtons(view, progress);
     case 'pause': return screens.pauseButtons(view, settings);
     case 'end': return screens.endButtons(view, game);
+    case 'stats': return screens.statsButtons(view);
+    case 'achievements': return screens.achievementsButtons(view, achPage);
     case 'tuto': {
       // Pendant une bulle : seuls les boutons utiles à l'étape restent actifs
       const all = hud.build(game, view, aim && aim.spell, settings);
@@ -255,7 +262,11 @@ input.onButton = (b) => {
   }
   // Atelier : achat
   if (b.id.startsWith('buy:')) {
-    if (buyUpgrade(progress, b.upgrade)) { saveAll(); sfx.play('upgrade'); }
+    if (buyUpgrade(progress, b.upgrade)) {
+      const fresh = checkAchievements(progress, null);
+      if (fresh.length) showToast('Succès débloqué : ' + fresh[0].name + '\n+' + fresh[0].reward + ' pièces', 3);
+      saveAll(); sfx.play('upgrade');
+    }
     return;
   }
   switch (b.id) {
@@ -265,6 +276,11 @@ input.onButton = (b) => {
     // --- menus ---
     case 'play': goToMap(); break;
     case 'options': screen = 'options'; break;
+    case 'achievements': screen = 'achievements'; achPage = 0; break;
+    case 'achPrev': achPage = Math.max(0, achPage - 1); break;
+    case 'achNext': achPage = Math.min(screens.achievementPages() - 1, achPage + 1); break;
+    case 'stats': showStats = true; break;
+    case 'closeStats': showStats = false; break;
     case 'install': installApp(); break;
     case 'workshop': screen = 'workshop'; game = null; cancelAim(); break;
     case 'back': screen = screen === 'workshop' ? 'map' : 'title'; break;
@@ -437,6 +453,8 @@ function frame(now) {
     // Fin de partie : étoiles, pièces, déblocages -> sauvegarde automatique
     if (game.result && !reward) {
       reward = recordResult(progress, game.mode, game.levelIndex, game.result === 'won', game.stars);
+      reward.achievements = checkAchievements(progress, game);
+      if (reward.achievements.length) sfx.play('upgrade');
       saveAll();
     }
   }
@@ -479,6 +497,7 @@ function render(time) {
     const p = input.pressed;
     if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress), max: maxStars() });
     else if (screen === 'options') screens.drawOptions(ctx, buttons, p);
+    else if (screen === 'achievements') screens.drawAchievements(ctx, progress, achPage, buttons, p);
     else if (screen === 'map') {
       campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null), mapInfo === null ? p : new Set(), mapInfo, time);
       if (mapInfo !== null && !confirm) campaign.drawLevelInfo(ctx, progress, mapInfo, buttons, p);
@@ -512,6 +531,7 @@ function render(time) {
   }
   if (state === 'pause') screens.drawPause(ctx, buttons, input.pressed);
   else if (state === 'end') screens.drawEnd(ctx, game, buttons, input.pressed, reward);
+  else if (state === 'stats') screens.drawStats(ctx, game, buttons, input.pressed);
   if (toast) hud.drawToast(ctx, toast.text);
 }
 
