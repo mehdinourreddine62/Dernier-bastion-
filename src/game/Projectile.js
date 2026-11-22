@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=17';
-import { bonusMultiplier } from './Unit.js?v=17';
+import { CONFIG } from '../config.js?v=18';
+import { bonusMultiplier } from './Unit.js?v=18';
 
 // Un projectile visible (balle traçante, crachat d'acide, obus…) qui rejoint sa cible.
 // Les projectiles sont réutilisés (pool) : aucune création/destruction en jeu.
@@ -68,14 +68,16 @@ export class ProjectilePool {
       } else {
         if (p.target.alive) {
           const mult = p.attackerDef ? bonusMultiplier(p.attackerDef, p.target) : 1;
-          game.dealDamage(p.side, p.target, p.damage * mult, mult > 1);
+          // tir rapide (Mitrailleur) : chiffres de dégâts affichés pour 1 balle sur 3
+          const quiet = !!(p.attackerDef && p.attackerDef.rapidFire) && Math.random() > 0.33;
+          game.dealDamage(p.side, p.target, p.damage * mult, mult > 1, quiet);
         }
         if (p.cfg.shape === 'glob') {
           // Crachat d'acide : éclaboussure + flaque au sol
           game.fx.splash(p.x, p.y, p.cfg.color);
           if (Math.random() < 0.6) game.addDecal('acid', p.x + (Math.random() - 0.5) * 16, 10 + Math.random() * 8, 4);
           game.emit('splat', p.x);
-        } else {
+        } else if (p.cfg.shape !== 'sonic') {
           game.fx.sparks(p.x, p.y, p.cfg.color, 3, 90);
         }
       }

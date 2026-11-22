@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=17';
+import { CONFIG } from '../config.js?v=18';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).
@@ -689,14 +689,272 @@ function tourelleCampagne() {
   if (P.atk > 0.6 && !P.dark) poly([37, -35, 44, -40, 50, -35, 44, -30], '#fff3b0', false);
 }
 
+// =====================================================================
+//  CHAPITRE 2
+// =====================================================================
+
+// Lance-roquettes : casque de chantier, tube sur l'épaule, sac de roquettes
+function lanceRoquettes() {
+  const recoil = P.atk > 0 ? -5 * P.atk : 0;
+  X.translate(0, -bobY(1.5));
+  legs(-24, 24, 6, '#4a4a38', '#2b241c', 8.5);
+  X.translate(recoil, 0);
+  // sac de roquettes dans le dos
+  rr(-18, -54, 10, 26, 3, '#5a5a3a');
+  for (let i = 0; i < 2; i++) poly([-16 + i * 5, -54, -14 + i * 5, -64, -12 + i * 5, -54], '#c0442e');
+  limb([-3, -46, 4, -40, 10, -44], 5, shade('#6a7046'));
+  // torse : gilet orange de chantier
+  poly([-9, -26, -9, -50, 9, -51, 9, -26], '#6a7046');
+  poly([-8, -48, 8, -49, 8, -34, -8, -33], '#d0702a');
+  X.fillStyle = C('#f2e6a0'); X.fillRect(-8, -42, 16, 2.5);
+  rr(-9, -30, 18, 3, 1, '#3b2c1e', false);
+  // tête + casque jaune
+  blob(1, -58, 7, 7.5, '#c98e66');
+  dot(5, -59, 1.3, '#1a1008');
+  poly([-8, -60, -7, -68, 2, -71, 9, -68, 10, -61], '#e0b030');
+  rr(-10, -62, 22, 3, 1.5, '#c8981e');
+  // tube lance-roquettes sur l'épaule
+  limb([-16, -54, 30, -58], 8, '#4e5a3a');
+  rr(24, -63, 8, 10, 2, '#2e2e2a');                 // bouche
+  rr(-20, -60, 6, 12, 2, '#2e2e2a');               // arrière du tube
+  rr(4, -66, 8, 5, 1.5, '#1a1a1a');                // viseur
+  if (P.atk < 0.4 && !P.dark) poly([31, -61, 38, -58, 31, -55], '#c0442e');   // ogive prête
+  limb([5, -47, 12, -52], 5, '#6a7046');
+  dot(12, -53, 2.6, '#c98e66');
+  // souffle arrière + flamme avant au tir
+  if (P.atk > 0.6 && !P.dark) {
+    const r = 12 * (P.atk - 0.5) * 2;
+    poly([33, -58, 33 + r, -64, 33 + r * 1.8, -58, 33 + r, -52], '#fff3b0', false);
+    X.fillStyle = `rgba(200,190,170,${0.5 * P.atk})`;
+    X.beginPath(); X.arc(-26 - r, -55, 6 + r * 0.6, 0, Math.PI * 2); X.fill();
+  }
+}
+
+// Mitrailleur lourd : colosse en treillis, ceinture de balles, mitrailleuse à canons
+function mitrailleur() {
+  const shake = P.atk > 0 ? Math.sin(P.time * 80) * 1.2 : 0;
+  X.translate(0, -bobY(1.2));
+  legs(-26, 26, 7, '#3e4636', '#2b241c', 8, 11);
+  X.translate(shake * 0.5, 0);
+  limb([-3, -48, 4, -40, 10, -42], 6, shade('#56603e'));
+  // torse massif
+  poly([-12, -26, -12, -54, 12, -55, 12, -26], '#56603e');
+  poly([-12, -54, -6, -54, -6, -26, -12, -26], '#46502e', false);
+  // ceinture de munitions en diagonale
+  X.save(); X.beginPath(); X.moveTo(-12, -52); X.lineTo(12, -30); X.lineWidth = 5; X.strokeStyle = C('#6a4a2a'); X.stroke(); X.restore();
+  X.fillStyle = C('#d8b040');
+  for (let i = 0; i < 5; i++) X.fillRect(-10 + i * 4.6, -50 + i * 4.2, 2, 4);
+  rr(-12, -31, 24, 4, 1, '#3b2c1e');
+  // tête : bandana + lunettes
+  blob(2, -62, 8, 8, '#b98260');
+  poly([-6, -66, 9, -67, 10, -63, -6, -62], '#8a2a22');
+  rr(3, -63, 8, 3.5, 1.5, '#2a2a2a');
+  // mitrailleuse (canons multiples)
+  limb([-8, -40, 14, -42], 9, '#3a3a3c');
+  rr(12, -47, 14, 10, 2, '#2a2a2c');
+  for (let i = 0; i < 3; i++) limb([24, -45 + i * 3, 42 + shake, -45 + i * 3], 1.8, '#1e1e20');
+  rr(-4, -36, 10, 8, 2, '#5a5a4a');                // boîte de munitions
+  limb([6, -49, 14, -40, 20, -43], 6, '#56603e');
+  dot(20, -43, 3, '#b98260');
+  if (P.atk > 0.3 && !P.dark && Math.sin(P.time * 60) > 0) {
+    poly([43, -42, 49, -47, 55, -42, 49, -37], '#fff3b0', false);
+  }
+}
+
+// Carapace : mutant à quatre pattes couvert de plaques d'os, tête-bélier
+function carapace() {
+  const s = swing();
+  const lunge = s > 0 ? s * 8 : s * 2;
+  X.translate(lunge, -bobY(1.5));
+  const st = P.moving ? Math.sin(P.walk) * 6 : 0;
+  for (const [x, ph] of [[-22, 1], [-8, -1], [10, 1], [22, -1]]) limb([x, -22, x + st * ph * 0.5, -10, x + st * ph, -3], 6, ph > 0 ? '#6a5a48' : shade('#6a5a48'));
+  // ventre
+  blob(0, -26, 30, 14, '#7a6450');
+  // plaques de carapace qui se chevauchent
+  for (let i = 0; i < 4; i++) {
+    poly([-30 + i * 14, -26, -26 + i * 14, -46 - (i % 2) * 4, -12 + i * 14, -48 - (i % 2) * 4, -8 + i * 14, -26], i % 2 ? '#a89a7a' : '#988a6c');
+  }
+  X.strokeStyle = C('#5a4c3c'); X.lineWidth = 1.2;
+  for (let i = 0; i < 4; i++) { X.beginPath(); X.moveTo(-24 + i * 14, -44); X.lineTo(-20 + i * 14, -30); X.stroke(); }
+  // tête cornue
+  blob(30, -30, 11, 9, '#8a7458');
+  poly([30, -38, 46, -44, 38, -32], '#d8cfae');      // corne
+  poly([34, -26, 44, -24, 36, -21], '#e8e0c0', false);
+  glowEye(32, -33, 1.8, '#f0a030');
+}
+
+// Couveuse : sac de chair gonflé de larves qui bougent, pattes grêles
+function couveuse() {
+  X.translate(0, -bobY(1));
+  const st = P.moving ? Math.sin(P.walk) * 5 : 0;
+  limb([-14, -16, -18 - st, -2], 3.5, shade('#8a5060'));
+  limb([12, -16, 14 + st, -2], 3.5, shade('#8a5060'));
+  // sac translucide
+  const pulse = Math.sin(P.time * 3) * 1.5;
+  blob(-2, -32, 26 + pulse * 0.4, 20 + pulse * 0.3, '#b0707e');
+  if (!P.flash && !P.dark) {
+    X.fillStyle = 'rgba(255,220,200,0.25)';
+    X.beginPath(); X.ellipse(-4, -34, 18, 13, 0, 0, Math.PI * 2); X.fill();
+    // larves à l'intérieur
+    for (let i = 0; i < 4; i++) {
+      const a = P.time * 1.4 + i * 1.6;
+      X.fillStyle = 'rgba(90,30,50,0.55)';
+      X.beginPath(); X.ellipse(-4 + Math.cos(a) * 10, -34 + Math.sin(a) * 7, 4, 2.5, a, 0, Math.PI * 2); X.fill();
+    }
+  }
+  X.strokeStyle = C('#7a3a4a'); X.lineWidth = 1.5;
+  X.beginPath(); X.moveTo(-20, -40); X.quadraticCurveTo(-8, -50, 6, -44); X.stroke();
+  limb([-8, -16, -10 + st, -2], 3.5, '#8a5060');
+  limb([6, -16, 8 - st, -2], 3.5, '#8a5060');
+  // petite tête
+  blob(22, -30, 7, 6, '#9a6070');
+  glowEye(25, -32, 1.6, '#f0e040');
+  poly([27, -28, 32, -27, 27, -25], '#2a0e1a', false);
+}
+
+// Larve : petit ver rampant rapide
+function larve() {
+  const w = P.moving ? Math.sin(P.walk * 3) : Math.sin(P.time * 4);
+  const s = swing();
+  X.translate(s > 0 ? s * 6 : 0, 0);
+  for (let i = 0; i < 4; i++) blob(-10 + i * 6, -6 - Math.abs(Math.sin(w + i)) * 3, 5 - i * 0.3, 4.5, i % 2 ? '#9a5a6a' : '#a8687a', 0, i === 3);
+  blob(13, -8, 5, 4.5, '#b07888');
+  glowEye(15, -10, 1.2, '#f0e040');
+  for (let i = 0; i < 2; i++) poly([16 + i * 2, -7, 17 + i * 2, -4, 18 + i * 2, -7], '#e8e0c0', false);
+}
+
+// Hurleur : mutant maigre et voûté, gorge démesurée qui pulse
+function hurleur() {
+  const q = P.atk > 0 ? 1 - P.atk : 0;
+  X.translate(0, -bobY(2));
+  legs(-30, 30, 5, '#5a4a6a', '#3a2a44', 8, 8);
+  limb([-2, -56, -10, -42, -6, -30], 3.5, shade('#7a6a8a'));
+  // torse maigre, côtes
+  blob(0, -46, 10, 18, '#7a6a8a', 0.1);
+  X.strokeStyle = C('#5a4a6a'); X.lineWidth = 1.2;
+  for (let i = 0; i < 3; i++) { X.beginPath(); X.arc(2, -48 + i * 6, 6, -0.6, 0.8); X.stroke(); }
+  // gorge-sac qui gonfle
+  const swell = 5 + Math.sin(P.time * 4) * 1.5 + (P.atk > 0 ? 5 * (1 - q) : 0);
+  blob(10, -60, 6 + swell * 0.6, 5 + swell * 0.5, '#b06aa0');
+  // tête allongée, bouche grande ouverte
+  blob(6, -72, 8, 9, '#8a7a9a');
+  glowEye(9, -76, 1.8, '#ff70ff');
+  const open = P.atk > 0 ? 6 : 3 + Math.sin(P.time * 4) * 1;
+  blob(14, -69, 4, open * 0.8, '#2a0e22');
+  limb([4, -56, 14, -48, 20, -54], 3.5, '#7a6a8a');
+  // ondes du cri (visibles au tir)
+  if (P.atk > 0.2 && !P.dark && !P.flash) {
+    X.strokeStyle = `rgba(220,120,255,${0.7 * P.atk})`; X.lineWidth = 2;
+    for (let i = 0; i < 3; i++) { X.beginPath(); X.arc(18, -69, 8 + i * 7 + q * 10, -0.7, 0.7); X.stroke(); }
+  }
+}
+
+// Épineux : dos hérissé de longues épines d'os qu'il projette
+function epineux() {
+  const q = P.atk > 0 ? 1 - P.atk : 0;
+  X.translate(0, -bobY(1.5));
+  legs(-22, 22, 6.5, '#5a6a3a', '#3a4426', 7, 9);
+  // épines dans le dos (se dressent avant le tir)
+  const rise = P.atk > 0 ? Math.min(1, q * 3) * 6 : 0;
+  for (let i = 0; i < 6; i++) {
+    X.save(); X.translate(-14 + i * 4, -40 - i * 3); X.rotate(-1.1 + i * 0.12);
+    poly([-2, 0, 0, -22 - rise - (i % 2) * 6, 2, 0], '#e8dcb8'); X.restore();
+  }
+  // corps voûté
+  blob(0, -36, 16, 14, '#6e7e46', 0.3);
+  blob(4, -32, 8, 7, '#86965a', 0, false);
+  limb([8, -38, 16, -28], 4, '#6e7e46');
+  // tête plate
+  blob(16, -46, 9, 7, '#7c8c52');
+  glowEye(20, -48, 1.8, '#f0e040');
+  poly([22, -44, 28, -43, 22, -41], '#2a1a0e', false);
+}
+
+// Matriarche : reine-pondeuse colossale, abdomen énorme, pattes d'araignée
+function matriarche() {
+  const s = swing();
+  X.translate(0, -bobY(2));
+  const st = P.moving ? Math.sin(P.walk) * 9 : 0;
+  // pattes arrière
+  for (const [x, ph] of [[-52, 1], [-30, -1]]) limb([x, -50, x - 14, -30, x + st * ph - 10, -3], 7, shade('#6a2a3a'));
+  // abdomen-couvée
+  blob(-36, -62, 40, 32, '#8a3a4c');
+  if (!P.flash && !P.dark) {
+    for (let i = 0; i < 6; i++) {
+      const pulse = 0.4 + Math.sin(P.time * 3 + i) * 0.25;
+      X.fillStyle = `rgba(255,190,160,${pulse})`;
+      X.beginPath(); X.ellipse(-56 + (i % 3) * 18, -70 + Math.floor(i / 3) * 18, 6, 4.5, 0, 0, Math.PI * 2); X.fill();
+    }
+  }
+  X.strokeStyle = C('#5a1e2e'); X.lineWidth = 2;
+  for (let i = 0; i < 3; i++) { X.beginPath(); X.arc(-36, -62, 22 + i * 7, -2.4, -0.8); X.stroke(); }
+  // thorax dressé
+  blob(10, -84, 22, 30, '#9a4458', -0.2);
+  // pattes avant
+  for (const [x, ph] of [[0, -1], [18, 1]]) limb([x, -66, x + 14, -38, x + 6 + st * ph, -3], 7, '#6a2a3a');
+  // tête couronnée
+  blob(24, -118, 14, 13, '#a85068');
+  for (let i = 0; i < 5; i++) { X.save(); X.translate(16 + i * 5, -128); X.rotate(-0.5 + i * 0.25); poly([-3, 0, 0, -16, 3, 0], '#d8cfae'); X.restore(); }
+  glowEye(30, -120, 2.4, '#f0e040'); glowEye(24, -122, 1.8, '#f0e040');
+  const open = P.atk > 0 ? Math.max(0.2, s) : 0.2;
+  blob(34, -110, 6, 2 + open * 6, '#2a0e22');
+  // griffe en faux
+  const a = P.atk > 0 ? (s < 0 ? -1.4 + s * 0.4 : -1.8 + (s + 1) * 1.5) : -0.4 + Math.sin(P.time * 1.5) * 0.1;
+  const ex = 30 + Math.cos(a) * 46, ey = -92 + Math.sin(a) * 46;
+  limb([22, -96, ex, ey], 7, '#6a2a3a');
+  X.save(); X.translate(ex, ey); X.rotate(a + 1.3); poly([0, -3, 26, 2, 0, 5], '#d8cfae'); X.restore();
+}
+
+// Le Fléau : titan de chair et de métal, cœur qui bat à l'air libre
+function fleau() {
+  const s = swing();
+  X.translate(0, -bobY(3));
+  const st = P.moving ? Math.sin(P.walk) * 10 : 0;
+  // jambes colossales
+  limb([-24, -70, -30, -36, -26 + st, -4], 20, shade('#4a2236'));
+  limb([20, -70, 26, -36, 22 - st, -4], 20, '#4a2236');
+  // tentacules dorsaux
+  for (let i = 0; i < 3; i++) {
+    const w = Math.sin(P.time * 2 + i) * 10;
+    X.lineCap = 'round'; X.strokeStyle = OUT; X.lineWidth = 11;
+    X.beginPath(); X.moveTo(-30 + i * 14, -150); X.quadraticCurveTo(-70 + i * 10, -190 + w, -90 + i * 20, -150 + w); X.stroke();
+    X.strokeStyle = C('#5a2040'); X.lineWidth = 8; X.stroke();
+  }
+  // torse cuirassé de ferraille
+  blob(0, -116, 52, 54, '#6a2e48');
+  poly([-40, -140, -10, -164, 30, -156, 44, -120, 20, -96, -30, -100], '#5a5a5e');
+  X.fillStyle = C('#9a9a8a');
+  for (const [rx, ry] of [[-30, -136], [-6, -152], [24, -146], [30, -118], [-22, -110]]) X.fillRect(rx, ry, 3, 3);
+  // cœur à vif
+  const beat = 1 + Math.max(0, Math.sin(P.time * 5)) * 0.15;
+  if (P.flash || P.dark) blob(4, -124, 13, 15, '#a03050');
+  else { blob(4, -124, 13 * beat, 15 * beat, '#d0405a'); glowEye(4, -124, 5, '#ff8a6a'); }
+  // tête de crâne cornu
+  blob(34, -170, 16, 15, '#d8cfae');
+  for (const [dx, a] of [[-10, -0.8], [12, 0.6]]) { X.save(); X.translate(34 + dx, -182); X.rotate(a); poly([-4, 0, 0, -26, 4, 0], '#2a1a14'); X.restore(); }
+  glowEye(40, -172, 3, '#ff3020'); glowEye(30, -172, 2.4, '#ff3020');
+  rr(30, -162, 18, 6, 2, '#2a0e12');
+  // bras-marteau
+  const a = P.atk > 0 ? (s < 0 ? -1.3 + s * 0.4 : -1.7 + (s + 1) * 1.5) : -0.2 + Math.sin(P.time * 1.4) * 0.12;
+  const ex = 40 + Math.cos(a) * 56, ey = -120 + Math.sin(a) * 56;
+  limb([36, -132, ex, ey], 16, '#6a2e48');
+  X.save(); X.translate(ex, ey); X.rotate(a);
+  rr(-4, -16, 34, 32, 4, '#4a4a4e');
+  for (let i = 0; i < 3; i++) poly([30, -12 + i * 10, 40, -8 + i * 10, 30, -4 + i * 10], '#9a9a8a');
+  X.restore();
+}
+
 const DRAWERS = { pillard, tireur, motard, lanceFlammes, blinde, goule, cracheur, chien, brute, abomination, rouilleur, charognard,
-  hero_kane, hero_rosa, hero_vasquez, tourelleCampagne };
+  hero_kane, hero_rosa, hero_vasquez, tourelleCampagne,
+  lanceRoquettes, mitrailleur, carapace, couveuse, larve, hurleur, epineux, matriarche, fleau };
 
 // Style de mort de chaque unité : 'fall' (tombe), 'melt' (s'affaisse), 'wreck' (épave)
 export const DEATH_STYLE = {
   pillard: 'fall', tireur: 'fall', motard: 'fall', lanceFlammes: 'fall', blinde: 'wreck',
   goule: 'melt', cracheur: 'melt', chien: 'fall', brute: 'fall', abomination: 'melt',
   rouilleur: 'melt', charognard: 'fall',
+  lanceRoquettes: 'fall', mitrailleur: 'fall', carapace: 'fall', couveuse: 'melt', larve: 'melt',
+  hurleur: 'fall', epineux: 'melt', matriarche: 'melt', fleau: 'melt',
 };
 
 export function drawSprite(ctx, defId, pose) {

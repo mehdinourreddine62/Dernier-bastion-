@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=17';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=17';
-import { Backdrop } from './background.js?v=17';
-import { drawFort, drawNest } from './bases.js?v=17';
+import { CONFIG } from '../config.js?v=18';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=18';
+import { Backdrop } from './background.js?v=18';
+import { drawFort, drawNest } from './bases.js?v=18';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -12,6 +12,9 @@ const MUZZLE = {
   hero_rosa: [38, -50, 40, '255,200,110'],
   hero_vasquez: [58, -52, 40, '255,240,190'],
   tourelleCampagne: [40, -35, 34, '255,210,120'],
+  lanceRoquettes: [36, -58, 50, '255,200,110'],
+  mitrailleur: [48, -42, 36, '255,210,120'],
+  hurleur: [18, -69, 40, '220,120,255'],
 };
 
 // Dessine la scène : décor en parallaxe, traces au sol, bases, unités,
@@ -207,6 +210,14 @@ export class Renderer {
     ctx.drawImage(f.cv, -f.ox, -f.oy, f.w, f.h);
     ctx.restore();
 
+    // Hurleur : zone de son cri au sol
+    if (def.howl && !u.dying) {
+      ctx.save();
+      ctx.strokeStyle = `rgba(210,110,255,${0.25 + 0.15 * Math.sin(time * 6)})`; ctx.lineWidth = 2; ctx.setLineDash([6, 8]);
+      ctx.lineDashOffset = time * 30;
+      ctx.beginPath(); ctx.ellipse(u.x, CONFIG.world.groundY + 6, def.howl.radius, def.howl.radius * 0.14, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
     // Commandant : zone d'aura au sol et étoile au-dessus de la tête
     if (def.hero && !u.dying) {
       const aura = CONFIG.heroes.list[def.hero].aura;
@@ -280,6 +291,30 @@ export class Renderer {
         ctx.fillStyle = '#2a2a26';
         ctx.beginPath(); ctx.arc(p.x, p.y, c.width, 0, Math.PI * 2); ctx.fill();
         this._glow(ctx, p.x, p.y, 12, '255,180,80', 0.7);
+      } else if (c.shape === 'rocket') {
+        // roquette : corps + flamme + fumée
+        const ang = Math.atan2(p.vy, p.vx);
+        ctx.fillStyle = 'rgba(190,180,165,0.35)';
+        for (let k = 1; k <= 3; k++) { ctx.beginPath(); ctx.arc(p.x - p.vx * k * 9, p.y - p.vy * k * 9, 3 + k * 1.5, 0, Math.PI * 2); ctx.fill(); }
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+        ctx.fillStyle = '#ffb347'; ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(-16, -3); ctx.lineTo(-14, 0); ctx.lineTo(-16, 3); ctx.fill();
+        ctx.fillStyle = '#4e5a3a'; ctx.fillRect(-8, -2.5, 12, 5);
+        ctx.fillStyle = '#c0442e'; ctx.beginPath(); ctx.moveTo(4, -2.5); ctx.lineTo(9, 0); ctx.lineTo(4, 2.5); ctx.fill();
+        ctx.restore();
+        this._glow(ctx, p.x - p.vx * 10, p.y - p.vy * 10, 16, '255,170,80', 0.8);
+      } else if (c.shape === 'spine') {
+        // épine d'os
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(Math.atan2(p.vy, p.vx));
+        ctx.fillStyle = c.color; ctx.strokeStyle = '#1b120b'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-12, -2); ctx.lineTo(8, 0); ctx.lineTo(-12, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      } else if (c.shape === 'sonic') {
+        // onde du cri du Hurleur
+        ctx.save();
+        ctx.strokeStyle = 'rgba(220,120,255,0.7)'; ctx.lineWidth = 2.5;
+        const dir = p.vx < 0 ? Math.PI : 0;
+        for (let k = 0; k < 2; k++) { ctx.beginPath(); ctx.arc(p.x - p.vx * k * 8, p.y, c.width + k * 3, dir - 0.8, dir + 0.8); ctx.stroke(); }
+        ctx.restore();
       } else {
         // crachat d'acide avec traînée de gouttes
         ctx.fillStyle = 'rgba(155,226,43,0.35)';

@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=17';
-import { Unit, bonusMultiplier } from './Unit.js?v=17';
-import { Base } from './Base.js?v=17';
-import { ProjectilePool } from './Projectile.js?v=17';
-import { Particles } from './Particles.js?v=17';
-import { Spells } from './Spell.js?v=17';
-import { AI } from './AI.js?v=17';
-import { effectiveLevel } from '../progress.js?v=17';
-import { Survival, survivalLevel } from './Survival.js?v=17';
+import { CONFIG } from '../config.js?v=18';
+import { Unit, bonusMultiplier } from './Unit.js?v=18';
+import { Base } from './Base.js?v=18';
+import { ProjectilePool } from './Projectile.js?v=18';
+import { Particles } from './Particles.js?v=18';
+import { Spells } from './Spell.js?v=18';
+import { AI } from './AI.js?v=18';
+import { levelFor } from '../progress.js?v=18';
+import { Survival, survivalLevel } from './Survival.js?v=18';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -21,8 +21,8 @@ export class Game {
   // opts.unlockedUpTo : niveau atteint dans la campagne (débloque unités et sorts)
   constructor(levelIndex = 0, opts = {}) {
     this.levelIndex = levelIndex;
-    this.mode = opts.survival ? 'survival' : opts.mode || 'normal';
-    this.level = opts.survival ? survivalLevel() : effectiveLevel(levelIndex, this.mode);   // renforcé en Difficile / Cauchemar
+    this.mode = opts.survival ? 'survival' : 'campaign';
+    this.level = opts.survival ? survivalLevel() : levelFor(levelIndex);
     this.unlockId = opts.survival ? opts.unlockedUpTo || 1 : Math.max(this.level.id, opts.unlockedUpTo || 0);
     this.time = 0;
     this.speed = 1;
@@ -175,9 +175,10 @@ export class Game {
     }
   }
 
-  spawnUnit(side, defId) {
+  // x : position d'apparition (par défaut devant la base du camp)
+  spawnUnit(side, defId, x = null) {
     const base = this.bases[side];
-    const x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
+    if (x === null) x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
     this.units.push(u);
     const def = CONFIG.units[defId];
@@ -201,6 +202,7 @@ export class Game {
     const before = target.hp;
     target.takeDamage(damage);
     const dealt = before - target.hp;
+    if (!target.isBase && target.def.phases && target.alive) this._bossPhase(target);
     const st = this.stats;
     if (attackerSide === 'player') inc(st.damage, this.src || 'autre', dealt);
     else if (target.isBase) st.baseDamage += dealt;
@@ -225,6 +227,12 @@ export class Game {
       this.sides[attackerSide].scrap += bounty;
       if (attackerSide === 'player') st.scrapEarned += bounty;
       this.emit('death', target.x, { id: target.defId });
+      // Couveuse : libère ses larves
+      const sod = target.def.spawnOnDeath;
+      if (sod) {
+        for (let i = 0; i < sod.count; i++) this.spawnUnit(target.side, sod.unit, target.x + (i - (sod.count - 1) / 2) * 14);
+        this.fx.hit(target.x, target.y - 20, 'ichor');
+      }
       if (target.defId === 'blinde') {
         this.fx.explosion(target.x, target.y - 30, 60);
         this.addDecal('scorch', target.x, 60, 8);
@@ -408,9 +416,38 @@ export class Game {
       if (this.bossDone[i] || ratio > b.atBaseHpRatio) return;
       this.bossDone[i] = true;
       this.spawnUnit('enemy', b.unit);
-      this.banner = { text: "L'ABOMINATION SORT DU NID !", time: CONFIG.combat.bossBannerTime };
+      this.banner = { text: CONFIG.units[b.unit].banner || 'UN BOSS SORT DU NID !', time: CONFIG.combat.bossBannerTime };
       this.emit('boss', this.bases.enemy.faceX);
     });
+  }
+
+  // Boss à phases (le Fléau) : sous chaque seuil de PV il enrage et appelle des renforts
+  _bossPhase(u) {
+    const ph = u.def.phases;
+    u.phase = u.phase || 0;
+    if (u.phase >= ph.at.length || u.hp / u.maxHp > ph.at[u.phase]) return;
+    u.phase++;
+    u.speedMult *= ph.speed;
+    u.damage *= ph.damage;
+    for (let i = 0; i < ph.reinforcements.length; i++) this.spawnUnit(u.side, ph.reinforcements[i], u.x + 40 + i * 25);
+    this.banner = { text: ph.banner, time: CONFIG.combat.bossBannerTime };
+    this.fx.slam(u.x, CONFIG.world.groundY, 140);
+    this.emit('boss', u.x);
+  }
+
+  // Cri des Hurleurs : les alliés proches vont plus vite et frappent plus fort (recalculé à chaque pas)
+  _applyHowls() {
+    for (const side of SIDES) {
+      const L = this.byX[side];
+      let any = false;
+      for (const u of L) { u.howled = 0; if (u.def.howl) any = true; }
+      if (!any) continue;
+      for (const h of L) {
+        const cfg = h.def.howl;
+        if (!cfg) continue;
+        for (const u of L) if (u !== h && Math.abs(u.x - h.x) <= cfg.radius) u.howled = cfg;
+      }
+    }
   }
 
   // Listes triées par position (recherche de cible rapide, même avec 200 unités)
@@ -464,6 +501,7 @@ export class Game {
     this.spells.update(dt);
     this._updateHero(dt);
     this._sortUnits();
+    this._applyHowls();
 
     const n = this.units.length;
     for (let i = 0; i < n; i++) this.units[i].update(dt, this);

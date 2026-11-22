@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=17';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=17';
-import { objectiveText } from '../progress.js?v=17';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=17';
-import { ACHIEVEMENTS } from '../achievements.js?v=17';
-import { roundRectPath } from './widgets.js?v=17';
+import { CONFIG } from '../config.js?v=18';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=18';
+import { objectiveText } from '../progress.js?v=18';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=18';
+import { ACHIEVEMENTS } from '../achievements.js?v=18';
+import { roundRectPath } from './widgets.js?v=18';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -154,7 +154,7 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
   if (game.survival) { drawSurvivalEnd(ctx, game, reward); drawAll(ctx, buttons, pressed, buttons.length > 3 ? 18 : 22); return; }
   const won = game.result === 'won';
   text(ctx, won ? 'VICTOIRE !' : 'DÉFAITE', W / 2, 112, 56, won ? COL.yellow : COL.bad, 'center', 'middle');
-  text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name + (game.mode !== 'normal' ? ' (' + CONFIG.modes[game.mode].name + ')' : ''),
+  text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name,
     W / 2, 162, 22, COL.dim, 'center', 'middle');
   for (let i = 0; i < 3; i++) drawStar(ctx, W / 2 + (i - 1) * 86, 228, 36, i < game.stars);
   const pct = Math.round(Math.max(0, game.bases.player.hp / game.bases.player.maxHp) * 100);
@@ -171,7 +171,7 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
   }
   y += 14;
   if (reward && reward.parts > 0) {
-    const detail = reward.firstWin ? ` (dont ${Math.round(CONFIG.stars.firstWinBonus * CONFIG.modes[game.mode].partsMult)} de première victoire)` : '';
+    const detail = reward.firstWin ? ` (dont ${CONFIG.stars.firstWinBonus} de première victoire)` : '';
     text(ctx, `+${reward.parts} pièces détachées${detail}`, W / 2, y, 24, COL.yellow, 'center', 'middle');
     y += 36;
   } else if (won) {

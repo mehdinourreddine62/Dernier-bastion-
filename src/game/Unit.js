@@ -1,14 +1,21 @@
-import { CONFIG } from '../config.js?v=17';
-import { Entity } from './Entity.js?v=17';
+import { CONFIG } from '../config.js?v=18';
+import { Entity } from './Entity.js?v=18';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
+// Les résistances de la cible (ex. Carapace contre les tirs) s'appliquent ensuite,
+// sauf si l'attaquant perce les blindages (pierce).
 export function bonusMultiplier(attackerDef, target) {
   const bonuses = attackerDef.bonuses;
-  if (!bonuses) return 1;
   let m = 1;
-  for (const tag of target.tags) {
+  if (bonuses) for (const tag of target.tags) {
     if (bonuses[tag] && bonuses[tag] > m) m = bonuses[tag];
+  }
+  const res = target.def && target.def.resist;
+  if (res && !attackerDef.pierce) {
+    let r = 1;
+    for (const tag of attackerDef.tags || []) if (res[tag] !== undefined && res[tag] < r) r = res[tag];
+    m *= r;
   }
   return m;
 }
@@ -46,7 +53,14 @@ export class Unit extends Entity {
     if (def.lifetime) this.life = def.lifetime;
     // Unités volantes : altitude (visuelle et pour la visée)
     this.alt = def.flying ? 70 + Math.random() * 18 : 0;
+    this.speedMult = 1;       // boss enragé
+    this.howled = 0;          // cri d'un Hurleur proche (réglages du cri) ou 0
+    if (def.summon) this.summonTimer = def.summon.every;
   }
+
+  // Multiplicateurs de vitesse et de dégâts du moment (Cri de ralliement, Hurleur, rage)
+  speedFactor(game) { return game.rallyMult(this.side) * this.speedMult * (this.howled ? 1 + this.howled.speed : 1); }
+  damageFactor(game) { return game.rallyMult(this.side) * (this.howled ? 1 + this.howled.damage : 1); }
 
   get tags() { return this.def.tags; }
 
@@ -79,6 +93,13 @@ export class Unit extends Entity {
       return;
     }
     this.attackAnim = Math.max(0, this.attackAnim - dt / CONFIG.combat.attackAnimTime);
+    // Boss qui appelle des renforts à intervalle régulier (Matriarche)
+    if (this.def.summon && (this.summonTimer -= dt) <= 0) {
+      const sm = this.def.summon;
+      this.summonTimer = sm.every;
+      for (let i = 0; i < sm.count; i++) game.spawnUnit(this.side, sm.unit, this.x + this.dir * (30 + i * 16));
+      game.fx.hit(this.x + this.dir * 40, this.y - 30, 'ichor');
+    }
 
     let target = this.findTarget(game, this.def.range);
     // Bloquée derrière un allié qui combat : elle frappe quand même
@@ -93,7 +114,7 @@ export class Unit extends Entity {
       this.state = 'wait';
     } else {
       this.state = 'walk';
-      this.x += this.dir * this.def.speed * game.rallyMult(this.side) * dt;
+      this.x += this.dir * this.def.speed * this.speedFactor(game) * dt;
       this.walk += dt * Math.min(this.def.speed, 90) * 0.14;
       // Poussière soulevée par les unités rapides ou lourdes (effet visuel)
       if ((this.def.speed >= 100 || this.def.tags.includes('heavy') || this.def.tags.includes('boss')) && Math.random() < 0.25) {
@@ -155,7 +176,7 @@ export class Unit extends Entity {
     this.cd = def.attackInterval;
     this.attackAnim = 1;
     game.src = this.defId;   // les dégâts qui suivent sont attribués à ce type d'unité
-    const dmg = this.damage * game.rallyMult(this.side);   // Cri de ralliement
+    const dmg = this.damage * this.damageFactor(game);   // Cri de ralliement, Hurleur
     if (atk.kind !== 'flame') game.emit('attack', this.x, { id: this.defId });
 
     switch (atk.kind) {

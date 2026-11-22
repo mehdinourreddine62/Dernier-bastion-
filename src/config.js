@@ -111,9 +111,9 @@ export const CONFIG = {
     swarm: 'nuées', heavy: 'lourdes', boss: 'boss', base: 'bases',
   },
 
-  // ---------- Ordre des boutons de recrutement (touches 1 à 5) ----------
+  // ---------- Ordre des boutons de recrutement (touches 1 à 7) ----------
   roster: {
-    player: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde'],
+    player: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde', 'lanceRoquettes', 'mitrailleur'],
   },
 
   // ---------- Unités ----------
@@ -123,6 +123,12 @@ export const CONFIG = {
   //               'projectile' tir à distance
   //               'flame'      touche tous les ennemis devant, jusqu'à la portée
   //               'cannon'     obus qui explose (splashRadius)
+  // resist : { typeAttaquant: multiplicateur } dégâts reçus réduits (ex. Carapace contre les tirs)
+  // pierce : true = ignore les résistances (Lance-roquettes)
+  // spawnOnDeath : { unit, count } libère des unités à sa mort (Couveuse)
+  // howl : { radius, speed, damage } accélère et renforce les alliés proches (Hurleur)
+  // summon : { unit, count, every } fait apparaître des unités régulièrement (boss)
+  // phases : seuils de PV où le boss enrage (plus rapide, plus fort, renforts)
   // bodyWidth / bodyHeight : taille visuelle (visée des tirs, barre de vie)
   units: {
     // ===== SURVIVANTS =====
@@ -162,6 +168,22 @@ export const CONFIG = {
       attack: { kind: 'cannon', splashRadius: 50, projectile: { shape: 'shell', speed: 500, color: '#ffb347', length: 0, width: 5, arcHeight: 70 } },
       unlockLevel: 5, bodyWidth: 96, bodyHeight: 72,
       strengths: 'Énorme blindage, détruit les bases', weaknesses: 'Très lent et cher, l’acide le ronge',
+    },
+    lanceRoquettes: {
+      side: 'player', name: 'Lance-roquettes', role: 'Anti-blindage',
+      cost: 160, hp: 90, damage: 60, attackInterval: 3.0, range: 250, speed: 45,
+      recruitCooldown: 6, tags: ['ranged'], bonuses: { heavy: 2.5, boss: 2 }, pierce: true,
+      attack: { kind: 'cannon', splashRadius: 30, projectile: { shape: 'rocket', speed: 620, color: '#ffcf7a', length: 0, width: 4, arcHeight: 18 } },
+      unlockLevel: 11, bodyWidth: 32, bodyHeight: 68,
+      strengths: 'Perce les Carapaces, ravage Brutes et boss', weaknesses: 'Tire lentement, très fragile',
+    },
+    mitrailleur: {
+      side: 'player', name: 'Mitrailleur lourd', role: 'Tir de barrage',
+      cost: 200, hp: 260, damage: 5, attackInterval: 0.15, range: 190, speed: 38,
+      recruitCooldown: 8, tags: ['ranged'], bonuses: { swarm: 1.6, fast: 1.3, flying: 1.3 }, antiAir: true, rapidFire: true,
+      attack: { kind: 'projectile', projectile: { shape: 'tracer', speed: 1150, color: '#ffe9a0', length: 16, width: 1.6, arcHeight: 0 } },
+      unlockLevel: 13, bodyWidth: 40, bodyHeight: 70,
+      strengths: 'Fauche les nuées, les larves et les volants', weaknesses: 'Lent, inutile contre les Carapaces',
     },
 
     // ===== MUTANTS =====
@@ -215,17 +237,68 @@ export const CONFIG = {
       attack: { kind: 'melee' }, bodyWidth: 64, bodyHeight: 40,
     },
     abomination: {
-      side: 'enemy', name: 'Abomination', role: 'Boss',
+      side: 'enemy', name: 'Abomination', role: 'Boss', banner: "L'ABOMINATION SORT DU NID !",
       cost: 600, hp: 2500, damage: 60, attackInterval: 2.5, range: 60, speed: 20,
       recruitCooldown: 0, tags: ['boss'], bonuses: {},
       attack: { kind: 'melee', splashRadius: 60 }, bodyWidth: 120, bodyHeight: 160,
+    },
+    // ----- Chapitre 2 -----
+    // Carapace : mutant cuirassé, les balles ricochent (Lance-roquettes, Blindé, mêlée et flammes conseillés)
+    carapace: {
+      side: 'enemy', name: 'Carapace', role: 'Cuirassé',
+      cost: 160, hp: 650, damage: 22, attackInterval: 1.4, range: 35, speed: 32,
+      recruitCooldown: 8, tags: ['heavy'], bonuses: { melee: 1.3 }, resist: { ranged: 0.4 },
+      attack: { kind: 'melee' }, bodyWidth: 64, bodyHeight: 62,
+    },
+    // Couveuse : sac de chair lent qui libère des larves à sa mort
+    couveuse: {
+      side: 'enemy', name: 'Couveuse', role: 'Pondeuse',
+      cost: 150, hp: 320, damage: 12, attackInterval: 1.2, range: 30, speed: 28,
+      recruitCooldown: 7, tags: ['swarm'], bonuses: {}, spawnOnDeath: { unit: 'larve', count: 4 },
+      attack: { kind: 'melee' }, bodyWidth: 60, bodyHeight: 54,
+    },
+    larve: {
+      side: 'enemy', name: 'Larve', role: 'Nuée',
+      cost: 0, hp: 40, damage: 7, attackInterval: 0.8, range: 25, speed: 110,
+      recruitCooldown: 0, tags: ['swarm', 'fast'], bonuses: {},
+      attack: { kind: 'melee' }, bodyWidth: 26, bodyHeight: 20,
+    },
+    // Hurleur : son cri accélère et renforce les mutants autour de lui
+    hurleur: {
+      side: 'enemy', name: 'Hurleur', role: 'Soutien',
+      cost: 130, hp: 170, damage: 10, attackInterval: 1.5, range: 140, speed: 45,
+      recruitCooldown: 6, tags: ['ranged'], bonuses: {}, howl: { radius: 170, speed: 0.3, damage: 0.25 },
+      attack: { kind: 'projectile', projectile: { shape: 'sonic', speed: 500, color: '#d070ff', length: 0, width: 8, arcHeight: 0 } },
+      bodyWidth: 40, bodyHeight: 76,
+    },
+    // Épineux : lance des épines d'os de très loin (plus loin que les Tireurs)
+    epineux: {
+      side: 'enemy', name: 'Épineux', role: 'Artilleur',
+      cost: 120, hp: 110, damage: 24, attackInterval: 2.4, range: 330, speed: 36,
+      recruitCooldown: 5, tags: ['ranged'], bonuses: { ranged: 1.5 },
+      attack: { kind: 'projectile', projectile: { shape: 'spine', speed: 560, color: '#e8dcb8', length: 0, width: 3, arcHeight: 60 } },
+      bodyWidth: 46, bodyHeight: 64,
+    },
+    matriarche: {
+      side: 'enemy', name: 'Matriarche', role: 'Boss', banner: 'LA MATRIARCHE SORT DU NID !',
+      cost: 800, hp: 5000, damage: 55, attackInterval: 2.2, range: 70, speed: 16,
+      recruitCooldown: 0, tags: ['boss'], bonuses: {}, summon: { unit: 'larve', count: 3, every: 6 },
+      attack: { kind: 'melee', splashRadius: 60 }, bodyWidth: 130, bodyHeight: 150,
+    },
+    fleau: {
+      side: 'enemy', name: 'Le Fléau', role: 'Boss final', banner: 'LE FLÉAU SE RÉVEILLE !',
+      cost: 1200, hp: 9000, damage: 80, attackInterval: 2.4, range: 80, speed: 18,
+      recruitCooldown: 0, tags: ['boss'], bonuses: {},
+      phases: { at: [0.66, 0.33], speed: 1.25, damage: 1.25, reinforcements: ['brute', 'chien', 'chien', 'hurleur'],
+                banner: 'LE FLÉAU ENRAGE !' },
+      attack: { kind: 'melee', splashRadius: 80 }, bodyWidth: 150, bodyHeight: 190,
     },
   },
 
   // ---------- Commandants (héros) ----------
   // Un seul par partie, choisi dans l'onglet HÉROS. Il arrive seul après deployDelay secondes,
   // revient respawnTime secondes après sa mort, et a une capacité (bouton portrait / touche E).
-  // Amélioration : on dépense des étoiles (toutes celles gagnées dans la campagne, tous modes).
+  // Amélioration : on dépense des étoiles (toutes celles gagnées dans la campagne).
   heroes: {
     deployDelay: 10,
     respawnTime: 45,
@@ -279,10 +352,13 @@ export const CONFIG = {
     spawnWindow: 0.7,             // les mutants d'une vague arrivent pendant 70 % de sa durée
     baseCount: 5, countPerWave: 1.4,          // nombre de mutants : 5 + 1,4 × (vague - 1)
     hpPerWave: 0.08, damagePerWave: 0.05,     // renforcement des mutants à chaque vague
-    unitsFromWave: { goule: 1, cracheur: 1, chien: 3, rouilleur: 4, brute: 5, charognard: 6 },
-    weights: { goule: 4, cracheur: 3, chien: 2, rouilleur: 1.5, brute: 1, charognard: 1.5 },
+    unitsFromWave: { goule: 1, cracheur: 1, chien: 3, rouilleur: 4, brute: 5, charognard: 6,
+                     carapace: 8, epineux: 9, couveuse: 11, hurleur: 13 },
+    weights: { goule: 4, cracheur: 3, chien: 2, rouilleur: 1.5, brute: 1, charognard: 1.5,
+               carapace: 1, epineux: 1, couveuse: 1, hurleur: 0.7 },
     specialEvery: 5,              // vague spéciale (une seule espèce, en nombre)
-    bossEvery: 10,                // vague de boss : 1 Abomination par tranche de 10 vagues
+    bossEvery: 10,                // vague de boss toutes les 10 vagues
+    bossCycle: ['abomination', 'matriarche', 'fleau'],   // boss des vagues 10, 20, 30, puis on recommence (×2…)
     turret: { damage: 10, perWave: 0.6, interval: 0.6, range: 300 },
     score: { perWave: 500, perKill: 10 },
     rewards: { perWave: 3, milestoneEvery: 5, milestonePieces: 25 },   // pièces : 3 par vague + paliers
@@ -290,8 +366,10 @@ export const CONFIG = {
     cards: {
       perforant:  { name: 'Munitions perforantes', desc: 'Tireurs : +25 % de dégâts', icon: 'tireur' },
       gilets:     { name: 'Gilets renforcés', desc: 'Pillards et Motards : +30 % de PV', icon: 'pillard' },
-      napalm:     { name: 'Napalm', desc: 'Lance-flammes : +30 % de dégâts', icon: 'lanceFlammes' },
-      blindage:   { name: 'Blindage lourd', desc: 'Blindés : +35 % de PV', icon: 'blinde' },
+      napalm:     { name: 'Napalm', desc: 'Lance-flammes : +30 % de dégâts', icon: 'lanceFlammes', needs: 'lanceFlammes' },
+      blindage:   { name: 'Blindage lourd', desc: 'Blindés : +35 % de PV', icon: 'blinde', needs: 'blinde' },
+      ogives:     { name: 'Ogives perforantes', desc: 'Lance-roquettes : +30 % de dégâts', icon: 'lanceRoquettes', needs: 'lanceRoquettes' },
+      bandes:     { name: 'Bandes de munitions', desc: 'Mitrailleurs : +25 % de dégâts', icon: 'mitrailleur', needs: 'mitrailleur' },
       recup:      { name: 'Récupération', desc: 'Ferraille des ennemis tués : +50 %', icon: 'income' },
       revenu:     { name: 'Raffinerie de fortune', desc: '+4 ferraille par seconde', icon: 'income' },
       barbeles:   { name: 'Barbelés électrifiés', desc: 'Les mutants près du fort perdent 15 PV/s', icon: 'walls' },
@@ -326,7 +404,7 @@ export const CONFIG = {
   // ---------- Atelier ----------
   // Chaque amélioration a 5 niveaux. Les unités sont améliorées séparément.
   workshop: {
-    order: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde', 'walls', 'turret', 'salvage', 'spells'],
+    order: ['pillard', 'tireur', 'motard', 'lanceFlammes', 'blinde', 'lanceRoquettes', 'mitrailleur', 'walls', 'turret', 'salvage', 'spells'],
     names: { walls: 'Murailles', turret: 'Tourelle', salvage: 'Récupération', spells: 'Sorts' },
     maxLevel: 10,
     costs: [10, 20, 35, 55, 80, 110, 150, 200, 260, 330],   // pièces détachées par niveau
@@ -350,6 +428,9 @@ export const CONFIG = {
       brute: ['melee', 'fast', 'heavy'],
       rouilleur: ['heavy'],
       charognard: ['ranged'],
+      carapace: ['ranged'],
+      couveuse: ['heavy'],
+      epineux: ['ranged', 'heavy'],
     },
     counterStrength: 3,       // 0 = ignore la composition du joueur
     maxSaveTime: 40,          // durée max d'économie pour une vague (s)
@@ -362,19 +443,11 @@ export const CONFIG = {
     },
   },
 
-  // ---------- Modes de difficulté ----------
-  // Chaque mode rejoue la campagne avec un ennemi plus fort. Multiplicateurs appliqués aux niveaux.
-  // unlockAfter : mode à terminer (dernier niveau gagné) pour débloquer celui-ci.
-  // extraWeights : unités ajoutées à l'IA dans tous les niveaux ; extraBosses : boss en plus (id de niveau).
-  modes: {
-    normal: { name: 'Normal', unlockAfter: null, aiIncomeMult: 1, aiStartScrap: 0, enemyBaseHp: 1, turretDamage: 1,
-              extraWeights: {}, extraBosses: [], partsMult: 1, mapTint: null },
-    hard: { name: 'Difficile', unlockAfter: 'normal', aiIncomeMult: 1.6, aiStartScrap: 250, enemyBaseHp: 1.5, turretDamage: 1.5,
-            extraWeights: { rouilleur: 1, charognard: 1 }, extraBosses: [8], partsMult: 1.5, mapTint: 'rgba(140,40,20,0.22)' },
-    nightmare: { name: 'Cauchemar', unlockAfter: 'hard', aiIncomeMult: 2.4, aiStartScrap: 500, enemyBaseHp: 2, turretDamage: 2,
-                 extraWeights: { rouilleur: 2, charognard: 2, brute: 1 }, extraBosses: [3, 7, 8, 9], partsMult: 2, mapTint: 'rgba(60,10,60,0.35)' },
-  },
-  modeOrder: ['normal', 'hard', 'nightmare'],
+  // ---------- Chapitres de la campagne (onglets de la carte) ----------
+  chapters: [
+    { name: 'CHAPITRE 1', title: 'Les Terres mortes', first: 1, last: 10 },
+    { name: 'CHAPITRE 2', title: 'Le Fléau', first: 11, last: 20, mapTint: 'rgba(90,20,40,0.22)' },
+  ],
 
   // ---------- Niveaux ----------
   // ai.weights      : poids de tirage de chaque unité ennemie (= unités disponibles)
@@ -383,8 +456,10 @@ export const CONFIG = {
   // ai.defenseDistance : si mes unités sont à moins de ça de sa base, l'IA dépense tout
   // bosses          : boss lancés quand la base ennemie descend sous un % de PV
   // aiStartScrap    : ferraille de l'IA au début de la partie
-  // Difficulté (étape 5) : niveaux 1-5 gagnables sans atelier ; à partir du 7-8,
-  // l'atelier devient nécessaire. Le revenu de l'IA (aiIncomeMult) est le levier principal.
+  // bosses[].unit   : abomination, matriarche ou fleau
+  // Difficulté : niveaux 1-5 gagnables sans atelier ; à partir du 7-8 l'atelier devient
+  // nécessaire, et le chapitre 2 demande de l'améliorer régulièrement.
+  // Le revenu de l'IA (aiIncomeMult) est le levier principal.
   levels: [
     { id: 1, name: 'Banlieue morte', enemyBaseHp: 1000, aiIncomeMult: 0.9, aiStartScrap: 150,
       enemyTurret: { damage: 8, interval: 0.6, range: 300 },
@@ -446,6 +521,68 @@ export const CONFIG = {
             waves: { chance: 0.55, min: 8, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
       objectives: [{ type: 'time', max: 900 }, { type: 'losses', max: 180 }],
       bosses: [{ unit: 'abomination', atBaseHpRatio: 0.6 }, { unit: 'abomination', atBaseHpRatio: 0.3 }] },
+
+    // ===== Chapitre 2 : le Fléau =====
+    { id: 11, name: 'Faubourgs brûlés', enemyBaseHp: 4200, aiIncomeMult: 4.0, aiStartScrap: 750,
+      enemyTurret: { damage: 54, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 3, chien: 2, brute: 1, rouilleur: 2, charognard: 1, carapace: 2 },
+            waves: { chance: 0.5, min: 8, max: 12 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 600 }, { type: 'losses', max: 90 }],
+      bosses: [] },
+    { id: 12, name: 'Barrage fissuré', enemyBaseHp: 4600, aiIncomeMult: 4.4, aiStartScrap: 800,
+      enemyTurret: { damage: 57, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 1, rouilleur: 2, charognard: 1, carapace: 2, epineux: 2 },
+            waves: { chance: 0.5, min: 8, max: 12 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 600 }, { type: 'losses', max: 100 }],
+      bosses: [] },
+    { id: 13, name: 'Couvoir', enemyBaseHp: 5000, aiIncomeMult: 5.0, aiStartScrap: 850,
+      enemyTurret: { damage: 60, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 1, rouilleur: 1, charognard: 1, carapace: 1, epineux: 1, couveuse: 3 },
+            waves: { chance: 0.55, min: 8, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 630 }, { type: 'losses', max: 110 }],
+      bosses: [] },
+    { id: 14, name: 'Base aérienne', enemyBaseHp: 5400, aiIncomeMult: 5.5, aiStartScrap: 900,
+      enemyTurret: { damage: 63, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 1, rouilleur: 2, charognard: 3, carapace: 2, epineux: 2, couveuse: 1 },
+            waves: { chance: 0.55, min: 9, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 660 }, { type: 'losses', max: 120 }],
+      bosses: [] },
+    { id: 15, name: 'Antre de la Matriarche', enemyBaseHp: 5800, aiIncomeMult: 6.3, aiStartScrap: 950,
+      enemyTurret: { damage: 66, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 1, rouilleur: 1, charognard: 2, carapace: 1, epineux: 1, couveuse: 3 },
+            waves: { chance: 0.55, min: 9, max: 13 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 780 }, { type: 'losses', max: 150 }],
+      bosses: [{ unit: 'matriarche', atBaseHpRatio: 0.5 }] },
+    { id: 16, name: 'Gare de triage', enemyBaseHp: 6200, aiIncomeMult: 7.4, aiStartScrap: 1000,
+      enemyTurret: { damage: 69, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 3, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 2, epineux: 1, couveuse: 1, hurleur: 2 },
+            waves: { chance: 0.6, min: 9, max: 14 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 720 }, { type: 'losses', max: 140 }],
+      bosses: [] },
+    { id: 17, name: 'Désert de verre', enemyBaseHp: 6600, aiIncomeMult: 8.0, aiStartScrap: 1050,
+      enemyTurret: { damage: 72, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 3, brute: 2, rouilleur: 2, charognard: 2, carapace: 2, epineux: 2, couveuse: 1, hurleur: 2 },
+            waves: { chance: 0.6, min: 10, max: 14 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 750 }, { type: 'losses', max: 150 }],
+      bosses: [] },
+    { id: 18, name: 'Observatoire', enemyBaseHp: 7000, aiIncomeMult: 8.8, aiStartScrap: 1100,
+      enemyTurret: { damage: 76, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 2, epineux: 2, couveuse: 2, hurleur: 2 },
+            waves: { chance: 0.6, min: 10, max: 15 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 840 }, { type: 'losses', max: 170 }],
+      bosses: [{ unit: 'abomination', atBaseHpRatio: 0.5 }] },
+    { id: 19, name: 'Cratère', enemyBaseHp: 7600, aiIncomeMult: 9.4, aiStartScrap: 1200,
+      enemyTurret: { damage: 80, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 3, epineux: 2, couveuse: 2, hurleur: 2 },
+            waves: { chance: 0.65, min: 10, max: 15 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 840 }, { type: 'losses', max: 180 }],
+      bosses: [] },
+    { id: 20, name: 'Cœur du Fléau', enemyBaseHp: 8500, aiIncomeMult: 9.6, aiStartScrap: 1300,
+      enemyTurret: { damage: 85, interval: 0.45, range: 370 },
+      ai: { decisionInterval: 1, firstDelay: 3, buyChance: 1, weights: { goule: 2, cracheur: 2, chien: 2, brute: 2, rouilleur: 2, charognard: 2, carapace: 3, epineux: 2, couveuse: 2, hurleur: 2 },
+            waves: { chance: 0.65, min: 11, max: 16 }, defenseDistance: 600, incomeUpgrades: 'fast' },
+      objectives: [{ type: 'time', max: 1200 }, { type: 'losses', max: 300 }],
+      bosses: [{ unit: 'abomination', atBaseHpRatio: 0.75 }, { unit: 'matriarche', atBaseHpRatio: 0.5 }, { unit: 'fleau', atBaseHpRatio: 0.25 }] },
   ],
 
   // ---------- Performance ----------

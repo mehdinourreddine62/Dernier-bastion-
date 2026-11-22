@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=17';
+import { CONFIG } from './config.js?v=18';
 
 // Succès : défis qui rapportent des pièces détachées.
 // - les succès « de partie » sont vérifiés à la fin de chaque partie (objet `ctx`) ;
@@ -6,7 +6,7 @@ import { CONFIG } from './config.js?v=17';
 // reward : pièces gagnées une seule fois. goal/total : pour afficher une progression.
 
 const lastLevelId = () => CONFIG.levels[CONFIG.levels.length - 1].id;
-const allStars = (p, mode) => CONFIG.levels.every((l) => (p.modes[mode].stars[l.id] || 0) >= 3);
+const allStars = (p) => CONFIG.levels.every((l) => (p.stars[l.id] || 0) >= 3);
 
 export const ACHIEVEMENTS = [
   { id: 'firstWin', name: 'Premier bastion', desc: 'Gagner une partie', reward: 20,
@@ -45,19 +45,21 @@ export const ACHIEVEMENTS = [
     goal: 50, total: (p) => p.totals.rouilleur },
   { id: 'engineer', name: 'Ingénieur en chef', desc: 'Monter une amélioration de l’atelier au niveau 10', reward: 80,
     check: (c) => Object.values(c.progress.upgrades).some((l) => l >= CONFIG.workshop.maxLevel) },
-  { id: 'survivor', name: 'Survivant', desc: 'Terminer la campagne en mode Normal', reward: 100,
-    check: (c) => !!c.progress.modes.normal.won[lastLevelId()] },
-  { id: 'veteran', name: 'Vétéran', desc: 'Terminer la campagne en mode Difficile', reward: 200,
-    check: (c) => !!c.progress.modes.hard.won[lastLevelId()] },
-  { id: 'legend', name: 'Légende du Bastion', desc: 'Terminer la campagne en mode Cauchemar', reward: 400,
-    check: (c) => !!c.progress.modes.nightmare.won[lastLevelId()] },
-  { id: 'perfectionist', name: 'Perfectionniste', desc: 'Obtenir 3 étoiles sur les 10 niveaux en Normal', reward: 150,
-    check: (c) => allStars(c.progress, 'normal') },
+  { id: 'queenKill', name: 'Régicide', desc: 'Vaincre la Matriarche', reward: 60,
+    check: (c) => (c.game.stats.killedEnemy.matriarche || 0) > 0 },
+  { id: 'shellBreaker', name: 'Brise-carapace', desc: 'Abattre 50 Carapaces au total', reward: 50,
+    goal: 50, total: (p) => p.totals.carapace },
+  { id: 'survivor', name: 'Survivant', desc: 'Terminer le chapitre 1', reward: 100,
+    check: (c) => !!c.progress.won[CONFIG.chapters[0].last] },
+  { id: 'legend', name: 'Légende du Bastion', desc: 'Vaincre le Fléau et terminer la campagne', reward: 300,
+    check: (c) => !!c.progress.won[lastLevelId()] },
+  { id: 'perfectionist', name: 'Perfectionniste', desc: 'Obtenir 3 étoiles sur les 20 niveaux', reward: 250,
+    check: (c) => allStars(c.progress) },
 ];
 
 export function normalizeAchievements(p) {
   p.achievements = p.achievements || {};
-  p.totals = Object.assign({ kills: 0, charognard: 0, rouilleur: 0 }, p.totals || {});
+  p.totals = Object.assign({ kills: 0, charognard: 0, rouilleur: 0, carapace: 0 }, p.totals || {});
 }
 
 export const unlockedCount = (p) => ACHIEVEMENTS.filter((a) => p.achievements[a.id]).length;
@@ -72,6 +74,7 @@ export function checkAchievements(p, game) {
     p.totals.kills += game.stats.killed;
     p.totals.charognard += k.charognard || 0;
     p.totals.rouilleur += k.rouilleur || 0;
+    p.totals.carapace += k.carapace || 0;
   }
   const ctx = { progress: p, game, won: !!game && game.result === 'won' };
   const fresh = [];

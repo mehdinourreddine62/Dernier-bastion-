@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=17';
+import { CONFIG } from '../config.js?v=18';
 
 // Décor en parallaxe : ciel (fixe), ruines lointaines, ruines proches, sol avec débris,
 // et quelques débris au premier plan. Les couches lointaines et le sol sont dessinés
@@ -80,8 +80,72 @@ const THEMES = {
   },
 };
 
+// ---------- Chapitre 2 : le Fléau ----------
+Object.assign(THEMES, {
+  11: { // Faubourgs brûlés
+    sky: ['#3a1c14', '#8a3a1e', '#d8783a'], sun: [820, 200, 46], glow: '255,160,90',
+    far: '#6e3a28', mid: '#38201a', midLight: '#52302a', fog: '220,120,70',
+    ground: ['#6a4a34', '#4a3224', '#241812'], road: true,
+    features: ['house', 'deadTree', 'house', 'flare', 'house', 'pylon'], farH: [70, 160], midH: [70, 150], air: 'embers',
+  },
+  12: { // Barrage fissuré
+    sky: ['#3c4c5a', '#7a8c94', '#c8c8b4'], sun: [1000, 150, 40], glow: '230,240,230',
+    far: '#6a7884', mid: '#3a444c', midLight: '#526068', fog: '180,196,200',
+    ground: ['#6e6a58', '#4e4a3c', '#262420'], road: true,
+    features: ['dam', 'pylon', 'pylon', 'watchTower'], farH: [140, 240], midH: [80, 160], air: 'dust',
+  },
+  13: { // Couvoir
+    sky: ['#2e1a2a', '#6a3050', '#c07a7a'], sun: [700, 180, 50], glow: '255,170,170',
+    far: '#5a3448', mid: '#2e1822', midLight: '#442432', fog: '190,110,120',
+    ground: ['#5e3a3a', '#422626', '#201212'], road: false, organic: true,
+    features: ['pod', 'spire', 'pod', 'deadTree', 'pod'], farH: [80, 180], midH: [70, 150], air: 'spores',
+  },
+  14: { // Base aérienne
+    sky: ['#4a5462', '#9a9c9a', '#e0d0ae'], sun: [900, 140, 42], glow: '255,240,210',
+    far: '#7e8288', mid: '#40444a', midLight: '#585e64', fog: '210,205,190',
+    ground: ['#7a7262', '#58524a', '#2c2824'], road: true,
+    features: ['hangar', 'watchTower', 'dish', 'hangar', 'pylon'], farH: [60, 140], midH: [70, 140], air: 'dust',
+  },
+  15: { // Antre de la Matriarche
+    sky: ['#1e0a16', '#5a1630', '#a8404a'], sun: [600, 160, 62], glow: '255,120,120',
+    far: '#4e2232', mid: '#26101a', midLight: '#3c1a28', fog: '170,70,80',
+    ground: ['#5a2c2c', '#3e1c1c', '#1c0c0c'], road: false, organic: true,
+    features: ['pod', 'spire', 'spire', 'pod', 'pod'], farH: [100, 220], midH: [90, 200], air: 'spores',
+  },
+  16: { // Gare de triage
+    sky: ['#4e3a30', '#a06a48', '#e8b880'], sun: [1060, 190, 44], glow: '255,210,150',
+    far: '#8a6852', mid: '#463228', midLight: '#5e463a', fog: '230,180,130',
+    ground: ['#7a6048', '#584432', '#2c2218'], road: false,
+    features: ['containers', 'crane', 'pylon', 'containers', 'tank', 'chimney'], farH: [80, 180], midH: [70, 150], air: 'ash',
+  },
+  17: { // Désert de verre
+    sky: ['#6a8aa0', '#d0b88a', '#f4e0b0'], sun: [700, 120, 56], glow: '255,250,220',
+    far: '#c8a878', mid: '#8a6a48', midLight: '#a8885e', fog: '250,226,180',
+    ground: ['#d0aa72', '#aa8656', '#5e4630'], road: false,
+    features: ['mesa', 'deadTree', 'mesa', 'billboard', 'mesa'], farH: [40, 110], midH: [50, 110], air: 'dust',
+  },
+  18: { // Observatoire
+    sky: ['#141a32', '#3a3a5e', '#9a6a7a'], sun: [980, 120, 30], glow: '220,220,255',
+    far: '#3e4060', mid: '#22243a', midLight: '#34385a', fog: '120,120,170',
+    ground: ['#4a4450', '#34303a', '#18161c'], road: true,
+    features: ['dome', 'dish', 'pylon', 'dome', 'dish'], farH: [80, 180], midH: [70, 150], air: 'ash',
+  },
+  19: { // Cratère
+    sky: ['#2a2420', '#6a5040', '#c8945a'], sun: [640, 220, 70], glow: '255,190,120',
+    far: '#5e4a3c', mid: '#30261e', midLight: '#46382c', fog: '200,150,100',
+    ground: ['#5a4838', '#3e3226', '#1c1610'], road: false,
+    features: ['ruinGlow', 'mesa', 'ruinGlow', 'chimney', 'deadTree'], farH: [40, 120], midH: [60, 140], air: 'embers',
+  },
+  20: { // Cœur du Fléau
+    sky: ['#0e0612', '#3e0e2a', '#8a2238'], sun: [640, 150, 80], glow: '255,80,110',
+    far: '#3a1428', mid: '#1c0812', midLight: '#30101e', fog: '150,40,70',
+    ground: ['#4a1c24', '#321218', '#16080a'], road: false, organic: true,
+    features: ['spire', 'pod', 'spire', 'spire', 'pod', 'skyscraper'], farH: [120, 260], midH: [110, 240], air: 'spores',
+  },
+});
+
 // Survie : nuit, lune rouge, ruines en feu
-THEMES[11] = {
+THEMES[99] = {
   sky: ['#06060f', '#1c1226', '#4a1e22'], sun: [960, 110, 26], glow: '255,110,90',
   far: '#1e1826', mid: '#141018', midLight: '#241c28', fog: '110,40,40',
   ground: ['#2a1c1a', '#1a1210', '#0a0606'], road: true,
@@ -363,6 +427,67 @@ const FEATURES = {
     poly(c, [x - 34, base - h - 30, x, base - h - 52, x + 34, base - h - 30], t.mid);
     c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(x - 18, base - h - 24, 36, 10);
     return 80;
+  },
+  dam(c, r, x, base, t) {
+    const w = 420, h = 170;
+    poly(c, [x, base, x + 30, base - h, x + w - 30, base - h, x + w, base], t.mid);
+    c.fillStyle = t.midLight; c.fillRect(x + 30, base - h, w - 60, 6);
+    c.fillStyle = 'rgba(0,0,0,0.18)';
+    for (let i = 1; i < 7; i++) c.fillRect(x + 30 + i * (w - 60) / 7, base - h, 3, h);
+    // fissure et filet d'eau
+    c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x + 200, base - h); c.lineTo(x + 215, base - h + 40); c.lineTo(x + 205, base - h + 80); c.lineTo(x + 222, base - 40); c.stroke();
+    c.fillStyle = 'rgba(160,190,210,0.35)'; c.fillRect(x + 206, base - h + 40, 10, h - 40);
+    return w + 30;
+  },
+  pod(c, r, x, base, t) {
+    // cocon de chair translucide
+    const h = 60 + r() * 50, w = 34 + r() * 16;
+    c.fillStyle = t.mid;
+    c.beginPath(); c.ellipse(x + w / 2, base - h / 2, w / 2, h / 2, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(200,90,110,0.25)';
+    c.beginPath(); c.ellipse(x + w / 2 + 4, base - h / 2, w / 3, h / 3, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = t.midLight; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x + w / 2, base - h); c.quadraticCurveTo(x + w, base - h * 0.5, x + w / 2, base); c.stroke();
+    line(c, x + w / 2, base - h, x + w / 2 - 10, base - h - 26, 3, t.mid);   // filament
+    return w + 30 + r() * 30;
+  },
+  hangar(c, r, x, base, t) {
+    const w = 220, h = 90;
+    c.fillStyle = t.mid;
+    c.beginPath(); c.moveTo(x, base); c.lineTo(x, base - h * 0.5); c.quadraticCurveTo(x + w / 2, base - h * 1.5, x + w, base - h * 0.5); c.lineTo(x + w, base); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x + 50, base - h * 0.6, w - 100, h * 0.6);   // porte béante
+    c.strokeStyle = t.midLight; c.lineWidth = 2;
+    for (let i = 1; i < 6; i++) { c.beginPath(); c.moveTo(x + i * w / 6, base - h * 0.9 + Math.abs(i - 3) * 12); c.lineTo(x + i * w / 6, base - h * 0.6); c.stroke(); }
+    return w + 40;
+  },
+  dish(c, r, x, base, t) {
+    const h = 110;
+    line(c, x - 14, base, x, base - h, 4, t.mid); line(c, x + 14, base, x, base - h, 4, t.mid);
+    c.save(); c.translate(x, base - h - 10); c.rotate(-0.5);
+    c.fillStyle = t.mid; c.beginPath(); c.ellipse(0, 0, 52, 18, 0, Math.PI, 0); c.fill();
+    c.fillStyle = t.midLight; c.beginPath(); c.ellipse(0, -2, 46, 8, 0, Math.PI, 0); c.fill();
+    line(c, 0, 0, 0, -36, 2, t.mid);
+    c.restore();
+    return 110;
+  },
+  dome(c, r, x, base, t) {
+    const w = 140, h = 110;
+    c.fillStyle = t.mid; c.fillRect(x, base - 50, w, 50);
+    c.beginPath(); c.ellipse(x + w / 2, base - 50, w / 2, h - 50, 0, Math.PI, 0); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.4)';
+    poly(c, [x + w / 2 - 8, base - h, x + w / 2 + 8, base - h, x + w / 2 + 14, base - 56, x + w / 2 - 14, base - 56], 'rgba(0,0,0,0.4)');   // fente ouverte
+    c.fillStyle = t.midLight; c.fillRect(x + w - 14, base - 50, 14, 50);
+    return w + 40;
+  },
+  mesa(c, r, x, base, t) {
+    const w = 160 + r() * 120, h = 60 + r() * 60;
+    poly(c, [x, base, x + w * 0.15, base - h, x + w * 0.8, base - h - 6, x + w, base], t.mid);
+    c.fillStyle = 'rgba(0,0,0,0.12)';
+    for (let k = 1; k < 4; k++) c.fillRect(x + w * 0.1, base - h * k / 4, w * 0.8, 2);
+    // éclats de verre qui brillent
+    for (let k = 0; k < 4; k++) { c.fillStyle = 'rgba(200,240,255,0.5)'; c.fillRect(x + r() * w, base - r() * h * 0.8, 3, 3); }
+    return w + 30;
   },
   spire(c, r, x, base, t) {
     const h = 150 + r() * 80;

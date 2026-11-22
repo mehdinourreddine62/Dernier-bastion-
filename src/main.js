@@ -1,19 +1,19 @@
-import { CONFIG } from './config.js?v=17';
-import { Game } from './game/Game.js?v=17';
-import { Camera } from './game/Camera.js?v=17';
-import { Renderer } from './render/Renderer.js?v=17';
-import { HUD } from './ui/HUD.js?v=17';
-import { Input } from './ui/input.js?v=17';
-import * as screens from './ui/screens.js?v=17';
-import * as campaign from './ui/campaign.js?v=17';
-import * as workshop from './ui/workshop.js?v=17';
-import { Tutorial } from './ui/tutorial.js?v=17';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=17';
+import { CONFIG } from './config.js?v=18';
+import { Game } from './game/Game.js?v=18';
+import { Camera } from './game/Camera.js?v=18';
+import { Renderer } from './render/Renderer.js?v=18';
+import { HUD } from './ui/HUD.js?v=18';
+import { Input } from './ui/input.js?v=18';
+import * as screens from './ui/screens.js?v=18';
+import * as campaign from './ui/campaign.js?v=18';
+import * as workshop from './ui/workshop.js?v=18';
+import { Tutorial } from './ui/tutorial.js?v=18';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=18';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
-  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked } from './progress.js?v=17';
-import { Sfx } from './audio/sfx.js?v=17';
-import { Music } from './audio/music.js?v=17';
-import { loadSave, writeSave } from './save.js?v=17';
+  heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf } from './progress.js?v=18';
+import { Sfx } from './audio/sfx.js?v=18';
+import { Music } from './audio/music.js?v=18';
+import { loadSave, writeSave } from './save.js?v=18';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -51,6 +51,7 @@ let screen = 'title';
 let game = null;
 let selectedLevel = 0;
 let mapInfo = null;      // niveau dont la fiche est ouverte sur la carte
+let mapChapter = chapterOf(progress.unlocked);   // chapitre affiché sur la carte
 let confirm = null;      // demande de confirmation { text, onYes }
 let reward = null;       // gains de la dernière partie (écran de fin)
 let tutorial = null;     // tutoriel en cours (niveau 1, première fois)
@@ -94,7 +95,7 @@ function askConfirm(text, onYes) { confirm = { text, onYes }; }
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
-  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode,
+  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked,
     hero: heroForGame(progress), survival: survivalRun });
   game.survivalBest = progress.survival.bestWave;
   reward = null;
@@ -217,7 +218,7 @@ function buildButtons() {
     case 'confirm': return screens.confirmButtons(view);
     case 'title': return screens.titleButtons(view, !isInstalled());
     case 'options': return screens.optionsButtons(view, settings, QUALITY_LABEL[settings.quality]);
-    case 'map': return campaign.mapButtons(view, progress, mapInfo);
+    case 'map': return campaign.mapButtons(view, progress, mapInfo, mapChapter);
     case 'workshop': return workshop.workshopButtons(view, progress, workshopTab);
     case 'pause': return screens.pauseButtons(view, settings);
     case 'end': return screens.endButtons(view, game);
@@ -243,6 +244,8 @@ input.hitTest = (x, y) => {
 };
 
 function goToMap() {
+  // la carte s'ouvre sur le chapitre du niveau qu'on vient de jouer (sinon le dernier débloqué)
+  mapChapter = chapterOf(game && !survivalRun ? Math.min(game.level.id + (game.result === 'won' ? 1 : 0), progress.unlocked) : progress.unlocked);
   screen = 'map';
   mapInfo = null;
   game = null;
@@ -263,12 +266,10 @@ input.onButton = (b) => {
   if (b.id.startsWith('tab:')) { workshopTab = b.id.slice(4); return; }
   if (b.id.startsWith('card:')) { game.survival.choose(b.card); return; }
   sfx.play('click');
-  // Carte : choix du mode de difficulté
-  if (b.mode) {
-    if (b.lockedMode) {
-      const after = CONFIG.modes[CONFIG.modes[b.mode].unlockAfter].name;
-      showToast('Termine la campagne en mode ' + after + '\npour débloquer le mode ' + CONFIG.modes[b.mode].name + '.', 3);
-    } else { progress.mode = b.mode; saveAll(); }
+  // Carte : choix du chapitre
+  if (b.chapter !== undefined) {
+    if (b.lockedChapter) showToast('Termine le niveau ' + (CONFIG.chapters[b.chapter].first - 1) + '\npour ouvrir le ' + CONFIG.chapters[b.chapter].name.toLowerCase() + '.', 3);
+    else mapChapter = b.chapter;
     return;
   }
   // Carte : toucher une étape ouvre sa fiche
@@ -326,7 +327,7 @@ input.onButton = (b) => {
     // --- carte ---
     case 'launch': selectedLevel = mapInfo; mapInfo = null; survivalRun = false; startGame(); break;
     case 'survival':
-      if (!isSurvivalUnlocked(progress)) showToast('Termine le niveau ' + CONFIG.survival.unlockAfterLevel + ' en mode Normal\npour débloquer la Survie.', 3);
+      if (!isSurvivalUnlocked(progress)) showToast('Termine le niveau ' + CONFIG.survival.unlockAfterLevel + '\npour débloquer la Survie.', 3);
       else { survivalRun = true; startGame(); }
       break;
     case 'closeInfo': mapInfo = null; break;
@@ -482,7 +483,7 @@ function frame(now) {
     // Fin de partie : étoiles, pièces, déblocages -> sauvegarde automatique
     if (game.result && !reward) {
       reward = game.survival ? recordSurvival(progress, game)
-        : recordResult(progress, game.mode, game.levelIndex, game.result === 'won', game.stars);
+        : recordResult(progress, game.levelIndex, game.result === 'won', game.stars);
       reward.achievements = checkAchievements(progress, game);
       if (reward.achievements.length) sfx.play('upgrade');
       saveAll();
@@ -529,7 +530,7 @@ function render(time) {
     else if (screen === 'options') screens.drawOptions(ctx, buttons, p);
     else if (screen === 'achievements') screens.drawAchievements(ctx, progress, achPage, buttons, p);
     else if (screen === 'map') {
-      campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null), mapInfo === null ? p : new Set(), mapInfo, time);
+      campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null, mapChapter), mapInfo === null ? p : new Set(), mapInfo, time, mapChapter);
       if (mapInfo !== null && !confirm) campaign.drawLevelInfo(ctx, progress, mapInfo, buttons, p);
     } else if (screen === 'workshop') {
       const wb = confirm ? workshop.workshopButtons(view, progress, workshopTab) : buttons;

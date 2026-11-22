@@ -1,11 +1,11 @@
-import { CONFIG } from '../config.js?v=17';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=17';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=17';
+import { CONFIG } from '../config.js?v=18';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=18';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=18';
 import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel,
-  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=17';
+  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=18';
 
 // Atelier, deux onglets :
-//  - ATELIER : on dépense les pièces détachées (9 améliorations de 10 niveaux) ;
+//  - ATELIER : on dépense les pièces détachées (11 améliorations de 10 niveaux, grille 4 × 3) ;
 //  - HÉROS   : on choisit son commandant et on l'améliore avec les étoiles de la campagne.
 
 const W = CONFIG.display.width;
@@ -16,10 +16,11 @@ function layoutGrid(bh) { GRID.y = Math.max(96, 18 + bh + 8); GRID.h = H - 14 - 
 
 const minSize = (view) => CONFIG.display.minButtonPx / view.scale;
 
+const COLS = 4;
 function cardRect(i) {
-  const cw = (GRID.w - GRID.gap * 2) / 3;
+  const cw = (GRID.w - GRID.gap * (COLS - 1)) / COLS;
   const ch = (GRID.h - GRID.gap * 2) / 3;
-  return { x: GRID.x + (i % 3) * (cw + GRID.gap), y: GRID.y + Math.floor(i / 3) * (ch + GRID.gap), w: cw, h: ch };
+  return { x: GRID.x + (i % COLS) * (cw + GRID.gap), y: GRID.y + Math.floor(i / COLS) * (ch + GRID.gap), w: cw, h: ch };
 }
 
 const nameOf = (id) => (CONFIG.units[id] ? CONFIG.units[id].name : CONFIG.workshop.names[id]);
@@ -47,7 +48,7 @@ export function workshopButtons(view, progress, tab = 'workshop') {
     const cost = upgradeCost(progress, id);
     const avail = isUpgradeAvailable(progress, id);
     if (!avail) return;
-    const w = Math.max(140, m), h = Math.max(50, m);
+    const w = Math.max(150, m), h = Math.max(46, m);
     btns.push({
       id: 'buy:' + id, upgrade: id, cost,
       label: cost === null ? 'MAX' : cost + ' pièces',
@@ -91,19 +92,32 @@ export function drawWorkshop(ctx, progress, buttons, pressed) {
 
     // nom + niveaux
     fitText(ctx, nameOf(id), c.x + 90, c.y + 36, 22, avail ? COL.text : COL.dim, c.w - 100);
+    const pip = Math.min(19, (c.w - 100) / maxLvl);
     for (let k = 0; k < maxLvl; k++) {
       ctx.fillStyle = k < lvl ? COL.good : 'rgba(0,0,0,0.45)';
-      ctx.fillRect(c.x + 90 + k * 19, c.y + 50, 14, 10);
+      ctx.fillRect(c.x + 90 + k * pip, c.y + 50, pip - 5, 10);
     }
 
-    const textW = c.w - 24 - (byId[id] ? byId[id].w + 12 : 0);
     if (!avail) {
       fitText(ctx, 'Débloqué au niveau ' + upgradeUnlockLevel(id), c.x + 14, c.y + c.h - 24, 18, COL.dim, c.w - 28);
       return;
     }
-    fitText(ctx, lvl > 0 ? upgradeEffect(id, lvl) : 'Aucun bonus', c.x + 14, c.y + c.h - 46, 15, COL.dim, textW);
-    fitText(ctx, lvl < maxLvl ? '→ ' + upgradeEffect(id, lvl + 1) : 'Niveau maximum', c.x + 14, c.y + c.h - 22, 15,
-      lvl < maxLvl ? COL.yellow : COL.good, textW);
+    const b = byId[id];
+    const next = lvl < maxLvl ? '→ ' + upgradeEffect(id, lvl + 1) : 'Niveau maximum';
+    const nextCol = lvl < maxLvl ? COL.yellow : COL.good;
+    if (b.y - (c.y + 82) >= 42) {
+      // assez de place : effet actuel et suivant sous l'icône, au-dessus du bouton
+      const ty = Math.min(c.y + 100, b.y - 34);
+      fitText(ctx, lvl > 0 ? upgradeEffect(id, lvl) : 'Aucun bonus', c.x + 14, ty, 15, COL.dim, c.w - 28);
+      fitText(ctx, next, c.x + 14, ty + 21, 15, nextCol, c.w - 28);
+    } else {
+      // petit écran (gros boutons) : seulement le prochain effet, sur 2 lignes à gauche du bouton
+      let lines = next.split(' · ');
+      const m = lines.length === 1 && next.match(/^(.*) ([+-].*)$/);   // « → Revenu de départ » / « +1/s »
+      if (m) lines = [m[1], m[2]];
+      const tw = b.x - c.x - 22, my = b.y + b.h / 2 - (lines.length - 1) * 10;
+      lines.forEach((l, k) => fitText(ctx, (k ? '  ' : '') + l, c.x + 14, my + k * 20 + 5, 15, nextCol, tw));
+    }
   });
 
   for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: (b.upgrade && b.enabled) || b.primary, size: b.small ? 18 : 20 });
@@ -174,7 +188,7 @@ export function drawHeroes(ctx, progress, buttons, pressed) {
     }
     y += 32;
     if (!open) {
-      wrap(ctx, 'Débloqué en atteignant le niveau ' + cfg.unlockLevel + ' de la campagne (mode Normal).', c.x + 16, y, c.w - 32, 17, COL.dim, 24);
+      wrap(ctx, 'Débloqué en atteignant le niveau ' + cfg.unlockLevel + ' de la campagne.', c.x + 16, y, c.w - 32, 17, COL.dim, 24);
       return;
     }
     const hp = Math.round(u.hp * (1 + H_.perLevel.hp * lvl)), dmg = Math.round(u.damage * (1 + H_.perLevel.damage * lvl));

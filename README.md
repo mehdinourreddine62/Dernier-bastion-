@@ -29,7 +29,7 @@ puis ouvre **http://localhost:8000** dans ton navigateur.
 ### Commandes
 | Action | PC | Téléphone |
 |---|---|---|
-| Recruter | clic sur le bouton, ou touches **1 à 5** | toucher le bouton |
+| Recruter | clic sur le bouton, ou touches **1 à 7** | toucher le bouton |
 | Sorts | **Q** (mortier), **W** (soins), puis clic pour viser | toucher le sort, puis toucher le champ de bataille |
 | Défiler | molette, flèches, **A / D**, glisser, bord de l'écran | glisser le doigt, toucher la mini-carte |
 | Capacité du commandant | **E** | toucher son portrait |
@@ -54,9 +54,9 @@ Modifie un chiffre, enregistre, recharge la page : c'est pris en compte.
 | `workshop` | atelier : coûts des 10 niveaux et effet de chaque amélioration |
 | `heroes` | commandants : stats, auras, capacités, coût en étoiles de chaque niveau, délais d'arrivée et de retour |
 | `survival` | mode Survie : rythme et taille des vagues, hausse des PV/dégâts, boss, score, pièces, cartes bonus |
-| `modes` | modes Normal / Difficile / Cauchemar : renforts de l'ennemi, mutants et boss en plus, multiplicateur de pièces |
+| `chapters` | les 2 chapitres de la campagne (onglets de la carte) : nom, premier et dernier niveau |
 | `ai` | comportement commun de l'ordinateur : contres, durée max d'économie, profils d'amélioration du revenu |
-| `levels` | pour chacun des 10 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
+| `levels` | pour chacun des 20 niveaux : objectifs d'étoiles (`objectives`), PV du nid, revenu de l'IA (`aiIncomeMult`), sa ferraille de départ, son tentacule, ses unités et leurs poids, ses vagues, ses boss |
 
 **Étoiles** : 1 étoile pour la victoire + 1 par objectif rempli. Chaque niveau a deux objectifs
 dans `levels[].objectives` (types : `time` = gagner en moins de X secondes, `losses` = perdre au plus
@@ -69,7 +69,7 @@ Exemples :
 
 ### Commandants (héros)
 Dans **Atelier › Héros**, on choisit un commandant (Sergent Kane, Mécano Rosa, Doc Vasquez) et on
-l'améliore avec les **étoiles** gagnées dans la campagne (tous modes). En partie, il arrive seul
+l'améliore avec les **étoiles** gagnées dans la campagne (60 au maximum). En partie, il arrive seul
 après 10 s, revient 45 s après sa mort, et sa capacité se lance avec son portrait (touche **E**).
 
 ### Mode Survie
@@ -80,9 +80,14 @@ vaincu propose **3 cartes bonus** (on en choisit une pour la partie). Score, rec
 vague tenue et bonus aux paliers. Tout se règle dans la section `survival` de `config.js`.
 
 ### Difficulté et durée de vie
-- **3 modes** : la campagne se rejoue en **Difficile** (débloqué en finissant le Normal), puis en
-  **Cauchemar**. Chaque mode a ses étoiles ; les pièces et l'atelier sont communs.
+- **Campagne de 20 niveaux en 2 chapitres** : *Les Terres mortes* (1 à 10) puis *Le Fléau* (11 à 20),
+  de plus en plus durs. 3 étoiles par niveau.
 - **Atelier sur 10 niveaux** : impossible de tout maximiser en une seule campagne.
+- **Chapitre 2** : nouvelles unités **Lance-roquettes** (niveau 11, perce les blindages, ×2,5 contre
+  les lourds) et **Mitrailleur lourd** (niveau 13, fauche nuées et volants). Nouveaux mutants :
+  **Carapace** (11, les balles ne lui font que 40 %), **Épineux** (12, tire plus loin que les Tireurs),
+  **Couveuse** (13, libère 4 larves en mourant), **Hurleur** (16, son cri accélère et renforce les
+  mutants proches). Boss : **Matriarche** (15, pond des larves) et **le Fléau** (20, enrage deux fois).
 - **Mutants spécialisés** : le **Cracheur** ronge les blindés (×2), le **Chien** fonce sur les tireurs,
   le **Rouilleur** (dès le niveau 4) explose sur les blindés, le **Charognard ailé** (dès le niveau 6)
   survole la mêlée pour attaquer les tireurs — seuls les Tireurs, la tourelle et le mortier le touchent.
@@ -103,10 +108,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=17` par `?v=18` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=18` par `?v=19` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.17 » pour `?v=17`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.18 » pour `?v=18`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 

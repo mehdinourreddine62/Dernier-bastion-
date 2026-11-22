@@ -1,21 +1,25 @@
-import { CONFIG } from '../config.js?v=17';
+import { CONFIG } from '../config.js?v=18';
 
 // Mode Survie : vagues de mutants infinies et de plus en plus fortes, sans pause.
 // Le nid ne peut pas être détruit ; la partie s'arrête quand ta base tombe.
 // Après chaque vague de boss vaincue, 3 cartes bonus sont proposées (le jeu attend ton choix).
 
-// « Niveau » utilisé par la partie en Survie (décor de nuit : thème n°11)
+// « Niveau » utilisé par la partie en Survie (décor de nuit : thème n°99)
 export function survivalLevel() {
   const S = CONFIG.survival;
   return {
-    id: 11, name: 'Survie', mode: 'survival', enemyBaseHp: 99999, aiIncomeMult: 0, aiStartScrap: 0,
+    id: 99, name: 'Survie', mode: 'survival', enemyBaseHp: 99999, aiIncomeMult: 0, aiStartScrap: 0,
     enemyTurret: { damage: S.turret.damage, interval: S.turret.interval, range: S.turret.range },
     ai: { decisionInterval: 1, firstDelay: 9999, buyChance: 0, weights: {}, waves: { chance: 0, min: 1, max: 1 }, defenseDistance: 0, incomeUpgrades: 'none' },
     bosses: [], objectives: [],
   };
 }
 
-const NAMES = { goule: 'Goules', cracheur: 'Cracheurs', chien: 'Chiens', rouilleur: 'Rouilleurs', brute: 'Brutes', charognard: 'Charognards', abomination: 'Abomination' };
+// Noms au pluriel pour l'annonce des vagues (sinon : nom de l'unité + « s »)
+const PLURAL = { chien: 'Chiens', charognard: 'Charognards', abomination: 'Abominations', matriarche: 'Matriarches', fleau: 'Fléaux', epineux: 'Épineux' };
+const isBoss = (id) => CONFIG.units[id].tags.includes('boss');
+const shortName = (id) => CONFIG.units[id].name.replace(/ (muté|ailé)$/, '').replace(/^Le /, '');
+const label = (id, n) => (n > 1 ? n + ' ' + (PLURAL[id] || shortName(id) + 's') : shortName(id));
 
 export class Survival {
   constructor(game) {
@@ -44,11 +48,13 @@ export class Survival {
     let count = Math.round(S.baseCount + S.countPerWave * (n - 1));
     const list = [];
     if (n % S.bossEvery === 0) {
-      for (let i = 0; i < n / S.bossEvery; i++) list.push('abomination');
+      // boss du cycle (Abomination, Matriarche, Fléau), un de plus à chaque tour du cycle
+      const k = n / S.bossEvery - 1, cyc = S.bossCycle;
+      for (let i = 0; i <= Math.floor(k / cyc.length); i++) list.push(cyc[k % cyc.length]);
       count = Math.round(count * 0.6);
     } else if (n % S.specialEvery === 0) {
       // vague spéciale : une seule espèce, plus nombreuse
-      const special = ['goule', 'chien', 'rouilleur', 'charognard'].filter((id) => avail.includes(id));
+      const special = ['goule', 'chien', 'rouilleur', 'charognard', 'carapace', 'couveuse'].filter((id) => avail.includes(id));
       const id = special[Math.floor(Math.random() * special.length)];
       for (let i = 0; i < Math.round(count * 1.4); i++) list.push(id);
       return list;
@@ -70,14 +76,14 @@ export class Survival {
     const list = this.composition(this.wave);
     // les boss d'abord, le reste réparti dans le temps
     const spread = S.waveDuration * S.spawnWindow;
-    list.sort((a, b) => (b === 'abomination') - (a === 'abomination'));
+    list.sort((a, b) => isBoss(b) - isBoss(a));
     list.forEach((id, i) => this.queue.push({ id, at: (i / Math.max(1, list.length)) * spread }));
     // tentacule du nid plus fort à chaque vague
     g.bases.enemy.turret.damage = S.turret.damage + S.turret.perWave * (this.wave - 1);
     // annonce
     const counts = {};
     for (const id of list) counts[id] = (counts[id] || 0) + 1;
-    const desc = Object.entries(counts).map(([id, n]) => (n > 1 ? n + ' ' : '') + (n > 1 ? NAMES[id] : NAMES[id].replace(/s$/, ''))).join(', ');
+    const desc = Object.entries(counts).map(([id, n]) => label(id, n)).join(', ');
     g.banner = { text: 'VAGUE ' + this.wave + ' : ' + desc, time: 3.5, color: this.wave % S.bossEvery === 0 ? null : '#f2c230' };
     g.emit(this.wave % S.bossEvery === 0 ? 'boss' : 'wave', g.bases.enemy.faceX);
   }
@@ -89,7 +95,7 @@ export class Survival {
     const k = this.wave - 1;
     u.maxHp *= 1 + S.hpPerWave * k; u.hp = u.maxHp;
     u.damage *= 1 + S.damagePerWave * k;
-    if (id === 'abomination') { u.survivalBoss = true; this.bossesAlive++; }
+    if (isBoss(id)) { u.survivalBoss = true; this.bossesAlive++; }
     return true;
   }
 
@@ -115,14 +121,16 @@ export class Survival {
 
   // Appelé quand un mutant meurt
   onEnemyKilled(u) {
-    if (u.survivalBoss && --this.bossesAlive <= 0 && !this.queue.some((q) => q.id === 'abomination')) {
+    if (u.survivalBoss && --this.bossesAlive <= 0 && !this.queue.some((q) => isBoss(q.id))) {
       this.bossesAlive = 0;
       this._offerCards();
     }
   }
 
   _offerCards() {
-    const ids = Object.keys(CONFIG.survival.cards).filter((id) => !this.cards.includes(id));
+    const C = CONFIG.survival.cards;
+    // pas de carte pour une unité pas encore débloquée dans la campagne
+    const ids = Object.keys(C).filter((id) => !this.cards.includes(id) && (!C[id].needs || this.game.isUnlocked('player', C[id].needs)));
     const pick = [];
     while (pick.length < CONFIG.survival.cardChoices && ids.length) pick.push(ids.splice(Math.floor(Math.random() * ids.length), 1)[0]);
     if (pick.length) { this.offer = pick; this.game.emit('cards', 0); }
@@ -148,6 +156,8 @@ export class Survival {
       case 'gilets': unitMult(['pillard', 'motard'], 'hp', 1.3); break;
       case 'napalm': unitMult(['lanceFlammes'], 'damage', 1.3); break;
       case 'blindage': unitMult(['blinde'], 'hp', 1.35); break;
+      case 'ogives': unitMult(['lanceRoquettes'], 'damage', 1.3); break;
+      case 'bandes': unitMult(['mitrailleur'], 'damage', 1.25); break;
       case 'veterans': unitMult(all, 'damage', 1.15); break;
       case 'recup': this.bountyMult *= 1.5; break;
       case 'revenu': mods.income += 4; break;
