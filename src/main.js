@@ -1,18 +1,22 @@
-import { CONFIG } from './config.js?v=13';
-import { Game } from './game/Game.js?v=13';
-import { Camera } from './game/Camera.js?v=13';
-import { Renderer } from './render/Renderer.js?v=13';
-import { HUD } from './ui/HUD.js?v=13';
-import { Input } from './ui/input.js?v=13';
-import * as screens from './ui/screens.js?v=13';
-import * as campaign from './ui/campaign.js?v=13';
-import * as workshop from './ui/workshop.js?v=13';
-import { Tutorial } from './ui/tutorial.js?v=13';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=13';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars } from './progress.js?v=13';
-import { Sfx } from './audio/sfx.js?v=13';
-import { Music } from './audio/music.js?v=13';
-import { loadSave, writeSave } from './save.js?v=13';
+import { CONFIG } from './config.js?v=14';
+import { Game } from './game/Game.js?v=14';
+import { Camera } from './game/Camera.js?v=14';
+import { Renderer } from './render/Renderer.js?v=14';
+import { HUD } from './ui/HUD.js?v=14';
+import { Input } from './ui/input.js?v=14';
+import * as screens from './ui/screens.js?v=14';
+import * as campaign from './ui/campaign.js?v=14';
+import * as workshop from './ui/workshop.js?v=14';
+import { Tutorial } from './ui/tutorial.js?v=14';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=14';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars } from './progress.js?v=14';
+import { Sfx } from './audio/sfx.js?v=14';
+import { Music } from './audio/music.js?v=14';
+import { loadSave, writeSave } from './save.js?v=14';
+
+// Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
+// donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
+const VERSION_LABEL = 'Bêta 0.' + (new URL(import.meta.url).searchParams.get('v') || '0');
 
 // ---------- Mise en place du canvas ----------
 const canvas = document.getElementById('game');
@@ -495,7 +499,7 @@ function render(time) {
   if (screen !== 'playing') {
     renderer.drawBackdrop(ctx, 0, time);
     const p = input.pressed;
-    if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress), max: maxStars() });
+    if (screen === 'title') screens.drawTitle(ctx, buttons, p, progress, { stars: totalStars(progress), max: maxStars(), version: VERSION_LABEL });
     else if (screen === 'options') screens.drawOptions(ctx, buttons, p);
     else if (screen === 'achievements') screens.drawAchievements(ctx, progress, achPage, buttons, p);
     else if (screen === 'map') {
