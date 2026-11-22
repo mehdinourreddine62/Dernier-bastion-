@@ -193,6 +193,8 @@ export class Sfx {
       case 'splat': this.play('splat', e.x); break;
       case 'shellFall': this.play('shellFall', e.x); break;
       case 'heal': this.play('heal'); break;
+      case 'ability': this.play(e.data.kind === 'snipe' ? 'cannon' : e.data.kind === 'rally' ? 'rally' : 'spawn', e.x); break;
+      case 'heroSpawn': this.play('upgrade'); break;
       case 'upgrade': this.play('upgrade'); break;
       case 'boss': this.play('boss'); break;
       case 'win': this.play('win'); break;
@@ -309,6 +311,12 @@ export class Sfx {
   _heal(t) {
     const o = this._out(0.25, 0);
     [660, 880, 1100, 1320].forEach((f, i) => this._tone(o, t + i * 0.07, 0.25, 'triangle', f, f, 0.5));
+  }
+  // Cri de ralliement : accord de cuivres
+  _rally(t, v, p) {
+    const o = this._out(0.4 * v, p);
+    [220, 277, 330].forEach((f) => this._tone(o, t, 0.7, 'sawtooth', f, f * 1.02, 0.25, 0.05));
+    this._tone(o, t + 0.25, 0.6, 'sawtooth', 440, 440, 0.2, 0.05);
   }
   _upgrade(t) {
     const o = this._out(0.25, 0);

@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=14';
-import { Entity } from './Entity.js?v=14';
+import { CONFIG } from '../config.js?v=15';
+import { Entity } from './Entity.js?v=15';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -42,6 +42,8 @@ export class Unit extends Entity {
     this.attackAnim = 0;      // 1 -> 0 pendant l'animation d'attaque
     this.dying = false;
     this.deadTime = 0;
+    // Unités à durée de vie limitée (tourelle posée par un commandant)
+    if (def.lifetime) this.life = def.lifetime;
     // Unités volantes : altitude (visuelle et pour la visée)
     this.alt = def.flying ? 70 + Math.random() * 18 : 0;
   }
@@ -72,6 +74,10 @@ export class Unit extends Entity {
 
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.cd = Math.max(0, this.cd - dt);
+    if (this.life !== undefined && (this.life -= dt) <= 0) {
+      this.hp = 0; this.die(); game.fx.puff(this.x, this.y - 10, '#8a7a66');
+      return;
+    }
     this.attackAnim = Math.max(0, this.attackAnim - dt / CONFIG.combat.attackAnimTime);
 
     let target = this.findTarget(game, this.def.range);
@@ -87,7 +93,7 @@ export class Unit extends Entity {
       this.state = 'wait';
     } else {
       this.state = 'walk';
-      this.x += this.dir * this.def.speed * dt;
+      this.x += this.dir * this.def.speed * game.rallyMult(this.side) * dt;
       this.walk += dt * Math.min(this.def.speed, 90) * 0.14;
       // Poussière soulevée par les unités rapides ou lourdes (effet visuel)
       if ((this.def.speed >= 100 || this.def.tags.includes('heavy') || this.def.tags.includes('boss')) && Math.random() < 0.25) {
@@ -149,6 +155,7 @@ export class Unit extends Entity {
     this.cd = def.attackInterval;
     this.attackAnim = 1;
     game.src = this.defId;   // les dégâts qui suivent sont attribués à ce type d'unité
+    const dmg = this.damage * game.rallyMult(this.side);   // Cri de ralliement
     if (atk.kind !== 'flame') game.emit('attack', this.x, { id: this.defId });
 
     switch (atk.kind) {
@@ -158,12 +165,15 @@ export class Unit extends Entity {
           side: this.side,
           x: this.x + this.dir * def.bodyWidth * 0.55,
           y: this.y - this.alt - def.bodyHeight * 0.62,
-          target, damage: this.damage, attackerDef: def, source: this.defId,
+          target, damage: dmg, attackerDef: def, source: this.defId,
           cfg: atk.projectile, splash: atk.splashRadius || 0,
         });
         break;
       case 'flame':
         game.flameAttack(this);
+        break;
+      case 'shotgun':
+        game.coneAttack(this, atk.targets || 3);
         break;
       case 'suicide': {
         // Kamikaze : explose sur la cible (bonus contre les blindés) et meurt
@@ -177,10 +187,10 @@ export class Unit extends Entity {
       default: { // 'melee'
         if (atk.splashRadius) {
           const cx = target.isBase ? target.faceX : target.x;
-          game.explode(this.side, cx, atk.splashRadius, this.damage, def, true, 'slam');
+          game.explode(this.side, cx, atk.splashRadius, dmg, def, true, 'slam');
         } else {
           const mult = bonusMultiplier(def, target);
-          game.dealDamage(this.side, target, this.damage * mult, mult > 1);
+          game.dealDamage(this.side, target, dmg * mult, mult > 1);
           if (atk.knockback && !target.isBase && target.alive) game.knockBack(target, atk.knockback);
         }
       }

@@ -190,6 +190,15 @@ export const CONFIG = {
       recruitCooldown: 12, tags: ['heavy'], bonuses: { heavy: 1.5 },  // écrase les blindés
       attack: { kind: 'melee', knockback: 14 }, bodyWidth: 54, bodyHeight: 104,
     },
+    // Tourelle de campagne : posée par Mécano Rosa (n'est pas recrutable)
+    tourelleCampagne: {
+      side: 'player', name: 'Tourelle de campagne', role: 'Mitrailleuse fixe',
+      cost: 0, hp: 350, damage: 9, attackInterval: 0.3, range: 320, speed: 0,
+      recruitCooldown: 0, tags: ['ranged'], bonuses: {}, antiAir: true, unlockLevel: 999, lifetime: 25,
+      attack: { kind: 'projectile', projectile: { shape: 'tracer', speed: 1100, color: '#fff0b0', length: 18, width: 2, arcHeight: 0 } },
+      bodyWidth: 40, bodyHeight: 42,
+    },
+
     // Rouilleur : petit mutant kamikaze qui se jette sur les blindés et explose
     rouilleur: {
       side: 'enemy', name: 'Rouilleur', role: 'Kamikaze anti-blindé',
@@ -210,6 +219,53 @@ export const CONFIG = {
       cost: 600, hp: 2500, damage: 60, attackInterval: 2.5, range: 60, speed: 20,
       recruitCooldown: 0, tags: ['boss'], bonuses: {},
       attack: { kind: 'melee', splashRadius: 60 }, bodyWidth: 120, bodyHeight: 160,
+    },
+  },
+
+  // ---------- Commandants (héros) ----------
+  // Un seul par partie, choisi dans l'onglet HÉROS. Il arrive seul après deployDelay secondes,
+  // revient respawnTime secondes après sa mort, et a une capacité (bouton portrait / touche E).
+  // Amélioration : on dépense des étoiles (toutes celles gagnées dans la campagne, tous modes).
+  heroes: {
+    deployDelay: 10,
+    respawnTime: 45,
+    maxLevel: 10,
+    costs: [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],   // étoiles par niveau (30 pour un héros au maximum)
+    perLevel: { hp: 0.12, damage: 0.10, ability: 0.10, cooldown: 0.04 },   // gains par niveau
+    order: ['kane', 'rosa', 'vasquez'],
+    list: {
+      kane: {
+        name: 'Sergent Kane', title: 'Ligne de front', unlockLevel: 1,
+        aura: { kind: 'armor', radius: 170, value: 0.2,
+                text: 'Les unités de corps à corps proches subissent 20 % de dégâts en moins' },
+        ability: { kind: 'rally', name: 'Cri de ralliement', cooldown: 40, duration: 8, bonus: 0.3,
+                   text: 'Toutes tes unités : +30 % de vitesse et de dégâts pendant 8 s' },
+        unit: { name: 'Sergent Kane', role: 'Commandant, fusil à pompe', cost: 0, hp: 650, damage: 22,
+                attackInterval: 0.9, range: 55, speed: 60, tags: ['melee'], bonuses: { swarm: 1.5 },
+                attack: { kind: 'shotgun', targets: 3 }, bodyWidth: 36, bodyHeight: 78 },
+      },
+      rosa: {
+        name: 'Mécano Rosa', title: 'Soutien et blindés', unlockLevel: 4,
+        aura: { kind: 'repair', radius: 170, value: 14,
+                text: 'Répare les Blindés et la tourelle proches (14 PV/s)' },
+        ability: { kind: 'turret', name: 'Tourelle de campagne', cooldown: 40, duration: 25,
+                   text: 'Pose une mitrailleuse fixe sur le terrain pendant 25 s' },
+        unit: { name: 'Mécano Rosa', role: 'Commandante, lance-grenades', cost: 0, hp: 480, damage: 26,
+                attackInterval: 1.6, range: 170, speed: 55, tags: ['ranged'], bonuses: { heavy: 1.5 },
+                attack: { kind: 'cannon', splashRadius: 40, projectile: { shape: 'shell', speed: 450, color: '#ffb347', length: 0, width: 4, arcHeight: 60 } },
+                bodyWidth: 34, bodyHeight: 74 },
+      },
+      vasquez: {
+        name: 'Doc Vasquez', title: 'Tireur d\'élite et soins', unlockLevel: 7,
+        aura: { kind: 'heal', radius: 160, value: 6,
+                text: 'Soigne les unités proches (6 PV/s)' },
+        ability: { kind: 'snipe', name: 'Tir de précision', cooldown: 40, damage: 700,
+                   text: 'Un tir dévastateur sur le mutant le plus résistant (Brute, boss…)' },
+        unit: { name: 'Doc Vasquez', role: 'Commandant, fusil de précision', cost: 0, hp: 400, damage: 38,
+                attackInterval: 1.8, range: 300, speed: 50, tags: ['ranged'], bonuses: { flying: 1.5, heavy: 1.3 }, antiAir: true,
+                attack: { kind: 'projectile', projectile: { shape: 'tracer', speed: 1400, color: '#fff6c0', length: 34, width: 3, arcHeight: 0 } },
+                bodyWidth: 32, bodyHeight: 76 },
+      },
     },
   },
 
@@ -361,3 +417,8 @@ export const CONFIG = {
   // ---------- Performance ----------
   pools: { projectiles: 160, particles: 700, floatingTexts: 64, decals: 28, shells: 12 },
 };
+
+// Les commandants deviennent des unités du jeu, nommées « hero_<id> » (ne pas modifier)
+for (const [id, h] of Object.entries(CONFIG.heroes.list)) {
+  CONFIG.units['hero_' + id] = Object.assign({ side: 'player', recruitCooldown: 0, unlockLevel: 999, hero: id }, h.unit);
+}

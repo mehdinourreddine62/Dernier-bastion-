@@ -1,11 +1,11 @@
-import { CONFIG } from '../config.js?v=14';
-import { Unit, bonusMultiplier } from './Unit.js?v=14';
-import { Base } from './Base.js?v=14';
-import { ProjectilePool } from './Projectile.js?v=14';
-import { Particles } from './Particles.js?v=14';
-import { Spells } from './Spell.js?v=14';
-import { AI } from './AI.js?v=14';
-import { effectiveLevel } from '../progress.js?v=14';
+import { CONFIG } from '../config.js?v=15';
+import { Unit, bonusMultiplier } from './Unit.js?v=15';
+import { Base } from './Base.js?v=15';
+import { ProjectilePool } from './Projectile.js?v=15';
+import { Particles } from './Particles.js?v=15';
+import { Spells } from './Spell.js?v=15';
+import { AI } from './AI.js?v=15';
+import { effectiveLevel } from '../progress.js?v=15';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -46,6 +46,20 @@ export class Game {
     };
     if (this.level.aiStartScrap !== undefined) this.sides.enemy.scrap = this.level.aiStartScrap;
     if (opts.mods) Object.assign(this.sides.player.mods, opts.mods);
+    // Commandant (héros) : { id, level } ; ses bonus de niveau passent par les mods d'unité
+    this.hero = null;
+    this.rallyUntil = 0; this.rallyBonus = 0;
+    if (opts.hero && CONFIG.heroes.list[opts.hero.id]) {
+      const H = CONFIG.heroes, cfg = H.list[opts.hero.id], lvl = opts.hero.level || 0;
+      this.sides.player.mods.units = Object.assign({}, this.sides.player.mods.units,
+        { ['hero_' + opts.hero.id]: { hp: 1 + H.perLevel.hp * lvl, damage: 1 + H.perLevel.damage * lvl } });
+      this.hero = {
+        id: opts.hero.id, level: lvl, cfg, unitId: 'hero_' + opts.hero.id,
+        unit: null, timer: H.deployDelay, abilityCd: 0,
+        abilityMult: 1 + H.perLevel.ability * lvl,
+        cooldown: cfg.ability.cooldown * Math.max(0.3, 1 - H.perLevel.cooldown * lvl),
+      };
+    }
     this.units = [];
     this.byX = { player: [], enemy: [] };   // unités vivantes de chaque camp, triées par position
     this.bases = {
@@ -162,7 +176,8 @@ export class Game {
     const x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
     this.units.push(u);
-    if (side === 'player') { this.stats.recruited++; inc(this.stats.recruitedBy, defId); }
+    const def = CONFIG.units[defId];
+    if (side === 'player' && !def.hero && !def.lifetime) { this.stats.recruited++; inc(this.stats.recruitedBy, defId); }
     this.fx.dust(x, u.y, 4);
     this.emit('spawn', x, { side, id: defId });
     return u;
@@ -173,6 +188,11 @@ export class Game {
   // Applique des dégâts, gère effets, mort et prime en ferraille.
   dealDamage(attackerSide, target, damage, bonus, quiet = false) {
     if (!target.alive || damage <= 0) return;
+    // Aura de Kane : les unités de corps à corps proches encaissent moins
+    if (target.side === 'player' && !target.isBase && target.def.range <= CONFIG.combat.meleeWaitRange) {
+      const k = this.heroAura('armor', target.x);
+      if (k) damage *= 1 - k;
+    }
     const before = target.hp;
     target.takeDamage(damage);
     const dealt = before - target.hp;
@@ -189,7 +209,11 @@ export class Game {
 
     if (!target.alive && !target.isBase) {
       target.die();
-      if (target.side === 'player') { st.lost++; inc(st.lostBy, target.defId); }
+      if (target.side === 'player') {
+        // les morts du commandant et de la tourelle posée ne comptent pas dans les pertes
+        if (!target.def.hero && !target.def.lifetime) { st.lost++; inc(st.lostBy, target.defId); }
+        if (target.def.hero) this.emit('heroDown', target.x);
+      }
       else { st.killed++; inc(st.killedEnemy, target.defId); inc(st.kills, this.src || 'autre'); }
       const bounty = Math.round(target.def.cost * CONFIG.economy.killBountyRatio);
       this.sides[attackerSide].scrap += bounty;
@@ -239,6 +263,104 @@ export class Game {
   }
 
   // Lance-flammes : touche tous les ennemis devant lui jusqu'à sa portée
+  // Fusil à pompe (Kane) : touche les n ennemis au sol les plus proches devant lui
+  coneAttack(unit, n) {
+    const def = unit.def;
+    const tol = CONFIG.combat.targetBehindTolerance;
+    const dmg = unit.damage * this.rallyMult(unit.side);
+    const hits = [];
+    for (const e of this.units) {
+      if (e.side === unit.side || !e.alive || e.def.flying) continue;
+      const d = (e.x - unit.x) * unit.dir;
+      if (d >= -tol && d <= def.range + 20) hits.push([d, e]);
+    }
+    hits.sort((a, b) => a[0] - b[0]);
+    for (const [, e] of hits.slice(0, n)) {
+      const mult = bonusMultiplier(def, e);
+      this.dealDamage(unit.side, e, dmg * mult, mult > 1);
+    }
+    const base = this.bases[unit.side === 'player' ? 'enemy' : 'player'];
+    if (hits.length < n && (base.faceX - unit.x) * unit.dir <= def.range) this.dealDamage(unit.side, base, dmg, false);
+    this.fx.sparks(unit.x + unit.dir * 40, unit.aimY, '#ffe0a0', 6, 220);
+  }
+
+  // ---------- Commandant ----------
+  // Multiplicateur du Cri de ralliement (vitesse et dégâts) pour un camp
+  rallyMult(side) { return side === 'player' && this.time < this.rallyUntil ? 1 + this.rallyBonus : 1; }
+
+  // Valeur de l'aura du commandant si le point x est dans sa zone (sinon 0)
+  heroAura(kind, x) {
+    const h = this.hero;
+    if (!h || !h.unit || !h.unit.alive || h.cfg.aura.kind !== kind) return 0;
+    return Math.abs(h.unit.x - x) <= h.cfg.aura.radius ? h.cfg.aura.value : 0;
+  }
+
+  heroAbilityReady() {
+    const h = this.hero;
+    return !!h && !this.result && !!h.unit && h.unit.alive && h.abilityCd <= 0;
+  }
+
+  // Capacité spéciale du commandant. Renvoie true si elle a été lancée.
+  useHeroAbility() {
+    if (!this.heroAbilityReady()) return false;
+    const h = this.hero, u = h.unit, ab = h.cfg.ability;
+    if (ab.kind === 'rally') {
+      this.rallyBonus = ab.bonus * h.abilityMult;
+      this.rallyUntil = this.time + ab.duration;
+      this.fx.healRing(u.x, CONFIG.world.groundY, 260);
+      this.fx.text(u.x, u.aimY - 50, 'EN AVANT !', '#f2c230', 22);
+    } else if (ab.kind === 'turret') {
+      const t = this.spawnUnit('player', 'tourelleCampagne');
+      t.x = u.x + u.dir * 50;
+      t.life = ab.duration * h.abilityMult;
+      t.damage *= h.abilityMult;
+      this.fx.dust(t.x, t.y, 6);
+      this.fx.text(u.x, u.aimY - 50, 'TOURELLE !', '#f2c230', 20);
+    } else if (ab.kind === 'snipe') {
+      // le mutant le plus résistant devant lui (sinon le nid)
+      let target = null;
+      for (const e of this.byX.enemy) {
+        if (!e.alive || e.x < u.x - 20 || e.x > u.x + 1300) continue;
+        if (!target || e.hp > target.hp) target = e;
+      }
+      if (!target) target = this.bases.enemy;
+      this.projectiles.spawn({
+        side: 'player', x: u.x + u.dir * 30, y: u.aimY - 6, target,
+        damage: ab.damage * h.abilityMult, attackerDef: null, source: h.unitId, splash: 0,
+        cfg: { shape: 'tracer', speed: 2600, color: '#fffbe0', length: 70, width: 5, arcHeight: 0 },
+      });
+      this.fx.text(u.x, u.aimY - 50, 'DANS LE MILLE !', '#f2c230', 20);
+    }
+    h.abilityCd = h.cooldown;
+    this.emit('ability', u.x, { kind: ab.kind });
+    return true;
+  }
+
+  _updateHero(dt) {
+    const h = this.hero;
+    if (!h) return;
+    if (h.unit && !h.unit.alive) { h.unit = null; h.timer = CONFIG.heroes.respawnTime; }
+    if (!h.unit) {
+      h.timer -= dt;
+      if (h.timer <= 0) {
+        h.unit = this.spawnUnit('player', h.unitId);
+        this.fx.healRing(h.unit.x, CONFIG.world.groundY, 80);
+        this.emit('heroSpawn', h.unit.x);
+      }
+      return;
+    }
+    h.abilityCd = Math.max(0, h.abilityCd - dt);
+    // Auras de soin / réparation
+    const a = h.cfg.aura;
+    if (a.kind === 'heal' || a.kind === 'repair') {
+      for (const v of this.byX.player) {
+        if (!v.alive || Math.abs(v.x - h.unit.x) > a.radius || v.hp >= v.maxHp) continue;
+        if (a.kind === 'repair' && !v.tags.includes('heavy') && !v.def.lifetime) continue;
+        v.hp = Math.min(v.maxHp, v.hp + a.value * dt);
+      }
+    }
+  }
+
   flameAttack(unit) {
     this.src = unit.defId;
     const def = unit.def;
@@ -247,7 +369,7 @@ export class Game {
       if (e.side === unit.side || !e.alive || e.def.flying) continue;
       const d = (e.x - unit.x) * unit.dir;
       if (d < -tol || d > def.range) continue;
-      const mult = bonusMultiplier(def, e);
+      const mult = bonusMultiplier(def, e) * this.rallyMult(unit.side);
       this.dealDamage(unit.side, e, unit.damage * mult, mult > 1, Math.random() > 0.35);
     }
     const base = this.bases[unit.side === 'player' ? 'enemy' : 'player'];
@@ -334,6 +456,7 @@ export class Game {
 
     this.ai.update(dt);
     this.spells.update(dt);
+    this._updateHero(dt);
     this._sortUnits();
 
     const n = this.units.length;

@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=14';
+import { CONFIG } from './config.js?v=15';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
@@ -20,6 +20,12 @@ export function normalizeProgress(p) {
   }
   p.unlocked = Math.max(p.unlocked || 1, p.modes.normal.unlocked);
   if (!CONFIG.modes[p.mode]) p.mode = 'normal';   // mode choisi sur la carte
+  // Commandants : héros choisi, niveaux, étoiles déjà dépensées
+  p.heroes = p.heroes || {};
+  p.heroes.levels = p.heroes.levels || {};
+  for (const id of CONFIG.heroes.order) p.heroes.levels[id] = p.heroes.levels[id] || 0;
+  p.heroes.starsSpent = p.heroes.starsSpent || 0;
+  if (!CONFIG.heroes.list[p.heroes.selected]) p.heroes.selected = CONFIG.heroes.order[0];
   p.parts = p.parts || 0;           // pièces détachées disponibles
   p.upgrades = p.upgrades || {};    // niveau de chaque amélioration de l'atelier
   for (const id of CONFIG.workshop.order) p.upgrades[id] = p.upgrades[id] || 0;
@@ -189,4 +195,38 @@ export function playerMods(p) {
     income: w.incomeBonus * u.salvage,
     spellCooldown: Math.max(0.1, 1 - w.spellCooldownReduction * u.spells),
   };
+}
+
+// ---------- Commandants ----------
+// Les améliorations se paient en étoiles : toutes celles gagnées dans la campagne (tous modes),
+// moins celles déjà dépensées.
+export const heroStarsAvailable = (p) => totalStars(p) - p.heroes.starsSpent;
+
+export const heroUnlocked = (p, id) => CONFIG.heroes.list[id].unlockLevel <= p.unlocked;
+
+export function heroCost(p, id) {
+  const lvl = p.heroes.levels[id];
+  return lvl < CONFIG.heroes.maxLevel ? CONFIG.heroes.costs[lvl] : null;
+}
+
+export function buyHeroLevel(p, id) {
+  const cost = heroCost(p, id);
+  if (cost === null || !heroUnlocked(p, id) || heroStarsAvailable(p) < cost) return false;
+  p.heroes.levels[id]++;
+  p.heroes.starsSpent += cost;
+  return true;
+}
+
+export function resetHeroes(p) {
+  const refund = p.heroes.starsSpent;
+  for (const id of CONFIG.heroes.order) p.heroes.levels[id] = 0;
+  p.heroes.starsSpent = 0;
+  return refund;
+}
+
+// Héros à emmener en partie (null si aucun n'est débloqué)
+export function heroForGame(p) {
+  const id = p.heroes.selected;
+  if (!id || !heroUnlocked(p, id)) return null;
+  return { id, level: p.heroes.levels[id] };
 }

@@ -1,13 +1,17 @@
-import { CONFIG } from '../config.js?v=14';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=14';
-import { Backdrop } from './background.js?v=14';
-import { drawFort, drawNest } from './bases.js?v=14';
+import { CONFIG } from '../config.js?v=15';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=15';
+import { Backdrop } from './background.js?v=15';
+import { drawFort, drawNest } from './bases.js?v=15';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
   tireur: [42, -46, 36, '255,210,120'],
   cracheur: [24, -49, 30, '155,226,43'],
   blinde: [62, -64, 64, '255,200,110'],
+  hero_kane: [40, -52, 44, '255,210,120'],
+  hero_rosa: [38, -50, 40, '255,200,110'],
+  hero_vasquez: [58, -52, 40, '255,240,190'],
+  tourelleCampagne: [40, -35, 34, '255,210,120'],
 };
 
 // Dessine la scène : décor en parallaxe, traces au sol, bases, unités,
@@ -203,6 +207,23 @@ export class Renderer {
     ctx.drawImage(f.cv, -f.ox, -f.oy, f.w, f.h);
     ctx.restore();
 
+    // Commandant : zone d'aura au sol et étoile au-dessus de la tête
+    if (def.hero && !u.dying) {
+      const aura = CONFIG.heroes.list[def.hero].aura;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(242,194,48,0.35)'; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+      ctx.lineDashOffset = -time * 20;
+      ctx.beginPath(); ctx.ellipse(u.x, CONFIG.world.groundY + 6, aura.radius, aura.radius * 0.14, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      const sy = u.y - def.bodyHeight * 1.12 - 18 + Math.sin(time * 3) * 2;
+      ctx.fillStyle = '#f2c230'; ctx.strokeStyle = '#1b120b'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 3.5 : 8;
+        ctx.lineTo(u.x + Math.cos(a) * r, sy + Math.sin(a) * r);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
     // Lumière du tir (flash de bouche du canon / crachat)
     const m = MUZZLE[u.defId];
     if (m && !u.dying && u.attackAnim > 0.6) {

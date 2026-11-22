@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=14';
+import { CONFIG } from '../config.js?v=15';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).
@@ -586,7 +586,111 @@ function charognard() {
   wing(flap, '#5e3a4c', 0);                              // aile du premier plan
 }
 
-const DRAWERS = { pillard, tireur, motard, lanceFlammes, blinde, goule, cracheur, chien, brute, abomination, rouilleur, charognard };
+// =====================================================================
+//  COMMANDANTS (plus grands, écharpe jaune flottante)
+// =====================================================================
+function scarf(x, y) {
+  const w = P.moving ? Math.sin(P.walk * 2) * 3 : Math.sin(P.time * 3) * 2;
+  poly([x, y, x - 16, y + 2 + w, x - 24, y + 6 + w * 1.5, x - 14, y + 7, x, y + 5], '#f2c230');
+}
+
+// Sergent Kane : colosse en gilet pare-balles, béret, fusil à pompe
+function hero_kane() {
+  X.scale(1.12, 1.12);
+  const recoil = P.atk > 0 ? -4 * P.atk : 0;
+  X.translate(0, -bobY(2));
+  legs(-27, 27, 7.5, '#3e4434', '#1e1a16', 10, 11);
+  X.translate(recoil, 0);
+  limb([-4, -50, -2, -38, 6, -42], 6, shade('#6a7050'));
+  poly([-11, -26, -12, -54, 12, -55, 12, -26], '#5a6248');                 // torse
+  rr(-11, -52, 23, 22, 3, '#3a4038');                                       // gilet pare-balles
+  X.fillStyle = C('#2a2e28'); X.fillRect(-9, -46, 19, 2); X.fillRect(-9, -40, 19, 2);
+  rr(-12, -29, 24, 4, 1, '#3b2c1e');
+  scarf(-6, -55);
+  blob(1, -63, 8.5, 9, '#c88a62');                                          // tête
+  poly([-9, -66, -7, -73, 8, -74, 11, -67], '#6a2a2a');                    // béret
+  dot(6, -64, 1.4, '#1a1008');
+  line(2, -58, 8, -58, 2, '#5a3a2a');                                       // barbe
+  // fusil à pompe
+  limb([-6, -43, 12, -45], 6, '#5a3a24');
+  limb([10, -45, 34, -46], 5, '#2a2a2c');
+  limb([18, -42, 28, -42], 4, '#4a3426');
+  limb([6, -50, 14, -42, 20, -43], 6, '#5a6248');
+  if (P.atk > 0.6 && !P.dark) {
+    const r = 14 * (P.atk - 0.5) * 2;
+    poly([35, -46, 35 + r, -54, 35 + r * 1.8, -46, 35 + r, -38], '#fff3b0', false);
+  }
+}
+
+// Mécano Rosa : salopette, lunettes de soudure, clé dans le dos, lance-grenades à barillet
+function hero_rosa() {
+  X.scale(1.1, 1.1);
+  const recoil = P.atk > 0 ? -3 * P.atk : 0;
+  X.translate(0, -bobY(1.8));
+  legs(-25, 25, 6.5, '#3e5a70', '#2a1e16', 9, 10);
+  limb([-14, -54, -22, -24], 4, '#8a8a8e');                                 // grande clé dans le dos
+  rr(-26, -28, 9, 6, 2, '#8a8a8e');
+  X.translate(recoil, 0);
+  limb([-3, -48, 0, -36, 6, -38], 5, shade('#4a6a84'));
+  poly([-10, -24, -10, -50, 10, -51, 10, -24], '#4a6a84');                 // salopette
+  rr(-7, -46, 14, 12, 2, '#3e5a70');
+  dot(-4, -47, 1.5, '#c0c0b0'); dot(4, -47, 1.5, '#c0c0b0');
+  scarf(-5, -52);
+  blob(1, -59, 7.5, 8, '#d8a07a');
+  poly([-8, -60, -6, -70, 4, -72, 10, -64, 8, -60], '#7a3a22');            // cheveux roux
+  rr(-2, -64, 12, 5, 2, '#2a2a2a'); dot(4, -62, 2, '#5ab8d8'); dot(8, -62, 1.6, '#5ab8d8');   // lunettes de soudure
+  // lance-grenades
+  limb([-4, -40, 10, -42], 6, '#4a3626');
+  blob(14, -42, 7, 7, '#3a3a3e');                                           // barillet
+  limb([18, -43, 34, -45], 6, '#2e2e30');
+  limb([6, -48, 12, -40, 18, -41], 5, '#4a6a84');
+}
+
+// Doc Vasquez : long manteau clair, brassard à croix rouge, fusil de précision
+function hero_vasquez() {
+  X.scale(1.1, 1.1);
+  const recoil = P.atk > 0 ? -4 * P.atk : 0;
+  X.translate(0, -bobY(1.5));
+  legs(-25, 25, 6, '#4a4a44', '#2a2018', 8.5, 10);
+  X.translate(recoil, 0);
+  const tail = P.moving ? Math.sin(P.walk * 2) * 2 : 0;
+  poly([-9, -32, -15 - tail, -10, -2, -14, 9, -12, 9, -32], '#c8c0a8');   // pans du manteau
+  limb([-3, -48, 2, -40, 8, -43], 5, shade('#d8d0b8'));
+  poly([-9, -28, -9, -52, 9, -53, 9, -28], '#d8d0b8');
+  rr(-9, -33, 18, 3, 1, '#5a4a38', false);
+  scarf(-5, -54);
+  blob(1, -60, 7.5, 8, '#b07a5a');
+  poly([-8, -62, -7, -69, 7, -70, 9, -63], '#2a2a2a');                     // cheveux
+  dot(5, -61, 1.4, '#1a1008');
+  // fusil de précision (long)
+  limb([-8, -42, 14, -45], 5, '#4a3626');
+  limb([12, -45, 50, -47], 3.5, '#1e1e20');
+  rr(14, -52, 16, 5, 2, '#141414');
+  limb([5, -50, 14, -42, 24, -45], 5, '#d8d0b8');
+  if (!P.flash && !P.dark) {                                                // brassard à croix rouge
+    X.fillStyle = '#ffffff'; X.fillRect(5, -50, 6, 6);
+    X.fillStyle = '#c8382a'; X.fillRect(7, -49.5, 2, 5); X.fillRect(5.5, -48, 5, 2);
+  }
+  if (P.atk > 0.65 && !P.dark) {
+    const r = 12 * (P.atk - 0.55) * 2.2;
+    poly([51, -47, 51 + r, -52, 51 + r * 2, -47, 51 + r, -42], '#fff6c0', false);
+  }
+}
+
+// Tourelle de campagne : mitrailleuse sur trépied derrière des sacs de sable
+function tourelleCampagne() {
+  for (let i = 0; i < 3; i++) blob(-8 + i * 12, -6, 9, 6.5, '#a8946a');
+  for (let i = 0; i < 2; i++) blob(-2 + i * 12, -16, 9, 6.5, '#b4a078');
+  limb([-6, -18, 4, -32, 12, -18], 3, '#3a3a3e');
+  rr(-4, -40, 16, 12, 3, '#4a5048');
+  limb([10, -34, 36, -35], 4.5, '#2b2b2e');
+  rr(4, -48, 5, 22, 1, '#5e6a70');
+  X.fillStyle = C('#f2c230'); X.fillRect(4, -38, 5, 3);
+  if (P.atk > 0.6 && !P.dark) poly([37, -35, 44, -40, 50, -35, 44, -30], '#fff3b0', false);
+}
+
+const DRAWERS = { pillard, tireur, motard, lanceFlammes, blinde, goule, cracheur, chien, brute, abomination, rouilleur, charognard,
+  hero_kane, hero_rosa, hero_vasquez, tourelleCampagne };
 
 // Style de mort de chaque unité : 'fall' (tombe), 'melt' (s'affaisse), 'wreck' (épave)
 export const DEATH_STYLE = {

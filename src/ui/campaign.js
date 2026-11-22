@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=14';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=14';
-import { unlocksAt, objectiveText, isModeUnlocked, partsFor, effectiveLevel } from '../progress.js?v=14';
+import { CONFIG } from '../config.js?v=15';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=15';
+import { unlocksAt, objectiveText, isModeUnlocked, partsFor, effectiveLevel } from '../progress.js?v=15';
 
 // Carte de campagne : une route qui traverse les 10 lieux en ruine.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -224,6 +224,8 @@ export function drawLevelInfo(ctx, progress, index, buttons, pressed) {
   if (progress.mode === 'normal') for (const m of unlocksAt(lv.id)) lines.push([m, COL.good]);
   // Étoiles : victoire + objectifs
   for (const o of lv.objectives || []) lines.push(['★ ' + objectiveText(o), '#f2d27a']);
+  const hid = progress.heroes.selected, hcfg = CONFIG.heroes.list[hid];
+  if (hcfg && hcfg.unlockLevel <= progress.unlocked) lines.push(['Commandant : ' + hcfg.name + ' (niv. ' + progress.heroes.levels[hid] + ') — à changer dans Atelier › Héros', '#9fd0ff']);
   lines.push([`Récompense : ${pay.star} pièces par nouvelle étoile` +
     (mp.won[lv.id] ? '' : ` (+${pay.firstWin} à la 1re victoire)`), COL.yellow]);
   lines.forEach(([l, c], i) => {

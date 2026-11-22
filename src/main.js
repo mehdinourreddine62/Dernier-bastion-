@@ -1,18 +1,19 @@
-import { CONFIG } from './config.js?v=14';
-import { Game } from './game/Game.js?v=14';
-import { Camera } from './game/Camera.js?v=14';
-import { Renderer } from './render/Renderer.js?v=14';
-import { HUD } from './ui/HUD.js?v=14';
-import { Input } from './ui/input.js?v=14';
-import * as screens from './ui/screens.js?v=14';
-import * as campaign from './ui/campaign.js?v=14';
-import * as workshop from './ui/workshop.js?v=14';
-import { Tutorial } from './ui/tutorial.js?v=14';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=14';
-import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars } from './progress.js?v=14';
-import { Sfx } from './audio/sfx.js?v=14';
-import { Music } from './audio/music.js?v=14';
-import { loadSave, writeSave } from './save.js?v=14';
+import { CONFIG } from './config.js?v=15';
+import { Game } from './game/Game.js?v=15';
+import { Camera } from './game/Camera.js?v=15';
+import { Renderer } from './render/Renderer.js?v=15';
+import { HUD } from './ui/HUD.js?v=15';
+import { Input } from './ui/input.js?v=15';
+import * as screens from './ui/screens.js?v=15';
+import * as campaign from './ui/campaign.js?v=15';
+import * as workshop from './ui/workshop.js?v=15';
+import { Tutorial } from './ui/tutorial.js?v=15';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=15';
+import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
+  heroForGame, buyHeroLevel, resetHeroes } from './progress.js?v=15';
+import { Sfx } from './audio/sfx.js?v=15';
+import { Music } from './audio/music.js?v=15';
+import { loadSave, writeSave } from './save.js?v=15';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -55,6 +56,7 @@ let reward = null;       // gains de la dernière partie (écran de fin)
 let tutorial = null;     // tutoriel en cours (niveau 1, première fois)
 let showStats = false;   // écran BILAN ouvert par-dessus l'écran de fin
 let achPage = 0;         // page de l'écran des succès
+let workshopTab = 'workshop';   // onglet de l'atelier : 'workshop' | 'heroes'
 // Qualité : 'auto' (baisse toute seule si le jeu rame), 'high' ou 'low'
 if (!settings.quality) settings.quality = 'auto';
 let autoLow = false;
@@ -91,7 +93,7 @@ function askConfirm(text, onYes) { confirm = { text, onYes }; }
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
-  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode });
+  game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked, mode: progress.mode, hero: heroForGame(progress) });
   reward = null;
   showStats = false;
   tutorial = selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
@@ -212,7 +214,7 @@ function buildButtons() {
     case 'title': return screens.titleButtons(view, !isInstalled());
     case 'options': return screens.optionsButtons(view, settings, QUALITY_LABEL[settings.quality]);
     case 'map': return campaign.mapButtons(view, progress, mapInfo);
-    case 'workshop': return workshop.workshopButtons(view, progress);
+    case 'workshop': return workshop.workshopButtons(view, progress, workshopTab);
     case 'pause': return screens.pauseButtons(view, settings);
     case 'end': return screens.endButtons(view, game);
     case 'stats': return screens.statsButtons(view);
@@ -249,6 +251,11 @@ input.onButton = (b) => {
     return;
   }
   if (b.kind === 'spell') { startAim(b.spell); return; }
+  if (b.kind === 'hero') { game.useHeroAbility(); return; }
+  // Héros : amélioration (étoiles) et choix
+  if (b.id.startsWith('heroUp:')) { if (buyHeroLevel(progress, b.hero)) { saveAll(); sfx.play('upgrade'); } return; }
+  if (b.id.startsWith('heroPick:')) { progress.heroes.selected = b.hero; saveAll(); return; }
+  if (b.id.startsWith('tab:')) { workshopTab = b.id.slice(4); return; }
   sfx.play('click');
   // Carte : choix du mode de difficulté
   if (b.mode) {
@@ -294,6 +301,13 @@ input.onButton = (b) => {
         normalizeProgress(progress);
         saveAll();
         showToast('Sauvegarde effacée.', 2.5);
+      });
+      break;
+    case 'resetHeroes':
+      askConfirm('Réinitialiser les commandants ?\nToutes les étoiles dépensées seront rendues.', () => {
+        const n = resetHeroes(progress);
+        saveAll();
+        showToast(n + ' étoiles rendues.', 2.5);
       });
       break;
     case 'reset':
@@ -379,6 +393,7 @@ input.onKey = (e) => {
     return;
   }
   const k = e.key.toLowerCase();
+  if (k === 'e') { game.useHeroAbility(); return; }
   for (const id of game.spells.available) {
     if (CONFIG.spells[id].key.toLowerCase() === k) startAim(id);
   }
@@ -505,7 +520,10 @@ function render(time) {
     else if (screen === 'map') {
       campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null), mapInfo === null ? p : new Set(), mapInfo, time);
       if (mapInfo !== null && !confirm) campaign.drawLevelInfo(ctx, progress, mapInfo, buttons, p);
-    } else if (screen === 'workshop') workshop.drawWorkshop(ctx, progress, confirm ? workshop.workshopButtons(view, progress) : buttons, p);
+    } else if (screen === 'workshop') {
+      const wb = confirm ? workshop.workshopButtons(view, progress, workshopTab) : buttons;
+      if (workshopTab === 'heroes') workshop.drawHeroes(ctx, progress, wb, p); else workshop.drawWorkshop(ctx, progress, wb, p);
+    }
     if (confirm) screens.drawConfirm(ctx, confirm.text, buttons, p);
     if (toast) hud.drawToast(ctx, toast.text);
     return;

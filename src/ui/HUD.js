@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=14';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=14';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=14';
+import { CONFIG } from '../config.js?v=15';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=15';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=15';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -45,7 +45,7 @@ export class HUD {
     // Bas : on calcule la largeur des boutons pour que tout tienne
     const units = CONFIG.roster.player.filter((id) => game.isUnlocked('player', id));
     const spells = game.spells.available;
-    const count = units.length + spells.length + 1;
+    const count = units.length + spells.length + 1 + (game.hero ? 1 : 0);
     const gaps = (count - 1) * 6 + 2 * 14;
     const left = 196;
     const bw = Math.max(minL, Math.min(110, (W - left - 12 - gaps) / count));
@@ -83,6 +83,18 @@ export class HUD {
       });
       x += bw + 6;
     });
+    // Commandant : portrait (arrivée / retour / capacité)
+    if (game.hero) {
+      const h = game.hero;
+      const alive = !!h.unit && h.unit.alive;
+      btns.push({
+        id: 'hero', kind: 'hero', key: 'E', x, y, w: bw, h: bh,
+        enabled: game.heroAbilityReady(), alive, hero: h,
+        cdRatio: alive ? h.abilityCd / h.cooldown : 0,
+        tooltip: true,
+      });
+      x += bw + 6;
+    }
     x += 8;
     const cost = game.incomeUpgradeCost('player');
     btns.push({
@@ -124,6 +136,7 @@ export class HUD {
       if (b.kind === 'unit') this._unitButton(ctx, b, p);
       else if (b.kind === 'spell') this._spellButton(ctx, b, p);
       else if (b.kind === 'income') this._incomeButton(ctx, b, p);
+      else if (b.kind === 'hero') this._heroButton(ctx, b, p, game);
       else if (b.kind === 'minimap') continue;
       else if (b.kind === 'top') {
         drawButton(ctx, b, b.icon ? '' : b.label, p, { size: Math.min(26, b.h * 0.45) });
@@ -264,6 +277,13 @@ export class HUD {
       else lines.push(`Soigne ${Math.round(c.healRatio * 100)} % des PV de tes unités dans un rayon de ${c.radius}`);
       lines.push(`Recharge ${Math.round(game.spells.cooldownOf(b.spell))} s   Touche ${c.key}`);
       lines.push('Touche le bouton, puis vise sur le champ de bataille');
+    } else if (b.kind === 'hero') {
+      const c = b.hero.cfg;
+      title = c.name + ' — niv. ' + b.hero.level;
+      lines.push('Capacité : ' + c.ability.name + ' (touche E)');
+      lines.push(c.ability.text);
+      lines.push('Aura : ' + c.aura.text);
+      lines.push(b.alive ? 'Revient 45 s après sa mort' : 'Arrive bientôt sur le champ de bataille');
     } else if (b.kind === 'income') {
       const e = CONFIG.economy.incomeUpgrade;
       title = 'Amélioration du revenu';
@@ -359,6 +379,28 @@ export class HUD {
     if (b.cdLeft > 0) text(ctx, Math.ceil(b.cdLeft) + ' s', b.x + b.w / 2, b.y + dy + b.h / 2, 24, COL.text, 'center', 'middle');
     text(ctx, b.active ? 'VISE…' : CONFIG.spells[b.spell].name.split(' ').pop().toUpperCase(),
       b.x + b.w / 2, b.y + dy + b.h - 9, 14, b.active ? COL.yellow : COL.dim, 'center');
+    text(ctx, b.key, b.x + 8, b.y + dy + 19, 15, COL.dim);
+  }
+
+  _heroButton(ctx, b, pressed, game) {
+    const h = b.hero;
+    const dy = this._frame(ctx, b, pressed, b.enabled);
+    drawIcon(ctx, h.unitId, b.x + b.w / 2, b.y + dy + b.h * 0.4, b.h * 0.6, !b.alive);
+    if (!b.alive) {
+      ctx.save(); roundRectPath(ctx, b.x, b.y + dy, b.w, b.h, 10); ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.restore();
+      text(ctx, Math.ceil(Math.max(0, h.timer)) + ' s', b.x + b.w / 2, b.y + dy + b.h * 0.42, 24, COL.text, 'center', 'middle');
+      text(ctx, game.time < CONFIG.heroes.deployDelay ? 'ARRIVE' : 'RETOUR', b.x + b.w / 2, b.y + dy + b.h - 9, 14, COL.dim, 'center');
+    } else {
+      this._dial(ctx, b, dy, b.cdRatio);
+      if (h.abilityCd > 0) text(ctx, Math.ceil(h.abilityCd) + ' s', b.x + b.w / 2, b.y + dy + b.h / 2, 24, COL.text, 'center', 'middle');
+      // vie du commandant
+      const r = h.unit.hp / h.unit.maxHp;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(b.x + 10, b.y + dy + b.h - 30, b.w - 20, 6);
+      ctx.fillStyle = r > 0.5 ? COL.good : r > 0.25 ? '#e0a82e' : COL.bad;
+      ctx.fillRect(b.x + 10, b.y + dy + b.h - 30, (b.w - 20) * r, 6);
+      text(ctx, b.enabled ? 'CAPACITÉ !' : h.cfg.ability.name.split(' ')[0].toUpperCase(), b.x + b.w / 2, b.y + dy + b.h - 9, 13,
+        b.enabled ? COL.yellow : COL.dim, 'center');
+    }
     text(ctx, b.key, b.x + 8, b.y + dy + 19, 15, COL.dim);
   }
 
