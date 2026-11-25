@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=28';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=28';
-import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=28';
+import { CONFIG } from '../config.js?v=29';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, stencilText } from './widgets.js?v=29';
+import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=29';
 
 // Carte de campagne : 2 chapitres de 10 lieux (onglets en haut), reliés par une route.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -253,9 +253,12 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time, chapter
     if (b.id === 'back' || b.id === 'workshop') drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
     else if (b.id === 'survival') {
       drawButton(ctx, b, '', pressed.has(b.id), { primary: !b.lockedSurvival });
-      text(ctx, 'MODE SURVIE', b.x + b.w / 2 + (b.lockedSurvival ? 12 : 0), b.y + b.h / 2 - 8, 20, b.lockedSurvival ? COL.dim : COL.text, 'center', 'middle');
+      // plaque jaune quand la Survie est ouverte : lettres sombres
+      const dy = pressed.has(b.id) ? 2 : 0;
+      if (b.lockedSurvival) text(ctx, 'MODE SURVIE', b.x + b.w / 2 + 12, b.y + b.h / 2 - 8, 20, COL.dim, 'center', 'middle');
+      else stencilText(ctx, 'MODE SURVIE', b.x + b.w / 2, b.y + b.h / 2 - 8 + dy, 21, '#2a1d0e');
       text(ctx, b.lockedSurvival ? 'après le niveau ' + CONFIG.survival.unlockAfterLevel : 'record : vague ' + progress.survival.bestWave,
-        b.x + b.w / 2 + (b.lockedSurvival ? 12 : 0), b.y + b.h / 2 + 14, 14, COL.dim, 'center', 'middle');
+        b.x + b.w / 2 + (b.lockedSurvival ? 12 : 0), b.y + b.h / 2 + 15 + dy, 14, b.lockedSurvival ? COL.dim : '#4a3416', 'center', 'middle');
       if (b.lockedSurvival) padlock(ctx, b.x + 24, b.y + b.h / 2 + 2);
     }
     else if (b.chapter !== undefined) {

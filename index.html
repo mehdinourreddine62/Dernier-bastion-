@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=28">
+  <link rel="stylesheet" href="style.css?v=29">
 </head>
 <body>
   <!-- Zone de jeu : respecte l'encoche via les marges de sécurité (voir style.css) -->
@@ -26,12 +26,12 @@
   </div>
 
   <noscript>Active JavaScript pour jouer à Dernier Bastion.</noscript>
-  <script type="module" src="src/main.js?v=28"></script>
+  <script type="module" src="src/main.js?v=29"></script>
   <script>
     // Application installable + jeu disponible hors connexion (voir sw.js)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=28').catch(function () {});
+        navigator.serviceWorker.register('sw.js?v=29').catch(function () {});
       });
     }
   </script>

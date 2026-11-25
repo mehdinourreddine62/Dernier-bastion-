@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=28';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=28';
-import { objectiveText } from '../progress.js?v=28';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=28';
-import { ACHIEVEMENTS } from '../achievements.js?v=28';
-import { roundRectPath } from './widgets.js?v=28';
+import { CONFIG } from '../config.js?v=29';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=29';
+import { objectiveText } from '../progress.js?v=29';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=29';
+import { ACHIEVEMENTS } from '../achievements.js?v=29';
+import { roundRectPath } from './widgets.js?v=29';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -40,14 +40,66 @@ function dim(ctx, alpha) {
   ctx.fillRect(0, 0, W, H);
 }
 
+// Grand titre peint à la bombe au pochoir : halo de peinture, ponts du pochoir, coulures.
+// Dessiné une fois puis mis en cache.
+const titleCache = new Map();
+const BRIDGED = new Set('OQDBPRAÉ'.split(''));
+function sprayTitle(str, size, color) {
+  const key = str + '|' + size + '|' + color;
+  if (titleCache.has(key)) return titleCache.get(key);
+  const R = 2, m = document.createElement('canvas').getContext('2d');
+  const font = `900 ${size}px ${FONT}`;
+  m.font = font;
+  const tw = Math.ceil(m.measureText(str).width) + size, th = Math.ceil(size * 2);
+  const cv = document.createElement('canvas');
+  cv.width = tw * R; cv.height = th * R;
+  const c = cv.getContext('2d');
+  c.scale(R, R);
+  c.font = font; c.textAlign = 'left'; c.textBaseline = 'middle';
+  const x0 = size / 2, y0 = th * 0.42;
+  // ombre sombre (lisibilité sur le décor)
+  c.save(); c.shadowColor = 'rgba(15,8,4,0.85)'; c.shadowBlur = size * 0.18; c.shadowOffsetY = size * 0.05;
+  c.fillStyle = 'rgba(15,8,4,0.9)'; c.fillText(str, x0, y0 + size * 0.04); c.restore();
+  // peinture + halo de bombe
+  c.save(); c.shadowColor = color; c.shadowBlur = size * 0.22;
+  c.fillStyle = color; c.fillText(str, x0, y0); c.restore();
+  // grain de peinture : quelques points de pulvérisation autour
+  let n = str.length * 977;
+  const rnd = () => { n = (n * 16807) % 2147483647; return n / 2147483647; };
+  c.fillStyle = color;
+  for (let i = 0; i < str.length * 14; i++) {
+    const px = x0 + rnd() * (tw - size), py = y0 + (rnd() - 0.5) * size * 1.25;
+    c.globalAlpha = 0.25 + rnd() * 0.4; c.fillRect(px, py, 1 + rnd() * 1.5, 1 + rnd() * 1.5);
+  }
+  c.globalAlpha = 1;
+  // coulures sous certaines lettres
+  let x = x0;
+  for (const ch of str) {
+    const cw = c.measureText(ch).width;
+    if (ch !== ' ' && rnd() < 0.45) {
+      const dx = x + cw * (0.25 + rnd() * 0.5), len = size * (0.12 + rnd() * 0.3), wd = Math.max(1.5, size * 0.035);
+      c.fillRect(dx - wd / 2, y0 + size * 0.3, wd, len);
+      c.beginPath(); c.arc(dx, y0 + size * 0.3 + len, wd * 0.9, 0, Math.PI * 2); c.fill();
+    }
+    x += cw;
+  }
+  // ponts du pochoir
+  c.globalCompositeOperation = 'destination-out';
+  const bw = Math.max(1.5, size * 0.06);
+  x = x0;
+  for (const ch of str) {
+    const cw = c.measureText(ch).width;
+    if (BRIDGED.has(ch)) c.fillRect(x + cw * 0.5 - bw / 2, y0 - size * 0.6, bw, size * 1.2);
+    x += cw;
+  }
+  const img = { cv, w: tw, h: th, cy: y0 };
+  titleCache.set(key, img);
+  return img;
+}
+
 function bigTitle(ctx, str, y, size, color = '#e8a04a') {
-  ctx.lineJoin = 'round';
-  ctx.font = `bold ${size}px ${FONT}`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = size / 8; ctx.strokeStyle = COL.dark;
-  ctx.strokeText(str, W / 2, y);
-  ctx.fillStyle = color;
-  ctx.fillText(str, W / 2, y);
+  const t = sprayTitle(str, size, color);
+  ctx.drawImage(t.cv, W / 2 - t.w / 2, y - t.cy, t.w, t.h);
 }
 
 const drawAll = (ctx, buttons, pressed, size = 28) => {

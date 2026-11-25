@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=28';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=28';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text } from './widgets.js?v=28';
+import { CONFIG } from '../config.js?v=29';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=29';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=29';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -349,24 +349,24 @@ export class HUD {
     text(ctx, label + '  ' + Math.ceil(base.hp) + ' / ' + base.maxHp, x + w / 2, y + h / 2 + 1, 17, '#fff', 'center', 'middle');
   }
 
+  // Plaque d'acier du bouton (contour jaune si mis en avant)
   _frame(ctx, b, pressed, highlight) {
     const dy = pressed && b.enabled ? 2 : 0;
-    const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
-    g.addColorStop(0, pressed && b.enabled ? '#4a3a2e' : '#6b5440');
-    g.addColorStop(1, pressed && b.enabled ? '#6b5440' : '#43332a');
-    roundRectPath(ctx, b.x, b.y + dy, b.w, b.h, 10);
-    ctx.fillStyle = g; ctx.fill();
-    ctx.lineWidth = highlight ? 4 : 3;
-    ctx.strokeStyle = highlight ? COL.yellow : COL.dark;
-    ctx.stroke();
+    if (!dy) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; chamferPath(ctx, b.x + 2, b.y + 4, b.w, b.h, this._k(b)); ctx.fill(); }
+    drawPlate(ctx, b.x, b.y + dy, b.w, b.h, b.enabled === false ? 'off' : 'steel');
+    if (highlight) {
+      chamferPath(ctx, b.x, b.y + dy, b.w, b.h, this._k(b));
+      ctx.lineWidth = 4; ctx.strokeStyle = COL.yellow; ctx.stroke();
+    }
     return dy;
   }
+  _k(b) { return Math.max(5, Math.min(12, Math.min(b.w, b.h) / 5)); }
 
   // Cadran de recharge qui se remplit
   _dial(ctx, b, dy, ratio) {
     if (ratio <= 0) return;
     ctx.save();
-    roundRectPath(ctx, b.x, b.y + dy, b.w, b.h, 10);
+    chamferPath(ctx, b.x, b.y + dy, b.w, b.h, this._k(b));
     ctx.clip();
     const cx = b.x + b.w / 2, cy = b.y + dy + b.h / 2;
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
@@ -409,11 +409,11 @@ export class HUD {
     if (b.deploy) {
       // prêt : le joueur choisit le moment du déploiement (bouton qui pulse)
       const k = 0.5 + Math.sin(game.time * 5) * 0.5;
-      ctx.save(); roundRectPath(ctx, b.x + 2, b.y + dy + 2, b.w - 4, b.h - 4, 9);
+      ctx.save(); chamferPath(ctx, b.x + 2, b.y + dy + 2, b.w - 4, b.h - 4, this._k(b) - 1);
       ctx.lineWidth = 3; ctx.strokeStyle = `rgba(242,194,48,${0.4 + 0.6 * k})`; ctx.stroke(); ctx.restore();
       text(ctx, 'DÉPLOYER', b.x + b.w / 2, b.y + dy + b.h - 9, 13, COL.yellow, 'center');
     } else if (!b.alive) {
-      ctx.save(); roundRectPath(ctx, b.x, b.y + dy, b.w, b.h, 10); ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.restore();
+      ctx.save(); chamferPath(ctx, b.x, b.y + dy, b.w, b.h, this._k(b)); ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fill(); ctx.restore();
       text(ctx, Math.ceil(Math.max(0, h.timer)) + ' s', b.x + b.w / 2, b.y + dy + b.h * 0.42, 24, COL.text, 'center', 'middle');
       text(ctx, 'RETOUR', b.x + b.w / 2, b.y + dy + b.h - 9, 14, COL.dim, 'center');
     } else {
