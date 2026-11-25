@@ -78,6 +78,11 @@ Au **niveau 10**, chaque commandant gagne un talent (Kane : *Second souffle*, Ro
 Vasquez : tir de précision sur trois cibles). L'ordre **Tenir / Charger** (touche **T**) est disponible
 pour tous les commandants, quel que soit leur niveau.
 
+### Défi du jour
+Bouton **DÉFI DU JOUR** sur la carte : chaque jour (date de l'appareil, sans connexion), un niveau déjà
+gagné avec 2 règles imposées (pas de Blindés, mutants plus rapides, sans commandant…). Récompense une
+fois par jour, avec un bonus de série pour les jours consécutifs. Réglages : section `daily` de `config.js`.
+
 ### Bestiaire
 Bouton **📖 BESTIAIRE** de l'écran titre : tous les mutants rencontrés, avec leurs statistiques, le
 nombre que tu as tués et comment les contrer. Les textes sont dans la section `bestiary` de `config.js`.
@@ -121,10 +126,10 @@ Sur https://app.netlify.com/drop, glisse-dépose le dossier du jeu. C'est en lig
 ### ⚠ Le cache des navigateurs
 Les navigateurs gardent les fichiers en mémoire quelques minutes. Pour être sûr que tout le monde
 reçoit ta nouvelle version, **augmente le numéro de version** des fichiers : remplace partout
-`?v=32` par `?v=33` (dans `index.html` et dans tous les fichiers de `src/`, avec un
+`?v=33` par `?v=34` (dans `index.html` et dans tous les fichiers de `src/`, avec un
 « rechercher / remplacer dans les fichiers » de ton éditeur). Ce numéro sert aussi à
 l'application installée : elle télécharge la nouvelle version au lancement suivant.
-Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.32 » pour `?v=32`) : c'est le moyen
+Le même numéro s'affiche en bas de l'écran titre (« Bêta 0.33 » pour `?v=33`) : c'est le moyen
 de vérifier qu'une mise à jour est bien arrivée.
 Pour un simple test, ouvre la page en **navigation privée**.
 

@@ -295,6 +295,28 @@ export const CONFIG = {
     },
   },
 
+  // ---------- Défi du jour (bouton sur la carte) ----------
+  // Chaque jour (date de l'appareil) : un niveau déjà gagné, tiré au hasard, avec « count » règles imposées.
+  // Récompense une fois par jour : reward + perLevel × numéro du niveau, + streakBonus par jour consécutif.
+  daily: {
+    count: 2,
+    reward: 60, perLevel: 4,
+    streakBonus: 15, streakMax: 5,
+    // group : deux règles du même groupe ne sont jamais tirées ensemble ; needs : unité qui doit être débloquée
+    modifiers: {
+      noTank:   { text: 'Pas de Blindés', rules: { banned: ['blinde'] }, group: 'ban', needs: 'blinde' },
+      noRifle:  { text: 'Pas de Tireurs', rules: { banned: ['tireur'] }, group: 'ban' },
+      noFlame:  { text: 'Pas de Lance-flammes', rules: { banned: ['lanceFlammes'] }, group: 'ban', needs: 'lanceFlammes' },
+      poor:     { text: 'Ton revenu −20 %', rules: { playerIncome: 0.8 }, group: 'eco' },
+      broke:    { text: 'Départ sans ferraille', rules: { startScrap: 0 }, group: 'eco' },
+      tough:    { text: 'Mutants +25 % de PV', rules: { enemyHp: 1.25 }, group: 'mut' },
+      fast:     { text: 'Mutants 25 % plus rapides', rules: { enemySpeed: 1.25 }, group: 'mut' },
+      horde:    { text: 'Le Nid produit 30 % de mutants en plus', rules: { aiIncome: 1.3 }, group: 'mut' },
+      noSpells: { text: 'Pas de sorts (mortier, soins)', rules: { noSpells: true } },
+      noHero:   { text: 'Sans commandant', rules: { noHero: true } },
+    },
+  },
+
   // ---------- Bestiaire (écran titre) ----------
   // Mutants dans l'ordre d'affichage, avec leur description et comment les contrer.
   bestiary: {

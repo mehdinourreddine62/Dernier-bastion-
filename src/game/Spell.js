@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=32';
+import { CONFIG } from '../config.js?v=33';
 
 // Sorts du joueur : Frappe de mortier et Kit de soins.
 export class Spells {
@@ -12,6 +12,7 @@ export class Spells {
 
   // Sorts disponibles à ce niveau, dans l'ordre de la config
   get available() {
+    if (this.game.rules && this.game.rules.noSpells) return [];   // règle du défi du jour
     return Object.keys(CONFIG.spells).filter((id) => CONFIG.spells[id].unlockLevel <= this.game.unlockId);
   }
 

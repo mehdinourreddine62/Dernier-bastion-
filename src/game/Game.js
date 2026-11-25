@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=32';
-import { Unit, bonusMultiplier } from './Unit.js?v=32';
-import { Base } from './Base.js?v=32';
-import { ProjectilePool } from './Projectile.js?v=32';
-import { Particles, GIB_COLOR } from './Particles.js?v=32';
-import { Spells } from './Spell.js?v=32';
-import { AI } from './AI.js?v=32';
-import { levelFor } from '../progress.js?v=32';
-import { Survival, survivalLevel } from './Survival.js?v=32';
+import { CONFIG } from '../config.js?v=33';
+import { Unit, bonusMultiplier } from './Unit.js?v=33';
+import { Base } from './Base.js?v=33';
+import { ProjectilePool } from './Projectile.js?v=33';
+import { Particles, GIB_COLOR } from './Particles.js?v=33';
+import { Spells } from './Spell.js?v=33';
+import { AI } from './AI.js?v=33';
+import { levelFor } from '../progress.js?v=33';
+import { Survival, survivalLevel } from './Survival.js?v=33';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -24,6 +24,11 @@ export class Game {
     this.levelIndex = levelIndex;
     this.mode = opts.survival ? 'survival' : 'campaign';
     this.level = opts.survival ? survivalLevel() : levelFor(levelIndex);
+    // Règles spéciales : celles du niveau (chapitre 3) + celles du défi du jour
+    const lr = this.level.rules || {}, dr = opts.rules || {};
+    this.rules = Object.assign({}, lr, dr);
+    if (lr.banned && dr.banned) this.rules.banned = lr.banned.concat(dr.banned);
+    this.daily = !!opts.daily;
     this.unlockId = opts.survival ? opts.unlockedUpTo || 1 : Math.max(this.level.id, opts.unlockedUpTo || 0);
     this.time = 0;
     this.speed = 1;
@@ -48,14 +53,15 @@ export class Game {
       enemy: this._makeSide(this.level.aiIncomeMult),
     };
     if (this.level.aiStartScrap !== undefined) this.sides.enemy.scrap = this.level.aiStartScrap;
-    // Règle spéciale du niveau (chapitre 3) : unités interdites, revenu réduit, mutants endurcis
-    this.rules = this.level.rules || {};
+    // Règles spéciales : unités interdites, revenu réduit, mutants endurcis…
     if (this.rules.playerIncome) this.sides.player.incomeMult = this.rules.playerIncome;
+    if (this.rules.aiIncome) this.sides.enemy.incomeMult *= this.rules.aiIncome;
+    if (this.rules.startScrap !== undefined) this.sides.player.scrap = this.rules.startScrap;
     if (opts.mods) Object.assign(this.sides.player.mods, opts.mods);
     // Commandant (héros) : { id, level } ; ses bonus de niveau passent par les mods d'unité
     this.hero = null;
     this.rallyUntil = 0; this.rallyBonus = 0;
-    if (opts.hero && CONFIG.heroes.list[opts.hero.id]) {
+    if (opts.hero && !this.rules.noHero && CONFIG.heroes.list[opts.hero.id]) {
       const H = CONFIG.heroes, cfg = H.list[opts.hero.id], lvl = opts.hero.level || 0;
       this.sides.player.mods.units = Object.assign({}, this.sides.player.mods.units,
         { ['hero_' + opts.hero.id]: { hp: 1 + H.perLevel.hp * lvl, damage: 1 + H.perLevel.damage * lvl } });
@@ -190,6 +196,7 @@ export class Game {
     if (x === null) x = base.faceX + base.dir * CONFIG.combat.spawnOffset;
     const u = new Unit(defId, side, x, this.sides[side].mods);
     if (side === 'enemy' && this.rules.enemyHp) { u.maxHp *= this.rules.enemyHp; u.hp = u.maxHp; }
+    if (side === 'enemy' && this.rules.enemySpeed) u.speedMult *= this.rules.enemySpeed;
     this.units.push(u);
     const def = CONFIG.units[defId];
     if (side === 'player' && !def.hero && !def.lifetime) { this.stats.recruited++; inc(this.stats.recruitedBy, defId); }

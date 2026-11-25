@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=32';
-import { Entity } from './Entity.js?v=32';
+import { CONFIG } from '../config.js?v=33';
+import { Entity } from './Entity.js?v=33';
 
 // Une base (fort des Survivants ou nid des Mutants), avec sa tourelle automatique :
 // mitrailleuse pour le fort, tentacule cracheur pour le nid.

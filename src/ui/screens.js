@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=32';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=32';
-import { objectiveText } from '../progress.js?v=32';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=32';
-import { ACHIEVEMENTS } from '../achievements.js?v=32';
-import { roundRectPath } from './widgets.js?v=32';
+import { CONFIG } from '../config.js?v=33';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=33';
+import { objectiveText } from '../progress.js?v=33';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=33';
+import { ACHIEVEMENTS } from '../achievements.js?v=33';
+import { roundRectPath } from './widgets.js?v=33';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons
@@ -196,6 +196,10 @@ export function drawPause(ctx, buttons, pressed) {
 // ---------- Fin de partie ----------
 export function endButtons(view, game) {
   const won = game.result === 'won';
+  if (game.daily) {
+    const ids = won ? [['map', 'CARTE', true], ['stats', 'BILAN']] : [['restart', 'RÉESSAYER', true], ['stats', 'BILAN'], ['workshop', 'ATELIER'], ['map', 'CARTE']];
+    return row(view, ids, 560, ids.length > 3 ? 168 : 210);
+  }
   const hasNext = won && game.levelIndex + 1 < CONFIG.levels.length;
   const ids = won
     ? [...(hasNext ? [['next', 'NIVEAU SUIVANT', true]] : []), ['restart', 'REJOUER', !hasNext], ['stats', 'BILAN'], ['map', 'CARTE']]
@@ -208,6 +212,7 @@ export function drawEnd(ctx, game, buttons, pressed, reward) {
   dim(ctx, 0.6);
   drawPanel(ctx, W / 2 - 370, 50, 740, Math.max(640, buttons[0].y + buttons[0].h + 24) - 50, 16);
   if (game.survival) { drawSurvivalEnd(ctx, game, reward); drawAll(ctx, buttons, pressed, buttons.length > 3 ? 18 : 22); return; }
+  if (game.daily) { drawDailyEnd(ctx, game, reward); drawAll(ctx, buttons, pressed, buttons.length > 3 ? 18 : 22); return; }
   const won = game.result === 'won';
   text(ctx, won ? 'VICTOIRE !' : 'DÉFAITE', W / 2, 112, 56, won ? COL.yellow : COL.bad, 'center', 'middle');
   text(ctx, 'Niveau ' + game.level.id + ' — ' + game.level.name,
@@ -437,4 +442,23 @@ function drawSurvivalEnd(ctx, game, reward) {
   for (const m of (reward && reward.messages) || []) { text(ctx, m, W / 2, y, 19, COL.good, 'center', 'middle'); y += 28; }
   const ach = (reward && reward.achievements) || [];
   if (ach.length) text(ctx, '🏆 Succès : ' + ach.map((a) => a.name).join(', ') + ' (+' + ach.reduce((n, a) => n + a.reward, 0) + ' pièces)', W / 2, Math.min(y, 540), 18, COL.yellow, 'center', 'middle');
+}
+
+// Fin d'un défi du jour
+function drawDailyEnd(ctx, game, reward) {
+  const won = game.result === 'won';
+  text(ctx, won ? 'DÉFI RÉUSSI !' : 'DÉFI ÉCHOUÉ', W / 2, 112, 54, won ? COL.yellow : COL.bad, 'center', 'middle');
+  text(ctx, 'Défi du jour · Niveau ' + game.level.id + ' — ' + game.level.name, W / 2, 162, 22, COL.dim, 'center', 'middle');
+  const t = Math.round(game.time);
+  text(ctx, 'Durée : ' + Math.floor(t / 60) + ' min ' + String(t % 60).padStart(2, '0') + ' s', W / 2, 210, 21, COL.text, 'center', 'middle');
+  let y = 260;
+  if (reward && reward.parts > 0) {
+    text(ctx, '+' + reward.parts + ' pièces détachées', W / 2, y, 30, COL.yellow, 'center', 'middle'); y += 40;
+    text(ctx, 'Série : ' + reward.streak + ' jour' + (reward.streak > 1 ? 's' : '') + ' d’affilée' + (reward.bonus ? ' (+' + reward.bonus + ' de bonus)' : ''), W / 2, y, 21, COL.good, 'center', 'middle'); y += 36;
+  } else if (!won) {
+    text(ctx, 'Tu peux réessayer autant de fois que tu veux aujourd’hui.', W / 2, y, 21, COL.text, 'center', 'middle'); y += 36;
+  }
+  for (const m of (reward && reward.messages) || []) { text(ctx, m, W / 2, y, 20, COL.good, 'center', 'middle'); y += 30; }
+  const ach = (reward && reward.achievements) || [];
+  if (ach.length) text(ctx, '🏆 Succès : ' + ach.map((a) => a.name).join(', ') + ' (+' + ach.reduce((n, a) => n + a.reward, 0) + ' pièces)', W / 2, Math.min(y + 10, 520), 19, COL.yellow, 'center', 'middle');
 }

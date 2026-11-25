@@ -1,21 +1,21 @@
-import { CONFIG } from './config.js?v=32';
-import { Game } from './game/Game.js?v=32';
-import { Camera } from './game/Camera.js?v=32';
-import { Renderer } from './render/Renderer.js?v=32';
-import { HUD } from './ui/HUD.js?v=32';
-import { Input } from './ui/input.js?v=32';
-import * as screens from './ui/screens.js?v=32';
-import * as campaign from './ui/campaign.js?v=32';
-import * as workshop from './ui/workshop.js?v=32';
-import { Tutorial } from './ui/tutorial.js?v=32';
-import * as bestiary from './ui/bestiary.js?v=32';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=32';
+import { CONFIG } from './config.js?v=33';
+import { Game } from './game/Game.js?v=33';
+import { Camera } from './game/Camera.js?v=33';
+import { Renderer } from './render/Renderer.js?v=33';
+import { HUD } from './ui/HUD.js?v=33';
+import { Input } from './ui/input.js?v=33';
+import * as screens from './ui/screens.js?v=33';
+import * as campaign from './ui/campaign.js?v=33';
+import * as workshop from './ui/workshop.js?v=33';
+import { Tutorial } from './ui/tutorial.js?v=33';
+import * as bestiary from './ui/bestiary.js?v=33';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=33';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
   heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf,
-  recordBestiary, exportCode, parseCode } from './progress.js?v=32';
-import { Sfx } from './audio/sfx.js?v=32';
-import { Music } from './audio/music.js?v=32';
-import { loadSave, writeSave } from './save.js?v=32';
+  recordBestiary, exportCode, parseCode, dailyChallenge, recordDaily } from './progress.js?v=33';
+import { Sfx } from './audio/sfx.js?v=33';
+import { Music } from './audio/music.js?v=33';
+import { loadSave, writeSave } from './save.js?v=33';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -62,6 +62,8 @@ let achPage = 0;         // page de l'écran des succès
 let workshopTab = 'workshop';   // onglet de l'atelier : 'workshop' | 'heroes'
 let survivalRun = false;        // la partie en cours est-elle en mode Survie ?
 let beastSel = null;            // mutant sélectionné dans le bestiaire
+let dailyOpen = false;          // fiche du défi du jour ouverte sur la carte
+let dailyRun = null;            // défi du jour en cours (ou null)
 // Qualité : 'auto' (baisse toute seule si le jeu rame), 'high' ou 'low'
 if (!settings.quality) settings.quality = 'auto';
 let autoLow = false;
@@ -130,8 +132,10 @@ function showToast(text, time = 4) { toast = { text, time }; }
 function startGame() {
   gameSerial++;
   game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked,
-    hero: heroForGame(progress), survival: survivalRun });
+    hero: heroForGame(progress), survival: survivalRun,
+    rules: dailyRun ? dailyRun.rules : null, daily: !!dailyRun });
   game.survivalBest = progress.survival.bestWave;
+  if (dailyRun) game.dailyTexts = dailyRun.mods.map((id) => CONFIG.daily.modifiers[id].text);
   reward = null;
   showStats = false;
   tutorial = !survivalRun && selectedLevel === 0 && !progress.tutorialDone ? new Tutorial() : null;
@@ -252,7 +256,7 @@ function buildButtons() {
     case 'confirm': return screens.confirmButtons(view);
     case 'title': return screens.titleButtons(view, !isInstalled());
     case 'options': return screens.optionsButtons(view, settings, QUALITY_LABEL[settings.quality]);
-    case 'map': return campaign.mapButtons(view, progress, mapInfo, mapChapter);
+    case 'map': return dailyOpen ? campaign.dailyButtons(view) : campaign.mapButtons(view, progress, mapInfo, mapChapter);
     case 'workshop': return workshop.workshopButtons(view, progress, workshopTab);
     case 'pause': return screens.pauseButtons(view, settings);
     case 'end': return screens.endButtons(view, game);
@@ -283,6 +287,7 @@ function goToMap() {
   mapChapter = chapterOf(game && !survivalRun ? Math.min(game.level.id + (game.result === 'won' ? 1 : 0), progress.unlocked) : progress.unlocked);
   screen = 'map';
   mapInfo = null;
+  dailyOpen = false;
   game = null;
   cancelAim();
 }
@@ -368,10 +373,16 @@ input.onButton = (b) => {
       });
       break;
     // --- carte ---
-    case 'launch': selectedLevel = mapInfo; mapInfo = null; survivalRun = false; startGame(); break;
+    case 'launch': selectedLevel = mapInfo; mapInfo = null; survivalRun = false; dailyRun = null; startGame(); break;
+    case 'daily': dailyOpen = true; break;
+    case 'closeDaily': dailyOpen = false; break;
+    case 'launchDaily':
+      dailyRun = dailyChallenge(progress); dailyOpen = false;
+      selectedLevel = dailyRun.levelIndex; survivalRun = false; startGame();
+      break;
     case 'survival':
       if (!isSurvivalUnlocked(progress)) showToast('Termine le niveau ' + CONFIG.survival.unlockAfterLevel + '\npour débloquer la Survie.', 3);
-      else { survivalRun = true; startGame(); }
+      else { survivalRun = true; dailyRun = null; startGame(); }
       break;
     case 'closeInfo': mapInfo = null; break;
     // --- en partie ---
@@ -425,7 +436,8 @@ input.onKey = (e) => {
   if (confirm) { if (e.code === 'Escape') confirm = null; return; }
   if (screen !== 'playing') {
     if (e.code === 'Escape') {
-      if (screen === 'map' && mapInfo !== null) mapInfo = null;
+      if (screen === 'map' && dailyOpen) dailyOpen = false;
+      else if (screen === 'map' && mapInfo !== null) mapInfo = null;
       else if (screen === 'workshop') screen = 'map';
       else screen = 'title';
     } else if (e.code === 'Enter') {
@@ -530,6 +542,7 @@ function frame(now) {
     // Fin de partie : étoiles, pièces, déblocages -> sauvegarde automatique
     if (game.result && !reward) {
       reward = game.survival ? recordSurvival(progress, game)
+        : game.daily ? recordDaily(progress, dailyRun, game.result === 'won')
         : recordResult(progress, game.levelIndex, game.result === 'won', game.stars);
       reward.achievements = checkAchievements(progress, game);
       recordBestiary(progress, game);
@@ -620,8 +633,10 @@ function renderScene(time) {
     else if (screen === 'achievements') screens.drawAchievements(ctx, progress, achPage, buttons, p);
     else if (screen === 'bestiary') bestiary.drawBestiary(ctx, progress, beastSel, buttons, p);
     else if (screen === 'map') {
-      campaign.drawMap(ctx, progress, mapInfo === null ? buttons : campaign.mapButtons(view, progress, null, mapChapter), mapInfo === null ? p : new Set(), mapInfo, time, mapChapter);
+      const plain = mapInfo === null && !dailyOpen;
+      campaign.drawMap(ctx, progress, plain ? buttons : campaign.mapButtons(view, progress, null, mapChapter), plain ? p : new Set(), mapInfo, time, mapChapter);
       if (mapInfo !== null && !confirm) campaign.drawLevelInfo(ctx, progress, mapInfo, buttons, p);
+      if (dailyOpen && !confirm) campaign.drawDailyInfo(ctx, progress, buttons, p);
     } else if (screen === 'workshop') {
       const wb = confirm ? workshop.workshopButtons(view, progress, workshopTab) : buttons;
       if (workshopTab === 'heroes') workshop.drawHeroes(ctx, progress, wb, p); else workshop.drawWorkshop(ctx, progress, wb, p);

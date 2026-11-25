@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=32';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=32';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=32';
+import { CONFIG } from '../config.js?v=33';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=33';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=33';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -200,6 +200,16 @@ export class HUD {
   }
 
   _objectives(ctx, game) {
+    // Défi du jour : rappel des règles imposées à la place des objectifs d'étoiles
+    if (game.daily) {
+      const rules = game.dailyTexts || [];
+      const x = 16, y = 52, w = 290, lh = 24;
+      roundRectPath(ctx, x, y, w, 34 + rules.length * lh, 8);
+      ctx.fillStyle = 'rgba(25,15,8,0.65)'; ctx.fill();
+      text(ctx, 'Défi du jour', x + 12, y + 18, 15, COL.yellow, 'left', 'middle');
+      rules.forEach((r, i) => text(ctx, '⚠ ' + r, x + 12, y + 42 + i * lh, 15, '#ff8a6a', 'left', 'middle'));
+      return;
+    }
     const objs = game.objectives;
     if (!objs.length) return;
     const x = 16, y = 52, w = 250, lh = 26;

@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js?v=32';
+import { CONFIG } from './config.js?v=33';
 
 // Progression de la campagne : niveaux débloqués, étoiles, pièces détachées, atelier.
 // L'objet `progress` vit dans la sauvegarde (save.js) ; ces fonctions le lisent et le modifient.
@@ -41,6 +41,7 @@ export function normalizeProgress(p) {
       }
     }
   }
+  normalizeDaily(p);
   // Mode Survie : records et paliers déjà récompensés
   p.survival = Object.assign({ bestWave: 0, bestScore: 0, tier: 0 }, p.survival || {});
   p.parts = p.parts || 0;           // pièces détachées disponibles
@@ -271,4 +272,72 @@ export function parseCode(code) {
   } catch (e) {
     return null;
   }
+}
+
+// ---------- Défi du jour ----------
+// Date locale « AAAA-MM-JJ » (le défi change à minuit, heure de l'appareil)
+export function todayKey(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function dayBefore(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return todayKey(new Date(y, m - 1, d - 1));
+}
+
+// Le défi d'un jour : toujours le même pour une date et une progression données
+export function dailyChallenge(p, key = todayKey()) {
+  const D = CONFIG.daily;
+  // hasard tiré de la date (FNV-1a puis mulberry32) : deux jours proches donnent des défis différents
+  let h = 2166136261;
+  for (const ch of key) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const rnd = () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const won = CONFIG.levels.filter((l) => p.won[l.id]);
+  const lv = won.length ? won[Math.floor(rnd() * won.length)] : CONFIG.levels[0];
+  const ids = Object.keys(D.modifiers).filter((id) => {
+    const m = D.modifiers[id];
+    return !m.needs || CONFIG.units[m.needs].unlockLevel <= Math.max(p.unlocked, lv.id);
+  });
+  const mods = [], groups = new Set();
+  while (mods.length < D.count && ids.length) {
+    const id = ids.splice(Math.floor(rnd() * ids.length), 1)[0], m = D.modifiers[id];
+    if (m.group && groups.has(m.group)) continue;
+    if (m.group) groups.add(m.group);
+    mods.push(id);
+  }
+  const rules = {};
+  for (const id of mods) {
+    const r = D.modifiers[id].rules;
+    for (const k in r) rules[k] = k === 'banned' ? (rules.banned || []).concat(r.banned) : r[k];
+  }
+  return { key, levelIndex: CONFIG.levels.indexOf(lv), level: lv, mods, rules, reward: D.reward + D.perLevel * lv.id };
+}
+
+export function normalizeDaily(p) {
+  p.daily = Object.assign({ done: null, last: null, streak: 0 }, p.daily || {});
+}
+export const dailyDone = (p, key = todayKey()) => p.daily.done === key;
+// Série en cours (jours consécutifs réussis, jusqu'à hier ou aujourd'hui)
+export function dailyStreak(p, key = todayKey()) {
+  return p.daily.last === key || p.daily.last === dayBefore(key) ? p.daily.streak : 0;
+}
+
+// Fin d'un défi : récompense une seule fois par jour, bonus de série
+export function recordDaily(p, ch, won) {
+  normalizeDaily(p);
+  const D = CONFIG.daily;
+  const res = { parts: 0, newStars: 0, firstWin: false, messages: [], daily: true };
+  if (!won) return res;
+  if (p.daily.done === ch.key) { res.messages.push('Défi déjà réussi aujourd’hui : reviens demain !'); return res; }
+  const streak = p.daily.last === dayBefore(ch.key) ? p.daily.streak + 1 : 1;
+  const bonus = Math.min(D.streakMax, streak - 1) * D.streakBonus;
+  res.parts = ch.reward + bonus;
+  res.streak = streak; res.bonus = bonus;
+  p.parts += res.parts;
+  p.daily = { done: ch.key, last: ch.key, streak };
+  return res;
 }

@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=32';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, stencilText } from './widgets.js?v=32';
-import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf } from '../progress.js?v=32';
+import { CONFIG } from '../config.js?v=33';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, stencilText } from './widgets.js?v=33';
+import { unlocksAt, objectiveText, isSurvivalUnlocked, chapterOf, dailyChallenge, dailyDone, dailyStreak } from '../progress.js?v=33';
 
 // Carte de campagne : 2 chapitres de 10 lieux (onglets en haut), reliés par une route.
 // Toucher un lieu ouvre sa fiche (infos + bouton LANCER).
@@ -48,6 +48,8 @@ export function mapButtons(view, progress, selected, chapter) {
   const sh = Math.max(60, m), sw = 220;
   btns.push({ id: 'survival', label: 'SURVIE', enabled: true, lockedSurvival: !isSurvivalUnlocked(progress),
     x: W - 38 - sw, y: H - 22 - sh, w: sw, h: sh });
+  // Bouton du défi du jour, au-dessus de la Survie
+  btns.push({ id: 'daily', enabled: true, done: dailyDone(progress), x: W - 38 - sw, y: H - 22 - sh * 2 - 10, w: sw, h: sh });
   const s = Math.max(R * 2 + 10, m);
   const first = CONFIG.chapters[chapter].first - 1;
   NODES.forEach(([x, y], k) => {
@@ -251,6 +253,17 @@ export function drawMap(ctx, progress, buttons, pressed, selected, time, chapter
   text(ctx, 'Pièces : ' + progress.parts, W - 240, 46, 20, COL.yellow, 'right', 'middle');
   for (const b of buttons) {
     if (b.id === 'back' || b.id === 'workshop') drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 22 });
+    else if (b.id === 'daily') {
+      const dy = pressed.has(b.id) ? 2 : 0;
+      drawButton(ctx, b, '', pressed.has(b.id), { primary: !b.done });
+      if (b.done) {
+        text(ctx, 'DÉFI DU JOUR', b.x + b.w / 2, b.y + b.h / 2 - 8 + dy, 19, COL.text, 'center', 'middle');
+        text(ctx, '✓ réussi · revenir demain', b.x + b.w / 2, b.y + b.h / 2 + 15 + dy, 14, COL.good, 'center', 'middle');
+      } else {
+        stencilText(ctx, 'DÉFI DU JOUR', b.x + b.w / 2, b.y + b.h / 2 - 8 + dy, 20, '#2a1d0e');
+        text(ctx, '+' + dailyChallenge(progress).reward + ' pièces', b.x + b.w / 2, b.y + b.h / 2 + 15 + dy, 14, '#4a3416', 'center', 'middle');
+      }
+    }
     else if (b.id === 'survival') {
       drawButton(ctx, b, '', pressed.has(b.id), { primary: !b.lockedSurvival });
       // plaque jaune quand la Survie est ouverte : lettres sombres
@@ -308,4 +321,38 @@ export function drawLevelInfo(ctx, progress, index, buttons, pressed) {
     text(ctx, l, W / 2, 272 + i * 32, size, c, 'center', 'middle');
   });
   for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 26 });
+}
+
+// ---------- Fiche du défi du jour ----------
+export function dailyButtons(view) {
+  const h = Math.max(66, CONFIG.display.minButtonPx / view.scale);
+  return [
+    { id: 'launchDaily', label: 'RELEVER LE DÉFI', primary: true, enabled: true, x: W / 2 - 250, y: 560, w: 260, h },
+    { id: 'closeDaily', label: 'RETOUR', enabled: true, x: W / 2 + 20, y: 560, w: 220, h },
+  ];
+}
+
+export function drawDailyInfo(ctx, progress, buttons, pressed) {
+  const ch = dailyChallenge(progress), done = dailyDone(progress), streak = dailyStreak(progress);
+  const D = CONFIG.daily;
+  ctx.fillStyle = 'rgba(15,8,4,0.6)';
+  ctx.fillRect(0, 0, W, H);
+  const b0 = buttons[0];
+  drawPanel(ctx, W / 2 - 330, 90, 660, b0.y + b0.h + 26 - 90);
+  text(ctx, 'Défi du jour — ' + ch.key.split('-').reverse().join('/'), W / 2, 132, 22, COL.dim, 'center', 'middle');
+  text(ctx, 'Niveau ' + ch.level.id + ' : ' + ch.level.name, W / 2, 176, 36, COL.yellow, 'center', 'middle');
+  let y = 236;
+  text(ctx, 'Règles imposées', W / 2, y, 20, COL.dim, 'center', 'middle'); y += 36;
+  for (const id of ch.mods) { text(ctx, '⚠ ' + D.modifiers[id].text, W / 2, y, 24, '#ff8a6a', 'center', 'middle'); y += 36; }
+  y += 10;
+  const next = Math.min(D.streakMax, streak) * D.streakBonus;
+  if (done) {
+    text(ctx, '✓ Défi réussi aujourd’hui. Un nouveau défi arrive demain.', W / 2, y, 21, COL.good, 'center', 'middle'); y += 32;
+    text(ctx, 'Série : ' + streak + ' jour' + (streak > 1 ? 's' : '') + ' d’affilée', W / 2, y, 19, COL.text, 'center', 'middle');
+  } else {
+    text(ctx, 'Récompense : ' + ch.reward + ' pièces' + (next ? ' + ' + next + ' de série' : ''), W / 2, y, 23, COL.yellow, 'center', 'middle'); y += 32;
+    text(ctx, streak ? 'Série en cours : ' + streak + ' jour' + (streak > 1 ? 's' : '') + ' — ne la casse pas !' : 'Réussis un défi chaque jour pour gagner un bonus de série.', W / 2, y, 18, COL.text, 'center', 'middle'); y += 28;
+    text(ctx, 'Pas d’étoiles de campagne : seulement les pièces.', W / 2, y, 16, COL.dim, 'center', 'middle');
+  }
+  for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: 24 });
 }
