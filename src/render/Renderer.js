@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=26';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=26';
-import { Backdrop } from './background.js?v=26';
-import { drawFort, drawNest } from './bases.js?v=26';
+import { CONFIG } from '../config.js?v=27';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=27';
+import { Backdrop } from './background.js?v=27';
+import { drawFort, drawNest } from './bases.js?v=27';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -257,6 +257,12 @@ export class Renderer {
     }
     if (u.alt > 0) ctx.translate(0, -u.alt);
     if (u.dir < 0) ctx.scale(-1, 1);
+    // boss qui surgit du sol : il monte, découpé au ras du sol, en tremblant
+    if (u.emerge > 0) {
+      const k = u.emerge / u.emergeTime, e = k * k;
+      ctx.beginPath(); ctx.rect(-600, -1200, 1200, 1206); ctx.clip();
+      ctx.translate(Math.sin(time * 45) * 3 * k, def.bodyHeight * 1.05 * e);
+    }
     // recul et légère bascule quand l'unité est touchée
     if (u.hitFlash > 0 && !u.dying && !def.tags.includes('boss') && def.speed > 0) {
       const k = u.hitFlash / CONFIG.combat.hitFlashTime;
@@ -275,11 +281,18 @@ export class Renderer {
       const t = u.deadTime;
       const style = DEATH_STYLE[u.defId] || 'fall';
       pose.moving = false;
-      if (style === 'fall') {
+      if (u.gibbed && t > 0.05) { ctx.restore(); return; }   // le mutant a éclaté : il ne reste que les morceaux
+      if (u.blown) {
+        // projeté par une explosion : vol en arc vers l'arrière puis chute
+        const k = Math.min(1, t / 0.55);
+        ctx.translate(-k * 70, -Math.sin(k * Math.PI) * 38);
+        ctx.rotate(-k * 1.6);
+      } else if (style === 'fall') {
         const k = Math.min(1, t / 0.4);
         const e = k * k * (3 - 2 * k);
-        ctx.translate(-e * def.bodyHeight * 0.15, 0);
-        ctx.rotate(-e * 1.5);
+        const v = u.deathVar || 1;         // en arrière (1) ou en avant (-1)
+        ctx.translate(-v * e * def.bodyHeight * 0.15, 0);
+        ctx.rotate(-v * e * 1.5);
       } else if (style === 'melt') {
         const k = Math.min(1, t / 0.9);
         const e = 1 - (1 - k) * (1 - k);
@@ -466,6 +479,18 @@ export class Renderer {
           ctx.drawImage(this._soft(p.color), p.x - r, p.y - r, r * 2, r * 2);
           break;
         }
+        case 'gib':
+          // morceau de chair cerné (ou petit os), qui tourne en vol
+          ctx.globalAlpha = Math.min(1, k * 3);
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.color; ctx.strokeStyle = '#1b120b'; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          if (p.bone) { ctx.rect(-p.size * 1.4, -p.size * 0.35, p.size * 2.8, p.size * 0.7); }
+          else ctx.ellipse(0, 0, p.size * 1.25, p.size * 0.85, 0, 0, Math.PI * 2);
+          ctx.fill(); ctx.stroke();
+          if (!p.bone) { ctx.fillStyle = 'rgba(120,20,30,0.55)'; ctx.beginPath(); ctx.ellipse(p.size * 0.3, p.size * 0.2, p.size * 0.5, p.size * 0.35, 0, 0, Math.PI * 2); ctx.fill(); }
+          ctx.restore();
+          break;
         case 'casing':
           ctx.globalAlpha = Math.min(1, k * 3);
           ctx.fillStyle = p.color;

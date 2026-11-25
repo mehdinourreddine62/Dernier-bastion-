@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=26';
-import { Entity } from './Entity.js?v=26';
+import { CONFIG } from '../config.js?v=27';
+import { Entity } from './Entity.js?v=27';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -87,6 +87,13 @@ export class Unit extends Entity {
     }
 
     this.hitFlash = Math.max(0, this.hitFlash - dt);
+    // Boss qui sort de terre : immobile et invulnérable le temps de surgir
+    if (this.emerge > 0) {
+      this.emerge -= dt;
+      if (this.emerge <= 0) this.invulnerable = false;
+      if (Math.random() < 0.6) game.fx.dust(this.x + (Math.random() - 0.5) * this.def.bodyWidth, this.y, 1);
+      return;
+    }
     this.cd = Math.max(0, this.cd - dt);
     if (this.life !== undefined && (this.life -= dt) <= 0) {
       this.hp = 0; this.die(); game.fx.puff(this.x, this.y - 10, '#8a7a66');

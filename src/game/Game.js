@@ -1,17 +1,18 @@
-import { CONFIG } from '../config.js?v=26';
-import { Unit, bonusMultiplier } from './Unit.js?v=26';
-import { Base } from './Base.js?v=26';
-import { ProjectilePool } from './Projectile.js?v=26';
-import { Particles } from './Particles.js?v=26';
-import { Spells } from './Spell.js?v=26';
-import { AI } from './AI.js?v=26';
-import { levelFor } from '../progress.js?v=26';
-import { Survival, survivalLevel } from './Survival.js?v=26';
+import { CONFIG } from '../config.js?v=27';
+import { Unit, bonusMultiplier } from './Unit.js?v=27';
+import { Base } from './Base.js?v=27';
+import { ProjectilePool } from './Projectile.js?v=27';
+import { Particles, GIB_COLOR } from './Particles.js?v=27';
+import { Spells } from './Spell.js?v=27';
+import { AI } from './AI.js?v=27';
+import { levelFor } from '../progress.js?v=27';
+import { Survival, survivalLevel } from './Survival.js?v=27';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
 const inc = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
 const MAX_EVENTS = 120;
+const HEAVY_SRC = new Set(['blinde', 'lanceRoquettes', 'mortar', 'hero_rosa', 'hero_vasquez']);   // coups qui font éclater
 
 // État d'une partie : bases, unités, ressources, file de recrutement, sorts, IA.
 // Aucune dépendance au navigateur : la simulation peut tourner sans écran.
@@ -200,7 +201,7 @@ export class Game {
   // Applique des dégâts, gère effets, mort et prime en ferraille.
   dealDamage(attackerSide, target, damage, bonus, quiet = false) {
     if (!target.alive || damage <= 0) return;
-    if (target.invulnerable) { if (!quiet) this.fx.hit(target.faceX, target.aimY, 'base'); return; }
+    if (target.invulnerable) { if (!quiet) this.fx.hit(target.isBase ? target.faceX : target.x, target.aimY, 'base'); return; }
     // Aura de Kane : les unités de corps à corps proches encaissent moins
     if (target.side === 'player' && !target.isBase && target.def.range <= CONFIG.combat.meleeWaitRange) {
       const k = this.heroAura('armor', target.x);
@@ -223,6 +224,19 @@ export class Game {
 
     if (!target.alive && !target.isBase) {
       target.die();
+      // Mort spectaculaire : sous un gros coup, les mutants éclatent et les survivants sont projetés
+      target.deathVar = Math.random() < 0.5 ? 1 : -1;     // tombe en arrière ou en avant
+      const heavy = damage >= target.maxHp * 0.45 || HEAVY_SRC.has(this.src);
+      const gy = target.y - target.alt - target.def.bodyHeight * 0.45;
+      if (target.side === 'enemy') {
+        if (target.def.tags.includes('boss')) {
+          this.fx.gibs(target.x, gy, GIB_COLOR[target.defId] || '#7a3a5a', 26, 1.7);
+          this.emit('slam', target.x);
+        } else if (target.defId !== 'rouilleur' && (heavy || Math.random() < 0.25)) {
+          target.gibbed = true;
+          this.fx.gibs(target.x, gy, GIB_COLOR[target.defId] || '#8a5a48', 6 + Math.round(target.def.bodyHeight / 14), 1);
+        }
+      } else if (heavy && !target.def.tags.includes('heavy') && !target.def.lifetime) target.blown = true;
       if (target.side === 'player') {
         // les morts du commandant et de la tourelle posée ne comptent pas dans les pertes
         if (!target.def.hero && !target.def.lifetime) { st.lost++; inc(st.lostBy, target.defId); }
@@ -435,10 +449,20 @@ export class Game {
     this.level.bosses.forEach((b, i) => {
       if (this.bossDone[i] || ratio > b.atBaseHpRatio) return;
       this.bossDone[i] = true;
-      this.spawnUnit('enemy', b.unit);
+      this.bossEntrance(this.spawnUnit('enemy', b.unit));
       this.banner = { text: CONFIG.units[b.unit].banner || 'UN BOSS SORT DU NID !', time: CONFIG.combat.bossBannerTime };
       this.emit('boss', this.bases.enemy.faceX);
     });
+  }
+
+  // Entrée d'un boss : il surgit du sol (invulnérable le temps de sortir), poussière et secousse
+  bossEntrance(u) {
+    u.emerge = u.emergeTime = 1.6;
+    u.invulnerable = true;
+    this.fx.slam(u.x, CONFIG.world.groundY, 170);
+    this.fx.dust(u.x, u.y, 10);
+    this.emit('bossEntrance', u.x);
+    return u;
   }
 
   // Boss à phases (le Fléau) : sous chaque seuil de PV il enrage et appelle des renforts

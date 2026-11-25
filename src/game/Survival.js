@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=26';
+import { CONFIG } from '../config.js?v=27';
 
 // Mode Survie : vagues de mutants infinies et de plus en plus fortes, sans pause.
 // Le nid ne peut pas être détruit ; la partie s'arrête quand ta base tombe.
@@ -95,7 +95,7 @@ export class Survival {
     const k = this.wave - 1;
     u.maxHp *= 1 + S.hpPerWave * k; u.hp = u.maxHp;
     u.damage *= 1 + S.damagePerWave * k;
-    if (isBoss(id)) { u.survivalBoss = true; this.bossesAlive++; }
+    if (isBoss(id)) { u.survivalBoss = true; this.bossesAlive++; g.bossEntrance(u); }
     return true;
   }
 

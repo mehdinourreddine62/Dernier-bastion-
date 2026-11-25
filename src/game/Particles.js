@@ -1,8 +1,15 @@
-import { CONFIG } from '../config.js?v=26';
+import { CONFIG } from '../config.js?v=27';
 
 // Effets visuels : étincelles, fumée, flammes, explosions, débris, soins, chiffres.
 // Tout est en pool : on recycle les plus anciens au lieu de créer des objets.
-// Types (kind) : spark, smoke, dust, flame, glow, flash, fireball, ring, plus, debris, ember, drop, casing
+// Types (kind) : spark, smoke, dust, flame, glow, flash, fireball, ring, plus, debris, ember, drop, casing, gib
+// Couleur de chair de chaque mutant (morceaux quand il éclate)
+export const GIB_COLOR = {
+  goule: '#a8b48a', cracheur: '#7b4f8c', chien: '#8a5a48', brute: '#b58374', charognard: '#5e3e4e',
+  carapace: '#988a6c', couveuse: '#b0707e', larve: '#a8687a', hurleur: '#7a6a8a', epineux: '#6e7e46',
+  abomination: '#7a3a5a', matriarche: '#8a3a4c', fleau: '#6a2e48',
+};
+
 export class Particles {
   constructor() {
     this.parts = Array.from({ length: CONFIG.pools.particles }, () => ({ active: false }));
@@ -116,6 +123,21 @@ export class Particles {
     }
   }
 
+  // Mutant qui éclate : morceaux de chair (et quelques os) qui volent et rebondissent, gerbe d'ichor
+  gibs(x, y, color, count = 8, power = 1) {
+    for (let i = 0; i < count; i++) {
+      const bone = Math.random() < 0.2;
+      const p = this._part('gib', x + (Math.random() - 0.5) * 16, y - Math.random() * 20,
+        (Math.random() - 0.5) * 320 * power, (-140 - Math.random() * 260) * power,
+        1.6 + Math.random() * 0.8, (3.2 + Math.random() * 4) * (bone ? 0.8 : 1) * Math.min(1.6, power), bone ? '#e8dcb8' : color, 900);
+      p.bone = bone;
+    }
+    for (let i = 0; i < count; i++) {
+      this._part('drop', x, y - 10, (Math.random() - 0.5) * 260 * power, -60 - Math.random() * 200 * power, 0.7, 2.5 + Math.random() * 2, '#6a8a2a', 700);
+    }
+    this._part('glow', x, y - 10, 0, 0, 0.2, 30 * power, '#9be22b', 0);
+  }
+
   // Douille éjectée par une arme à feu (dir = sens du tir)
   casing(x, y, dir, color = '#d8b040') {
     this._part('casing', x, y, -dir * (40 + Math.random() * 60), -90 - Math.random() * 60, 1.1, 1, color, 700);
@@ -164,7 +186,7 @@ export class Particles {
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.rot += p.spin * dt;
       // Débris et gouttes : rebond / arrêt au sol
-      if ((p.kind === 'debris' || p.kind === 'drop' || p.kind === 'casing') && p.y > p.floor && p.vy > 0) {
+      if ((p.kind === 'debris' || p.kind === 'drop' || p.kind === 'casing' || p.kind === 'gib') && p.y > p.floor && p.vy > 0) {
         p.y = p.floor;
         if (p.kind === 'drop') { p.vx = 0; p.vy = 0; p.gravity = 0; p.life = Math.min(p.life, 0.3); }
         else { p.vy *= -0.3; p.vx *= 0.5; p.spin *= 0.5; }

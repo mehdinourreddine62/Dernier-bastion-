@@ -1,21 +1,21 @@
-import { CONFIG } from './config.js?v=26';
-import { Game } from './game/Game.js?v=26';
-import { Camera } from './game/Camera.js?v=26';
-import { Renderer } from './render/Renderer.js?v=26';
-import { HUD } from './ui/HUD.js?v=26';
-import { Input } from './ui/input.js?v=26';
-import * as screens from './ui/screens.js?v=26';
-import * as campaign from './ui/campaign.js?v=26';
-import * as workshop from './ui/workshop.js?v=26';
-import { Tutorial } from './ui/tutorial.js?v=26';
-import * as bestiary from './ui/bestiary.js?v=26';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=26';
+import { CONFIG } from './config.js?v=27';
+import { Game } from './game/Game.js?v=27';
+import { Camera } from './game/Camera.js?v=27';
+import { Renderer } from './render/Renderer.js?v=27';
+import { HUD } from './ui/HUD.js?v=27';
+import { Input } from './ui/input.js?v=27';
+import * as screens from './ui/screens.js?v=27';
+import * as campaign from './ui/campaign.js?v=27';
+import * as workshop from './ui/workshop.js?v=27';
+import { Tutorial } from './ui/tutorial.js?v=27';
+import * as bestiary from './ui/bestiary.js?v=27';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=27';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
   heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf,
-  recordBestiary, exportCode, parseCode } from './progress.js?v=26';
-import { Sfx } from './audio/sfx.js?v=26';
-import { Music } from './audio/music.js?v=26';
-import { loadSave, writeSave } from './save.js?v=26';
+  recordBestiary, exportCode, parseCode } from './progress.js?v=27';
+import { Sfx } from './audio/sfx.js?v=27';
+import { Music } from './audio/music.js?v=27';
+import { loadSave, writeSave } from './save.js?v=27';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -85,6 +85,8 @@ music.setEnabled(settings.music);
 applyQuality();
 let buttons = [];
 let shake = 0;                           // intensité de la secousse d'écran (0..1)
+let cinema = 0;                          // bandes noires « cinéma » à l'entrée d'un boss (s)
+let shutter = 0, shutterKey = '', gameSerial = 0;   // rideau de tôle entre deux écrans
 let toast = null;                        // { text, time }
 
 // Visée d'un sort : { spell, sx, sy (position écran logique), visible, pointer }
@@ -126,6 +128,7 @@ function importSave() {
 function showToast(text, time = 4) { toast = { text, time }; }
 
 function startGame() {
+  gameSerial++;
   game = new Game(selectedLevel, { mods: playerMods(progress), unlockedUpTo: progress.unlocked,
     hero: heroForGame(progress), survival: survivalRun });
   game.survivalBest = progress.survival.bestWave;
@@ -460,6 +463,9 @@ function handleEvents() {
       if (onScreen) shake = Math.min(1, shake + (e.data && e.data.huge ? 0.9 : e.data && e.data.big ? 0.35 : 0.15));
     } else if (e.type === 'slam' && settings.shake) {
       shake = Math.min(1, shake + 0.3);
+    } else if (e.type === 'bossEntrance') {
+      cinema = 2.6;
+      if (settings.shake) shake = Math.min(1, shake + 0.8);
     }
   }
   game.events.length = 0;
@@ -532,6 +538,8 @@ function frame(now) {
   if (screen === 'playing') handleEvents();
   music.update(musicIntensity());
   shake = Math.max(0, shake - delta * 2.2);
+  cinema = Math.max(0, cinema - delta);
+  shutter = Math.max(0, shutter - delta);
   if (toast && (toast.time -= delta) <= 0) toast = null;
 
   buttons = buildButtons();
@@ -550,6 +558,38 @@ function tooltipButton() {
 }
 
 function render(time) {
+  // Rideau de tôle à chaque changement d'écran (ou nouvelle partie)
+  const key = screen === 'playing' ? 'playing:' + gameSerial : screen;
+  if (key !== shutterKey) { shutterKey = key; shutter = SHUTTER_TIME; }
+  renderScene(time);
+  if (shutter > 0) drawShutter(shutter / SHUTTER_TIME);
+}
+
+const SHUTTER_TIME = 0.45;
+// k : 1 = fermé, 0 = ouvert. Deux panneaux de tôle ondulée s'écartent depuis le centre.
+function drawShutter(k) {
+  const W = CONFIG.display.width, H = CONFIG.display.height;
+  const e = k * k * (3 - 2 * k);
+  const pw = (W / 2) * e;
+  for (const side of [0, 1]) {
+    const x = side ? W - pw : 0;
+    ctx.fillStyle = '#4a4440'; ctx.fillRect(x, 0, pw, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    for (let gx = x + (side ? 0 : pw % 18); gx < x + pw; gx += 18) ctx.fillRect(gx, 0, 6, H);   // ondulations
+    ctx.fillStyle = 'rgba(255,240,220,0.08)';
+    for (let gx = x + (side ? 8 : 8 + (pw % 18)); gx < x + pw; gx += 18) ctx.fillRect(gx, 0, 3, H);
+    // bord à bandes de danger
+    const ex = side ? x : x + pw - 22;
+    ctx.save(); ctx.beginPath(); ctx.rect(ex, 0, 22, H); ctx.clip();
+    for (let y = -40; y < H + 40; y += 28) {
+      ctx.fillStyle = (y / 28) % 2 ? '#1e1a16' : '#f2c230';
+      ctx.beginPath(); ctx.moveTo(ex, y); ctx.lineTo(ex + 22, y + 14); ctx.lineTo(ex + 22, y + 28); ctx.lineTo(ex, y + 14); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function renderScene(time) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -589,6 +629,13 @@ function render(time) {
     ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
   }
   renderer.draw(ctx, game, camera, time);
+  // Bandes noires « cinéma » pendant l'entrée d'un boss
+  if (cinema > 0) {
+    const k = Math.min(1, cinema * 3, (2.6 - cinema) * 5);
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillRect(-20, -20, CONFIG.display.width + 40, 20 + 64 * k);
+    ctx.fillRect(-20, CONFIG.display.height - 64 * k - 110, CONFIG.display.width + 40, 64 * k);
+  }
   if (aim && aim.visible) {
     const c = CONFIG.spells[aim.spell];
     renderer.drawAim(ctx, camera, camera.x + aim.sx, c.radius, aim.spell === 'heal' ? '#7ee05a' : '#ff9a2b', time);
