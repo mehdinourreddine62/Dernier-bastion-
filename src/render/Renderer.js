@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=27';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=27';
-import { Backdrop } from './background.js?v=27';
-import { drawFort, drawNest } from './bases.js?v=27';
+import { CONFIG } from '../config.js?v=28';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=28';
+import { Backdrop } from './background.js?v=28';
+import { drawFort, drawNest } from './bases.js?v=28';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -142,6 +142,7 @@ export class Renderer {
     b.drawSky(ctx, time);
     b.drawLayers(ctx, camX);
     b.drawAir(ctx, camX, time);
+    b.drawWeather(ctx, camX, time);
     this._vignette(ctx);
   }
 
@@ -175,6 +176,7 @@ export class Renderer {
     this._shells(ctx, game.spells);
     this._particles(ctx, game.fx, camera);
     ctx.restore();
+    b.drawWeather(ctx, camera.x, time);
 
     // Qualité basse : on saute le premier plan, l'ambiance et le vignettage
     if (!this.lowFx) {

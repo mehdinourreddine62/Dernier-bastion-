@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=27';
-import { bonusMultiplier } from './Unit.js?v=27';
+import { CONFIG } from '../config.js?v=28';
+import { bonusMultiplier } from './Unit.js?v=28';
 
 // Un projectile visible (balle traçante, crachat d'acide, obus…) qui rejoint sa cible.
 // Les projectiles sont réutilisés (pool) : aucune création/destruction en jeu.

@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=27';
+import { CONFIG } from '../config.js?v=28';
 
 // Décor en parallaxe : ciel (fixe), ruines lointaines, ruines proches, sol avec débris,
 // et quelques débris au premier plan. Les couches lointaines et le sol sont dessinés
@@ -217,6 +217,25 @@ THEMES[99] = {
 };
 
 export function themeFor(levelId) { return THEMES[levelId] || THEMES[1]; }
+
+// ---------- Météo par niveau (purement visuelle) ----------
+// kind : 'rain' pluie, 'acid' pluie acide, 'sand' tempête de sable, 'blizzard', 'fog' brume au sol
+// lightning : éclairs de temps en temps ; fog : brume au sol en plus
+const WEATHER = {
+  4: { kind: 'rain' },
+  8: { kind: 'acid', fog: true },
+  9: { kind: 'rain' },
+  13: { kind: 'fog' },
+  15: { kind: 'acid', lightning: true },
+  17: { kind: 'sand' },
+  19: { kind: 'sand' },
+  21: { kind: 'blizzard' },
+  22: { kind: 'fog' },
+  23: { kind: 'blizzard' },
+  27: { kind: 'rain', lightning: true },
+  30: { kind: 'acid', lightning: true, fog: true },
+  99: { kind: 'rain', lightning: true },
+};
 
 const OUT = 'rgba(20,12,8,0.55)';
 
@@ -672,6 +691,7 @@ export class Backdrop {
     this.plumes = Array.from({ length: 4 }, (_, i) => ({ x: 200 + i * 520 + r2() * 300, h: 120 + r2() * 90, ph: r2() }));
     this.birds = Array.from({ length: 5 }, (_, i) => ({ s: r2(), y: 90 + r2() * 150, sp: 18 + r2() * 16, ph: r2() * 6 }));
     this.lowFx = false;
+    this.weather = WEATHER[levelId] || null;
   }
 
   // (Re)dessine les couches en mémoire à la résolution voulue
@@ -913,7 +933,8 @@ export class Backdrop {
     ctx.fillRect(sx - sr * 4.5, sy - sr * 4.5, sr * 9, sr * 9);
     // rayons de lumière (qualité haute)
     const lum = hexRgb(t.sky[1]).split(',').reduce((m, v) => m + Number(v), 0) / 3;
-    if (!this.lowFx && lum > 90) {      // pas de rayons la nuit
+    const wet = this.weather && ['rain', 'acid', 'blizzard'].includes(this.weather.kind);
+    if (!this.lowFx && lum > 90 && !wet) {      // pas de rayons la nuit ni sous la pluie
       if (!this._rays) this._rays = this._makeRays();
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.75 + Math.sin(time * 0.4) * 0.25;
@@ -988,6 +1009,106 @@ export class Backdrop {
         ctx.stroke();
       }
       ctx.restore();
+    }
+  }
+
+  // ---------- Météo (devant la scène, en coordonnées écran) ----------
+  drawWeather(ctx, camX, time) {
+    const w = this.weather;
+    if (!w) return;
+    const V = CONFIG.display.width, H = CONFIG.display.height, gy = CONFIG.world.groundY;
+    const low = this.lowFx;
+    const wrap = (v, m) => ((v % m) + m) % m;
+    if (w.kind === 'fog' || w.fog) {
+      // nappes de brume qui glissent au ras du sol
+      const tex = softDisc(this.theme.fog);
+      for (let i = 0; i < (low ? 4 : 8); i++) {
+        const x = wrap(i * 260 + time * (10 + i * 3) - camX * 1.1, V + 600) - 300;
+        const y = gy - 10 + (i % 3) * 22;
+        ctx.globalAlpha = 0.42 + 0.1 * Math.sin(time * 0.5 + i);
+        ctx.drawImage(tex, x - 260, y - 55, 520, 120);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (w.kind === 'rain' || w.kind === 'acid') {
+      const acid = w.kind === 'acid';
+      // assombrissement du ciel
+      ctx.fillStyle = acid ? 'rgba(40,60,10,0.14)' : 'rgba(15,20,35,0.18)';
+      ctx.fillRect(0, 0, V, H);
+      // gouttes en biais (un seul tracé pour toutes)
+      const n = low ? 70 : 170, wind = 0.28;
+      ctx.strokeStyle = acid ? 'rgba(190,240,90,0.45)' : 'rgba(205,215,235,0.38)';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const a = (i * 0.618) % 1, b = (i * 0.377) % 1, sp = 900 + b * 400;
+        const y = wrap(b * 800 + time * sp, H + 80) - 40;
+        const x = wrap(a * (V + 300) + y * wind - camX * 0.9, V + 300) - 150;
+        const len = 14 + b * 10;
+        ctx.moveTo(x, y); ctx.lineTo(x - len * wind, y - len);
+      }
+      ctx.stroke();
+      // éclaboussures au sol
+      ctx.strokeStyle = acid ? 'rgba(190,240,90,0.5)' : 'rgba(220,228,240,0.45)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < (low ? 12 : 28); i++) {
+        const a = (i * 0.731) % 1, ph = wrap(time * 2.2 + a * 7, 1);
+        const x = wrap(a * 1700 - camX, V + 100) - 50, y = gy - 30 + ((i * 37) % 120);
+        ctx.globalAlpha = 1 - ph;
+        ctx.beginPath(); ctx.ellipse(x, y, 2 + ph * 7, 0.8 + ph * 2, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (w.kind === 'sand') {
+      // voile de sable, nuages qui déferlent, traînées horizontales rapides
+      ctx.fillStyle = 'rgba(205,160,95,0.2)'; ctx.fillRect(0, 0, V, H);
+      const tex = softDisc('215,175,115');
+      for (let i = 0; i < (low ? 3 : 6); i++) {
+        const x = wrap(-time * (180 + i * 40) + i * 380 - camX * 0.6, V + 900) - 450;
+        ctx.globalAlpha = 0.32;
+        ctx.drawImage(tex, x - 300, 200 + (i % 3) * 120, 600, 260);
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(235,200,140,0.45)'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let i = 0; i < (low ? 50 : 120); i++) {
+        const a = (i * 0.618) % 1, b = (i * 0.413) % 1;
+        const x = wrap(a * (V + 200) - time * (700 + b * 500) - camX * 0.8, V + 200) - 100;
+        const y = 80 + b * 600 + Math.sin(time * 3 + i) * 6;
+        ctx.moveTo(x, y); ctx.lineTo(x + 18 + b * 22, y - 1);
+      }
+      ctx.stroke();
+    } else if (w.kind === 'blizzard') {
+      // neige dense poussée par des rafales
+      const gust = 0.6 + 0.4 * Math.sin(time * 0.7);
+      ctx.fillStyle = 'rgba(235,242,250,0.12)'; ctx.fillRect(0, 0, V, H);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      for (let i = 0; i < (low ? 80 : 200); i++) {
+        const a = (i * 0.618) % 1, b = (i * 0.377) % 1, sz = 1.5 + b * 2.5;
+        const y = wrap(b * 760 + time * (90 + b * 80), H + 40) - 20;
+        const x = wrap(a * (V + 200) - time * 260 * gust - y * 0.6 + Math.sin(time * 2 + i) * 8 - camX * (0.6 + b * 0.5), V + 200) - 100;
+        ctx.fillRect(x, y, sz, sz);
+      }
+      const tex = softDisc('240,245,252');
+      for (let i = 0; i < (low ? 2 : 4); i++) {
+        const x = wrap(-time * 220 * gust + i * 520, V + 800) - 400;
+        ctx.globalAlpha = 0.22 * gust;
+        ctx.drawImage(tex, x - 260, 260 + i * 90, 520, 200);
+      }
+      ctx.globalAlpha = 1;
+    }
+    // éclairs : double éclair toutes les ~9 s, avec un trait dans le ciel
+    if (w.lightning) {
+      const cyc = 9, t = wrap(time, cyc), n = Math.floor(time / cyc);
+      const a = t < 0.06 ? 0.45 : t < 0.1 ? 0 : t < 0.18 ? 0.3 : 0;
+      if (a > 0) {
+        ctx.fillStyle = `rgba(230,235,255,${a})`; ctx.fillRect(0, 0, V, H);
+        const r = rng(n * 7 + 1);
+        let x = 200 + r() * (V - 400), y = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        while (y < CONFIG.world.horizonY - 60) { x += (r() - 0.5) * 60; y += 30 + r() * 30; ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
     }
   }
 

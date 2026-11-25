@@ -1,21 +1,21 @@
-import { CONFIG } from './config.js?v=27';
-import { Game } from './game/Game.js?v=27';
-import { Camera } from './game/Camera.js?v=27';
-import { Renderer } from './render/Renderer.js?v=27';
-import { HUD } from './ui/HUD.js?v=27';
-import { Input } from './ui/input.js?v=27';
-import * as screens from './ui/screens.js?v=27';
-import * as campaign from './ui/campaign.js?v=27';
-import * as workshop from './ui/workshop.js?v=27';
-import { Tutorial } from './ui/tutorial.js?v=27';
-import * as bestiary from './ui/bestiary.js?v=27';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=27';
+import { CONFIG } from './config.js?v=28';
+import { Game } from './game/Game.js?v=28';
+import { Camera } from './game/Camera.js?v=28';
+import { Renderer } from './render/Renderer.js?v=28';
+import { HUD } from './ui/HUD.js?v=28';
+import { Input } from './ui/input.js?v=28';
+import * as screens from './ui/screens.js?v=28';
+import * as campaign from './ui/campaign.js?v=28';
+import * as workshop from './ui/workshop.js?v=28';
+import { Tutorial } from './ui/tutorial.js?v=28';
+import * as bestiary from './ui/bestiary.js?v=28';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=28';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
   heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf,
-  recordBestiary, exportCode, parseCode } from './progress.js?v=27';
-import { Sfx } from './audio/sfx.js?v=27';
-import { Music } from './audio/music.js?v=27';
-import { loadSave, writeSave } from './save.js?v=27';
+  recordBestiary, exportCode, parseCode } from './progress.js?v=28';
+import { Sfx } from './audio/sfx.js?v=28';
+import { Music } from './audio/music.js?v=28';
+import { loadSave, writeSave } from './save.js?v=28';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -557,7 +557,14 @@ function tooltipButton() {
   return null;
 }
 
+let lastBolt = -1;
 function render(time) {
+  // Tonnerre : au moment de chaque éclair des niveaux orageux (cycle de 9 s, voir background.js)
+  const bd = renderer.backdrop;
+  if (bd && bd.weather && bd.weather.lightning && (screen === 'playing' || screen === 'title')) {
+    const n = Math.floor(time / 9);
+    if (n !== lastBolt) { if (lastBolt >= 0) sfx.play('thunder'); lastBolt = n; }
+  }
   // Rideau de tôle à chaque changement d'écran (ou nouvelle partie)
   const key = screen === 'playing' ? 'playing:' + gameSerial : screen;
   if (key !== shutterKey) { shutterKey = key; shutter = SHUTTER_TIME; }

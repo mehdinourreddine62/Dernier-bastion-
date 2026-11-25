@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=27';
+import { CONFIG } from '../config.js?v=28';
 
 // Mode Survie : vagues de mutants infinies et de plus en plus fortes, sans pause.
 // Le nid ne peut pas être détruit ; la partie s'arrête quand ta base tombe.

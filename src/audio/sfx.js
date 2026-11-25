@@ -267,6 +267,12 @@ export class Sfx {
     this._noise(o, t, 1.6, 'lowpass', 900, 60, 1, 0.7, 0.01);
     this._tone(o, t, 1.2, 'sine', 55, 20, 1);
   }
+  // Tonnerre : grondement long et sourd
+  _thunder(t, v, p) {
+    const o = this._out(0.7 * v, p);
+    this._noise(o, t + 0.15, 2.6, 'lowpass', 500, 70, 1, 0.5, 0.25);
+    this._tone(o, t + 0.1, 1.8, 'sine', 48, 28, 0.6);
+  }
   _flame(t, v, p) {
     const o = this._out(0.22 * v, p);
     this._noise(o, t, 0.22, 'bandpass', 700, 500, 0.8, 0.6, 0.03);

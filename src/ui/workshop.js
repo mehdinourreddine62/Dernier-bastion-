@@ -1,8 +1,8 @@
-import { CONFIG } from '../config.js?v=27';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=27';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=27';
+import { CONFIG } from '../config.js?v=28';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=28';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=28';
 import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel,
-  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=27';
+  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=28';
 
 // Atelier, deux onglets :
 //  - ATELIER : on dépense les pièces détachées (11 améliorations de 10 niveaux, grille 4 × 3) ;
