@@ -1,10 +1,10 @@
 // Plans de jeu de la bande-annonce : le vrai moteur et le vrai rendu de Dernier Bastion,
 // pilotés par une mise en scène (apparitions, explosions, caméra) au lieu du joueur et de l'IA.
 // Le hasard est rendu reproductible (graine fixe) : chaque image peut être recalculée à l'identique.
-import { CONFIG } from '../../src/config.js?v=30';
-import { Game } from '../../src/game/Game.js?v=30';
-import { Renderer } from '../../src/render/Renderer.js?v=30';
-import { playerMods, normalizeProgress } from '../../src/progress.js?v=30';
+import { CONFIG } from '../../src/config.js?v=31';
+import { Game } from '../../src/game/Game.js?v=31';
+import { Renderer } from '../../src/render/Renderer.js?v=31';
+import { playerMods, normalizeProgress } from '../../src/progress.js?v=31';
 
 // ---------- Hasard reproductible ----------
 let seed = 1;

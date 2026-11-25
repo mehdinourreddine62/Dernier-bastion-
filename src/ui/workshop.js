@@ -1,8 +1,8 @@
-import { CONFIG } from '../config.js?v=30';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=30';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=30';
+import { CONFIG } from '../config.js?v=31';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=31';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=31';
 import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel,
-  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=30';
+  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=31';
 
 // Atelier, deux onglets :
 //  - ATELIER : on dépense les pièces détachées (11 améliorations de 10 niveaux, grille 4 × 3) ;
@@ -160,6 +160,17 @@ function wrap(ctx, str, x, y, maxW, size, color, lh) {
   return y;
 }
 
+// Nombre de lignes qu'occupera un texte dans une largeur donnée
+function countLines(ctx, str, maxW, size) {
+  ctx.font = `bold ${size}px ${FONT}`;
+  let line = '', n = 0;
+  for (const word of str.split(' ')) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxW && line) { n++; line = word; } else line = test;
+  }
+  return n + (line ? 1 : 0);
+}
+
 export function drawHeroes(ctx, progress, buttons, pressed) {
   ctx.fillStyle = 'rgba(15,8,4,0.7)';
   ctx.fillRect(0, 0, W, H);
@@ -199,6 +210,18 @@ export function drawHeroes(ctx, progress, buttons, pressed) {
     y = wrap(ctx, cfg.ability.text, c.x + 16, y, c.w - 32, 15, COL.text, 19);
     const mult = Math.round(H_.perLevel.ability * lvl * 100), cd = Math.round(cfg.ability.cooldown * Math.max(0.3, 1 - H_.perLevel.cooldown * lvl));
     text(ctx, `Puissance +${mult} % · recharge ${cd} s`, c.x + 16, y + 4, 14, COL.dim);
+    // Talent : débloqué au niveau maximum
+    y += 28;
+    const got = lvl >= H_.maxLevel;
+    const by = buttons.find((b) => b.hero === id) ? buttons.find((b) => b.hero === id).y : c.y + c.h;
+    if (y + 40 < by) {
+      text(ctx, (got ? 'Talent : ' : 'Talent (niveau ' + H_.maxLevel + ') : ') + cfg.talent.name, c.x + 16, y, 16, got ? COL.good : COL.dim); y += 20;
+      // le texte rétrécit si la carte est courte (téléphone) pour ne pas toucher les boutons
+      const str = cfg.talent.text + ' · Débloque l’ordre Tenir / Charger.';
+      let size = 14, lh = 18;
+      while (size > 11 && y + countLines(ctx, str, c.w - 32, size) * lh > by - 4) { size--; lh -= 1.5; }
+      wrap(ctx, str, c.x + 16, y, c.w - 32, size, got ? COL.text : COL.dim, lh);
+    }
   });
   for (const b of buttons) drawButton(ctx, b, b.label, pressed.has(b.id), { primary: b.primary, size: b.small ? 17 : 20 });
 }

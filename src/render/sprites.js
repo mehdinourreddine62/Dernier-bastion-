@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js?v=30';
+import { CONFIG } from '../config.js?v=31';
 
 // Dessin procédural des unités, style « silhouettes cernées » façon jeu Flash.
 // Origine = pieds au sol ; l'unité regarde vers +x (le Renderer retourne les Mutants).

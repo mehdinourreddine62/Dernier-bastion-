@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=30';
-import { Unit, bonusMultiplier } from './Unit.js?v=30';
-import { Base } from './Base.js?v=30';
-import { ProjectilePool } from './Projectile.js?v=30';
-import { Particles, GIB_COLOR } from './Particles.js?v=30';
-import { Spells } from './Spell.js?v=30';
-import { AI } from './AI.js?v=30';
-import { levelFor } from '../progress.js?v=30';
-import { Survival, survivalLevel } from './Survival.js?v=30';
+import { CONFIG } from '../config.js?v=31';
+import { Unit, bonusMultiplier } from './Unit.js?v=31';
+import { Base } from './Base.js?v=31';
+import { ProjectilePool } from './Projectile.js?v=31';
+import { Particles, GIB_COLOR } from './Particles.js?v=31';
+import { Spells } from './Spell.js?v=31';
+import { AI } from './AI.js?v=31';
+import { levelFor } from '../progress.js?v=31';
+import { Survival, survivalLevel } from './Survival.js?v=31';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -63,6 +63,8 @@ export class Game {
         id: opts.hero.id, level: lvl, cfg, unitId: 'hero_' + opts.hero.id,
         unit: null, timer: H.deployDelay, abilityCd: 0,
         hold: false,                       // Tenir (true) : il reste sur place ; Charger (false) : il avance
+        talent: lvl >= H.maxLevel,         // niveau maximum : talent + ordre Tenir / Charger
+        secondWind: false,                 // talent de Kane déjà utilisé pendant ce déploiement
         abilityMult: 1 + H.perLevel.ability * lvl,
         cooldown: cfg.ability.cooldown * Math.max(0.3, 1 - H.perLevel.cooldown * lvl),
       };
@@ -223,6 +225,14 @@ export class Game {
     }
     if (target.isBase) this.emit('baseHit', tx, { side: target.side });
 
+    // Talent de Kane : la première chute de chaque déploiement, il se relève
+    if (!target.alive && target.def && target.def.hero === 'kane' && this.hero && this.hero.talent && !this.hero.secondWind) {
+      this.hero.secondWind = true;
+      target.hp = target.maxHp * this.hero.cfg.talent.heal;
+      this.fx.healRing(target.x, CONFIG.world.groundY, 120);
+      this.fx.text(target.x, target.aimY - 50, 'SECOND SOUFFLE !', '#f2c230', 20);
+      this.emit('ability', target.x, { kind: 'rally' });
+    }
     if (!target.alive && !target.isBase) {
       target.die();
       // Mort spectaculaire : sous un gros coup, les mutants éclatent et les survivants sont projetés
@@ -341,6 +351,7 @@ export class Game {
     if (!this.heroDeployReady()) return false;
     const h = this.hero;
     h.unit = this.spawnUnit('player', h.unitId);
+    h.secondWind = false;
     this.fx.healRing(h.unit.x, CONFIG.world.groundY, 80);
     this.emit('heroSpawn', h.unit.x);
     return true;
@@ -349,7 +360,7 @@ export class Game {
   // Tenir / Charger : seul le commandant reçoit cet ordre (les troupes avancent toujours)
   toggleHeroHold() {
     const h = this.hero;
-    if (!h || !h.unit || !h.unit.alive || this.result) return false;
+    if (!h || !h.talent || !h.unit || !h.unit.alive || this.result) return false;
     h.hold = !h.hold;
     this.emit('queue', 0);
     return true;
@@ -373,25 +384,26 @@ export class Game {
       this.fx.healRing(u.x, CONFIG.world.groundY, 260);
       this.fx.text(u.x, u.aimY - 50, 'EN AVANT !', '#f2c230', 22);
     } else if (ab.kind === 'turret') {
-      const t = this.spawnUnit('player', 'tourelleCampagne');
-      t.x = u.x + u.dir * 50;
-      t.life = ab.duration * h.abilityMult;
-      t.damage *= h.abilityMult;
-      this.fx.dust(t.x, t.y, 6);
+      const n = h.talent ? h.cfg.talent.turrets : 1;      // talent de Rosa : deux tourelles
+      for (let i = 0; i < n; i++) {
+        const t = this.spawnUnit('player', 'tourelleCampagne');
+        t.x = u.x + u.dir * (50 + i * 60);
+        t.life = ab.duration * h.abilityMult;
+        t.damage *= h.abilityMult;
+        this.fx.dust(t.x, t.y, 6);
+      }
       this.fx.text(u.x, u.aimY - 50, 'TOURELLE !', '#f2c230', 20);
     } else if (ab.kind === 'snipe') {
-      // le mutant le plus résistant devant lui (sinon le nid)
-      let target = null;
-      for (const e of this.byX.enemy) {
-        if (!e.alive || e.x < u.x - 20 || e.x > u.x + 1300) continue;
-        if (!target || e.hp > target.hp) target = e;
-      }
-      if (!target) target = this.bases.enemy;
-      this.projectiles.spawn({
-        side: 'player', x: u.x + u.dir * 30, y: u.aimY - 6, target,
+      // les mutants les plus résistants devant lui (1, ou 3 avec son talent ; sinon le nid)
+      const n = h.talent ? h.cfg.talent.targets : 1;
+      const cands = this.byX.enemy.filter((e) => e.alive && e.x >= u.x - 20 && e.x <= u.x + 1300).sort((a, b) => b.hp - a.hp);
+      const targets = cands.slice(0, n);
+      if (!targets.length) targets.push(this.bases.enemy);
+      targets.forEach((target, i) => this.projectiles.spawn({
+        side: 'player', x: u.x + u.dir * 30, y: u.aimY - 6 - i * 3, target,
         damage: ab.damage * h.abilityMult, attackerDef: null, source: h.unitId, splash: 0,
-        cfg: { shape: 'tracer', speed: 2600, color: '#fffbe0', length: 70, width: 5, arcHeight: 0 },
-      });
+        cfg: { shape: 'tracer', speed: 2600 - i * 200, color: '#fffbe0', length: 70, width: 5, arcHeight: 0 },
+      }));
       this.fx.text(u.x, u.aimY - 50, 'DANS LE MILLE !', '#f2c230', 20);
     }
     h.abilityCd = h.cooldown;

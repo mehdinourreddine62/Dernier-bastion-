@@ -325,6 +325,7 @@ export const CONFIG = {
     maxLevel: 10,
     costs: [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],   // étoiles par niveau (30 pour un héros au maximum)
     perLevel: { hp: 0.12, damage: 0.10, ability: 0.10, cooldown: 0.04 },   // gains par niveau
+    // Au niveau maximum : un talent propre à chaque commandant + l'ordre Tenir / Charger
     order: ['kane', 'rosa', 'vasquez'],
     list: {
       kane: {
@@ -333,6 +334,8 @@ export const CONFIG = {
                 text: 'Les unités de corps à corps proches subissent 20 % de dégâts en moins' },
         ability: { kind: 'rally', name: 'Cri de ralliement', cooldown: 40, duration: 8, bonus: 0.3,
                    text: 'Toutes tes unités : +30 % de vitesse et de dégâts pendant 8 s' },
+        talent: { name: 'Second souffle', heal: 0.5,
+                  text: 'La première fois qu’il devrait tomber, il se relève avec 50 % de ses PV (une fois par déploiement)' },
         unit: { name: 'Sergent Kane', role: 'Commandant, fusil à pompe', cost: 0, hp: 650, damage: 22,
                 attackInterval: 0.9, range: 55, speed: 60, tags: ['melee'], bonuses: { swarm: 1.5 },
                 attack: { kind: 'shotgun', targets: 3 }, bodyWidth: 36, bodyHeight: 78 },
@@ -343,6 +346,8 @@ export const CONFIG = {
                 text: 'Répare les Blindés et la tourelle proches (14 PV/s)' },
         ability: { kind: 'turret', name: 'Tourelle de campagne', cooldown: 40, duration: 25,
                    text: 'Pose une mitrailleuse fixe sur le terrain pendant 25 s' },
+        talent: { name: 'Atelier de campagne', turrets: 2,
+                  text: 'Sa capacité pose deux tourelles au lieu d’une' },
         unit: { name: 'Mécano Rosa', role: 'Commandante, lance-grenades', cost: 0, hp: 480, damage: 26,
                 attackInterval: 1.6, range: 170, speed: 55, tags: ['ranged'], bonuses: { heavy: 1.5 },
                 attack: { kind: 'cannon', splashRadius: 40, projectile: { shape: 'shell', speed: 450, color: '#ffb347', length: 0, width: 4, arcHeight: 60 } },
@@ -354,6 +359,8 @@ export const CONFIG = {
                 text: 'Soigne les unités proches (6 PV/s)' },
         ability: { kind: 'snipe', name: 'Tir de précision', cooldown: 40, damage: 700,
                    text: 'Un tir dévastateur sur le mutant le plus résistant (Brute, boss…)' },
+        talent: { name: 'Tir en rafale', targets: 3,
+                  text: 'Son tir de précision vise les trois mutants les plus résistants' },
         unit: { name: 'Doc Vasquez', role: 'Commandant, fusil de précision', cost: 0, hp: 400, damage: 38,
                 attackInterval: 1.8, range: 300, speed: 50, tags: ['ranged'], bonuses: { flying: 1.5, heavy: 1.3 }, antiAir: true,
                 attack: { kind: 'projectile', projectile: { shape: 'tracer', speed: 1400, color: '#fff6c0', length: 34, width: 3, arcHeight: 0 } },
