@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=24';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=24';
-import { Backdrop } from './background.js?v=24';
-import { drawFort, drawNest } from './bases.js?v=24';
+import { CONFIG } from '../config.js?v=25';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=25';
+import { Backdrop } from './background.js?v=25';
+import { drawFort, drawNest } from './bases.js?v=25';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -574,7 +574,23 @@ export class Renderer {
     ctx.fillStyle = 'rgba(0,0,0,0.32)';
     ctx.beginPath(); ctx.ellipse(0, 6, 120, 12, 0, 0, Math.PI * 2); ctx.fill();
 
-    if (b.side === 'player') drawFort(ctx, time, b); else drawNest(ctx, time, b);
+    // La base est dessinée à part (image de 450 × 340) pour recevoir le même éclairage que les unités
+    {
+      const r = this.cacheRes, BW = 450, BH = 340, OX = 215, OY = 310;
+      if (!this._baseCv) this._baseCv = {};
+      let cv = this._baseCv[b.side];
+      if (!cv || cv.width !== Math.ceil(BW * r)) {
+        cv = this._baseCv[b.side] = document.createElement('canvas');
+        cv.width = Math.ceil(BW * r); cv.height = Math.ceil(BH * r);
+      }
+      const c = cv.getContext('2d');
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, cv.width, cv.height);
+      c.setTransform(r, 0, 0, r, OX * r, OY * r);
+      if (b.side === 'player') drawFort(c, time, b); else drawNest(c, time, b);
+      if (!this.lowFx) this._light(cv, c, r);
+      ctx.drawImage(cv, -OX, -OY, BW, BH);
+    }
 
     if (b.hitFlash > 0) {
       ctx.globalCompositeOperation = 'lighter';

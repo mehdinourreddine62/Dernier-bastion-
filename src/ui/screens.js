@@ -1,9 +1,9 @@
-import { CONFIG } from '../config.js?v=24';
-import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=24';
-import { objectiveText } from '../progress.js?v=24';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=24';
-import { ACHIEVEMENTS } from '../achievements.js?v=24';
-import { roundRectPath } from './widgets.js?v=24';
+import { CONFIG } from '../config.js?v=25';
+import { COL, FONT, drawPanel, drawButton, drawStar, text } from './widgets.js?v=25';
+import { objectiveText } from '../progress.js?v=25';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=25';
+import { ACHIEVEMENTS } from '../achievements.js?v=25';
+import { roundRectPath } from './widgets.js?v=25';
 
 // Écrans de menu : titre, options, pause, fin de partie, confirmation.
 // Dessinés sur le canvas comme le HUD. Chaque écran fournit ses boutons

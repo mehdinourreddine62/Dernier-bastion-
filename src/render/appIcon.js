@@ -1,4 +1,4 @@
-import { drawFort } from './bases.js?v=24';
+import { drawFort } from './bases.js?v=25';
 
 // Icône de l'application : ciel apocalyptique, soleil voilé, le fort et son drapeau jaune.
 // Le contenu reste dans la zone centrale (80 %) pour les icônes « adaptatives » d'Android.

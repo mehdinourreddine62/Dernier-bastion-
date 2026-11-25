@@ -1,21 +1,21 @@
-import { CONFIG } from './config.js?v=24';
-import { Game } from './game/Game.js?v=24';
-import { Camera } from './game/Camera.js?v=24';
-import { Renderer } from './render/Renderer.js?v=24';
-import { HUD } from './ui/HUD.js?v=24';
-import { Input } from './ui/input.js?v=24';
-import * as screens from './ui/screens.js?v=24';
-import * as campaign from './ui/campaign.js?v=24';
-import * as workshop from './ui/workshop.js?v=24';
-import { Tutorial } from './ui/tutorial.js?v=24';
-import * as bestiary from './ui/bestiary.js?v=24';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=24';
+import { CONFIG } from './config.js?v=25';
+import { Game } from './game/Game.js?v=25';
+import { Camera } from './game/Camera.js?v=25';
+import { Renderer } from './render/Renderer.js?v=25';
+import { HUD } from './ui/HUD.js?v=25';
+import { Input } from './ui/input.js?v=25';
+import * as screens from './ui/screens.js?v=25';
+import * as campaign from './ui/campaign.js?v=25';
+import * as workshop from './ui/workshop.js?v=25';
+import { Tutorial } from './ui/tutorial.js?v=25';
+import * as bestiary from './ui/bestiary.js?v=25';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=25';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
   heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf,
-  recordBestiary, exportCode, parseCode } from './progress.js?v=24';
-import { Sfx } from './audio/sfx.js?v=24';
-import { Music } from './audio/music.js?v=24';
-import { loadSave, writeSave } from './save.js?v=24';
+  recordBestiary, exportCode, parseCode } from './progress.js?v=25';
+import { Sfx } from './audio/sfx.js?v=25';
+import { Music } from './audio/music.js?v=25';
+import { loadSave, writeSave } from './save.js?v=25';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N

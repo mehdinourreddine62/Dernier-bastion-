@@ -27,6 +27,42 @@ function ell(c, x, y, rx, ry, fill, stroke = true, rot = 0) {
   if (stroke) { c.strokeStyle = OUT; c.lineWidth = 1.8; c.stroke(); }
 }
 
+// Petite lueur (lampes, voyants) en mode « lumière »
+function glow(c, x, y, r, rgb, a) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+  c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
+  c.restore();
+}
+
+// Positions fixes des impacts (toujours les mêmes d'une partie à l'autre)
+const MARKS = Array.from({ length: 16 }, (_, i) => {
+  const a = Math.sin(i * 12.9898) * 43758.5453, b = Math.sin(i * 78.233) * 12543.123;
+  return [-96 + (a - Math.floor(a)) * 180, -150 + (b - Math.floor(b)) * 130, i];
+});
+
+// Dégâts progressifs : plus la base perd de PV, plus il y a d'impacts et de fissures
+function damageMarks(c, b, organic) {
+  const n = Math.floor((1 - b.hp / b.maxHp) * MARKS.length);
+  for (let k = 0; k < n; k++) {
+    const [x, y, i] = MARKS[k];
+    if (organic) {
+      // plaie qui suinte
+      ell(c, x, y, 5 + (i % 3), 2.5, '#2a0a12', false, (i % 5) * 0.5);
+      c.fillStyle = 'rgba(155,226,43,0.75)'; c.fillRect(x - 0.8, y + 2, 1.6, 4 + (i % 4) * 2);
+    } else {
+      // impact de balle + fissures
+      ell(c, x, y, 3.2, 3.2, '#1a120c', false);
+      ell(c, x - 0.8, y - 0.8, 1.2, 1.2, 'rgba(255,230,190,0.35)', false);
+      c.strokeStyle = 'rgba(20,10,5,0.6)'; c.lineWidth = 1;
+      c.beginPath();
+      for (let j = 0; j < 3; j++) { const a = i + j * 2.1; c.moveTo(x, y); c.lineTo(x + Math.cos(a) * (6 + j * 2), y + Math.sin(a) * (6 + j * 2)); }
+      c.stroke();
+    }
+  }
+}
+
 // Flamme animée (dessinée en mode « lumière »)
 export function fire(c, x, y, s, time, seed = 0) {
   c.save();
@@ -65,7 +101,15 @@ export function drawFort(c, time, b) {
     c.strokeStyle = 'rgba(0,0,0,0.22)'; c.lineWidth = 1.5;
     for (let k = 5; k < 26; k += 6) { c.beginPath(); c.moveTo(x + k, 0); c.lineTo(x + k + tilt, -h + 3); c.stroke(); }
     c.fillStyle = 'rgba(150,70,30,0.45)'; c.fillRect(x + 4, -h * 0.5, 10, 14);
+    c.fillStyle = 'rgba(255,240,210,0.14)'; c.fillRect(x + 19 + tilt * 0.5, -h + 6, 3, h - 10);      // reflet de la tôle
+    c.fillStyle = 'rgba(110,50,20,0.35)'; c.fillRect(x + 8, -h + 8, 2, h * 0.4);                   // coulure de rouille
   });
+  // Citerne d'eau sur pilotis (au fond, à gauche)
+  line(c, -122, 0, -118, -140, 3, '#3e3226'); line(c, -96, 0, -100, -140, 3, '#3e3226');
+  line(c, -120, -40, -98, -90, 1.5, '#3e3226'); line(c, -98, -40, -120, -90, 1.5, '#3e3226');
+  rect(c, -128, -176, 36, 38, '#5e6a70'); ell(c, -110, -176, 18, 5, '#6e7a80');
+  c.fillStyle = 'rgba(255,255,255,0.15)'; c.fillRect(-100, -172, 4, 30);
+  c.fillStyle = 'rgba(120,60,30,0.5)'; c.fillRect(-122, -150, 12, 8);
   const wt = b.wallTier || 0, tt = b.turretTier || 0;   // paliers d'atelier (0 à 3)
   // Murailles palier 1 : plaques d'acier rivetées sur la palissade
   if (wt >= 1) {
@@ -133,6 +177,21 @@ export function drawFort(c, time, b) {
   ell(c, -60, -224 + wv * 0.8, 5, 5, '#2a2018', false);              // emblème (engrenage)
   c.restore();
 
+  // Antenne radio sur la tour, voyant rouge qui clignote
+  line(c, -24, -198, -18, -250, 1.6, '#2a2420');
+  line(c, -22, -228, -14, -230, 1.2, '#2a2420'); line(c, -21, -216, -12, -218, 1.2, '#2a2420');
+  if (Math.sin(time * 4) > 0) { ell(c, -18, -251, 2, 2, '#ff4030', false); glow(c, -18, -251, 12, '255,60,40', 0.8); }
+  // Guirlande d'ampoules entre le mât du drapeau et la porte
+  c.strokeStyle = '#2a2420'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(-84, -170); c.quadraticCurveTo(-10, -120, 62, -96); c.stroke();
+  for (let i = 1; i < 9; i++) {
+    const t = i / 9, bx = (1 - t) * (1 - t) * -84 + 2 * (1 - t) * t * -10 + t * t * 62;
+    const by = (1 - t) * (1 - t) * -170 + 2 * (1 - t) * t * -120 + t * t * -96 + 3;
+    const on = 0.6 + 0.4 * Math.sin(time * 3 + i * 1.7);
+    ell(c, bx, by, 1.8, 2.2, '#ffd27a', false);
+    glow(c, bx, by, 9, '255,200,110', 0.45 * on);
+  }
+
   // Bus renversé qui sert de rempart
   poly(c, [-106, -22, -104, -84, 14, -88, 18, -22], '#6a7880');
   rect(c, -104, -88, 118, 8, '#7d8c94', false);
@@ -157,6 +216,10 @@ export function drawFort(c, time, b) {
   c.fillStyle = '#8a8a7a';
   for (const [rx, ry] of [[70, -72], [88, -72], [70, -40], [88, -40]]) c.fillRect(rx, ry, 2, 2);
   poly(c, [60, -84, 64, -98, 68, -84], '#6a6058'); poly(c, [92, -84, 96, -98, 100, -84], '#6a6058');
+  // Lanterne au-dessus de la porte
+  line(c, 80, -96, 80, -88, 1.2, '#2a2420');
+  rect(c, 76, -88, 8, 9, '#3a3028'); ell(c, 80, -83.5, 2.4, 3, '#ffd27a', false);
+  glow(c, 80, -84, 26, '255,190,100', 0.55 + Math.sin(time * 9) * 0.06);
 
   // Sacs de sable et pneus devant (une rangée de plus au palier 1 des murailles)
   for (let i = 0; i < 4; i++) ell(c, 20 + i * 12, -8, 9, 7, '#a8946a');
@@ -198,6 +261,7 @@ export function drawFort(c, time, b) {
     rect(c, -26, -16, 18, 14, '#5a6a3a'); rect(c, -24, -28, 14, 12, '#5a6a3a');
   }
 
+  damageMarks(c, b, false);
   // Dégâts
   if (ds >= 1) {
     c.strokeStyle = 'rgba(20,10,5,0.7)'; c.lineWidth = 1.5;
@@ -209,7 +273,10 @@ export function drawFort(c, time, b) {
     poly(c, [-70, 0, -60, -18, -40, -12, -20, -26, 10, -10, 20, 0], '#5a4636');   // gravats
     fire(c, -90, -40, 1, time, 5);
     fire(c, 20, -110, 0.7, time, 7);
-    c.fillStyle = 'rgba(15,8,4,0.35)'; c.fillRect(-110, -170, 220, 170);
+    // assombrit seulement ce qui est déjà dessiné (la base), pas le décor autour
+    c.save(); c.globalCompositeOperation = 'source-atop';
+    c.fillStyle = 'rgba(15,8,4,0.35)'; c.fillRect(-140, -270, 300, 270);
+    c.restore();
   }
 }
 
@@ -218,6 +285,17 @@ export function drawNest(c, time, b) {
   const ds = b.damageState;
   const pulse = 0.5 + Math.sin(time * 2.4) * 0.5;
   c.lineJoin = 'round';
+  // Battement de cœur : le nid se gonfle légèrement à chaque pulsation
+  const beat = 1 + Math.pow(Math.max(0, Math.sin(time * 3.2)), 6) * 0.03;
+  c.translate(0, -2); c.scale(beat, beat); c.translate(0, 2);
+
+  // Racines de chair qui s'étendent au sol
+  c.lineCap = 'round';
+  for (const [x1, x2, bend] of [[-90, -150, -14], [-60, -120, -8], [70, 150, -10], [90, 170, -16]]) {
+    c.strokeStyle = OUT; c.lineWidth = 8;
+    c.beginPath(); c.moveTo(x1, -4); c.quadraticCurveTo((x1 + x2) / 2, bend, x2, 2); c.stroke();
+    c.strokeStyle = '#6a2a40'; c.lineWidth = 5; c.stroke();
+  }
 
   // Pics d'os à l'arrière
   for (const [x, h, a] of [[-80, 70, -0.3], [-50, 100, -0.15], [10, 90, 0.1], [56, 66, 0.3]]) {
@@ -254,6 +332,19 @@ export function drawNest(c, time, b) {
   // côtes
   c.strokeStyle = '#d8cfae'; c.lineWidth = 4.5; c.lineCap = 'round';
   for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(-14 + i * 18, -2, 36 + i * 3, Math.PI * 1.15, Math.PI * 1.7); c.stroke(); }
+
+  // Reflets humides sur la chair
+  c.fillStyle = 'rgba(255,220,235,0.22)';
+  for (const [hx, hy, rx, ry, a] of [[-66, -108, 12, 5, -0.4], [32, -100, 10, 4, -0.3], [-30, -132, 14, 4, -0.1], [70, -80, 6, 3, 0.3]]) {
+    c.beginPath(); c.ellipse(hx, hy, rx, ry, a, 0, Math.PI * 2); c.fill();
+  }
+  // Cocons translucides au pied du nid
+  for (const [ox, oy, k] of [[-70, -12, 0], [-52, -8, 1], [-30, -10, 2], [40, -8, 3]]) {
+    const pl = 0.5 + Math.sin(time * 1.8 + k) * 0.5;
+    ell(c, ox, oy, 9, 12, `rgba(${200 + 30 * pl},${140 + 20 * pl},90,0.85)`);
+    ell(c, ox - 2, oy - 4, 3, 4, 'rgba(255,255,255,0.35)', false);
+    ell(c, ox + 1, oy + 1, 3.5, 5, 'rgba(90,30,40,0.45)', false);   // larve à l'intérieur
+  }
 
   // Pustules qui luisent
   for (const [px, py, pr, ph] of [[-64, -62, 9, 0], [-12, -96, 7, 1], [70, -46, 8, 2], [30, -124, 6, 3], [-86, -84, 5, 4]]) {
@@ -304,6 +395,13 @@ export function drawNest(c, time, b) {
   ell(c, tx, ty, 10 + spit, 8 + spit, '#7a2c54');
   ell(c, tx + 4, ty, 5 + spit * 0.6, 4 + spit * 0.6, '#9be22b', false);
 
+  // Mouches qui tournent autour
+  c.fillStyle = '#1a0a0a';
+  for (let i = 0; i < 6; i++) {
+    const a = time * (1.5 + i * 0.3) + i * 2;
+    c.fillRect(Math.cos(a) * (60 + i * 8) - 1, -90 + Math.sin(a * 1.3) * 30 - 1, 2, 2);
+  }
+  damageMarks(c, b, true);
   // Dégâts
   if (ds >= 1) {
     c.strokeStyle = '#2a0a12'; c.lineWidth = 3;
@@ -316,7 +414,8 @@ export function drawNest(c, time, b) {
     ell(c, -30, -70, 26, 18, '#2a0a12');
     fire(c, 30, -100, 1, time, 4);
     fire(c, -80, -20, 0.9, time, 6);
-    c.fillStyle = 'rgba(15,5,8,0.35)';
-    c.beginPath(); c.ellipse(0, -70, 110, 80, 0, 0, Math.PI * 2); c.fill();
+    c.save(); c.globalCompositeOperation = 'source-atop';
+    c.fillStyle = 'rgba(15,5,8,0.35)'; c.fillRect(-180, -200, 360, 210);
+    c.restore();
   }
 }

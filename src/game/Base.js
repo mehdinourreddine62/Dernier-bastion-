@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=24';
-import { Entity } from './Entity.js?v=24';
+import { CONFIG } from '../config.js?v=25';
+import { Entity } from './Entity.js?v=25';
 
 // Une base (fort des Survivants ou nid des Mutants), avec sa tourelle automatique :
 // mitrailleuse pour le fort, tentacule cracheur pour le nid.
@@ -61,11 +61,12 @@ export class Base extends Entity {
     this.shake = Math.max(0, this.shake - dt);
     this.turretFlash = Math.max(0, this.turretFlash - dt);
 
-    // Fumée continue quand la base est abîmée
-    if (this.damageState > 0 && this.alive) {
+    // Fumée continue dès que la base est touchée, de plus en plus dense avec les dégâts
+    const ratio = this.hp / this.maxHp;
+    if (ratio < 0.85 && this.alive) {
       this.smokeTimer -= dt;
       if (this.smokeTimer <= 0) {
-        this.smokeTimer = this.damageState === 2 ? 0.1 : 0.25;
+        this.smokeTimer = 0.08 + ratio * 0.6;
         const x = this.x + (Math.random() - 0.5) * this.width * 0.6;
         game.fx.smoke(x, this.y - this.height * (0.5 + Math.random() * 0.4));
         if (Math.random() < 0.5) game.fx.ember(x, this.y - this.height * 0.5);
