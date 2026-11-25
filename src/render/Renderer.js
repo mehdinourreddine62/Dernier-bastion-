@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=25';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=25';
-import { Backdrop } from './background.js?v=25';
-import { drawFort, drawNest } from './bases.js?v=25';
+import { CONFIG } from '../config.js?v=26';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=26';
+import { Backdrop } from './background.js?v=26';
+import { drawFort, drawNest } from './bases.js?v=26';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -589,13 +589,14 @@ export class Renderer {
       c.setTransform(r, 0, 0, r, OX * r, OY * r);
       if (b.side === 'player') drawFort(c, time, b); else drawNest(c, time, b);
       if (!this.lowFx) this._light(cv, c, r);
+      // éclair quand la base est touchée : seulement sur la base, pas sur le décor autour
+      if (b.hitFlash > 0) {
+        c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+        c.globalCompositeOperation = 'source-atop';
+        c.fillStyle = 'rgba(255,235,210,0.28)'; c.fillRect(0, 0, cv.width, cv.height);
+        c.restore();
+      }
       ctx.drawImage(cv, -OX, -OY, BW, BH);
-    }
-
-    if (b.hitFlash > 0) {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = 'rgba(255,230,200,0.18)';
-      ctx.fillRect(-110, -200, 220, 205);
     }
     ctx.restore();
   }
