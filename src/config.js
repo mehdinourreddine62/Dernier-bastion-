@@ -325,7 +325,7 @@ export const CONFIG = {
     maxLevel: 10,
     costs: [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],   // étoiles par niveau (30 pour un héros au maximum)
     perLevel: { hp: 0.12, damage: 0.10, ability: 0.10, cooldown: 0.04 },   // gains par niveau
-    // Au niveau maximum : un talent propre à chaque commandant + l'ordre Tenir / Charger
+    // Au niveau maximum : un talent propre à chaque commandant
     order: ['kane', 'rosa', 'vasquez'],
     list: {
       kane: {

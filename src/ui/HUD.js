@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=31';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=31';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=31';
+import { CONFIG } from '../config.js?v=32';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=32';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=32';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -94,7 +94,7 @@ export class HUD {
         tooltip: true,
       });
       // Tenir / Charger, au-dessus du portrait, quand le commandant est sur le terrain
-      if (alive && h.talent && !game.result) {
+      if (alive && !game.result) {
         const sh = Math.max(40, minL);
         btns.push({ id: 'heroStance', kind: 'stance', key: 'T', x, y: barY - sh - 6, w: bw, h: sh, enabled: true, hold: h.hold, tooltip: true });
       }

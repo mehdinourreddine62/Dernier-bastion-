@@ -1,8 +1,8 @@
-import { CONFIG } from '../config.js?v=31';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=31';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=31';
+import { CONFIG } from '../config.js?v=32';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=32';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=32';
 import { isUpgradeAvailable, upgradeCost, upgradeEffect, upgradeUnlockLevel,
-  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=31';
+  heroStarsAvailable, heroUnlocked, heroCost } from '../progress.js?v=32';
 
 // Atelier, deux onglets :
 //  - ATELIER : on dépense les pièces détachées (11 améliorations de 10 niveaux, grille 4 × 3) ;
@@ -217,7 +217,7 @@ export function drawHeroes(ctx, progress, buttons, pressed) {
     if (y + 40 < by) {
       text(ctx, (got ? 'Talent : ' : 'Talent (niveau ' + H_.maxLevel + ') : ') + cfg.talent.name, c.x + 16, y, 16, got ? COL.good : COL.dim); y += 20;
       // le texte rétrécit si la carte est courte (téléphone) pour ne pas toucher les boutons
-      const str = cfg.talent.text + ' · Débloque l’ordre Tenir / Charger.';
+      const str = cfg.talent.text;
       let size = 14, lh = 18;
       while (size > 11 && y + countLines(ctx, str, c.w - 32, size) * lh > by - 4) { size--; lh -= 1.5; }
       wrap(ctx, str, c.x + 16, y, c.w - 32, size, got ? COL.text : COL.dim, lh);

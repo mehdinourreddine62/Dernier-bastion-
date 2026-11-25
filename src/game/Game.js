@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=31';
-import { Unit, bonusMultiplier } from './Unit.js?v=31';
-import { Base } from './Base.js?v=31';
-import { ProjectilePool } from './Projectile.js?v=31';
-import { Particles, GIB_COLOR } from './Particles.js?v=31';
-import { Spells } from './Spell.js?v=31';
-import { AI } from './AI.js?v=31';
-import { levelFor } from '../progress.js?v=31';
-import { Survival, survivalLevel } from './Survival.js?v=31';
+import { CONFIG } from '../config.js?v=32';
+import { Unit, bonusMultiplier } from './Unit.js?v=32';
+import { Base } from './Base.js?v=32';
+import { ProjectilePool } from './Projectile.js?v=32';
+import { Particles, GIB_COLOR } from './Particles.js?v=32';
+import { Spells } from './Spell.js?v=32';
+import { AI } from './AI.js?v=32';
+import { levelFor } from '../progress.js?v=32';
+import { Survival, survivalLevel } from './Survival.js?v=32';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -63,7 +63,7 @@ export class Game {
         id: opts.hero.id, level: lvl, cfg, unitId: 'hero_' + opts.hero.id,
         unit: null, timer: H.deployDelay, abilityCd: 0,
         hold: false,                       // Tenir (true) : il reste sur place ; Charger (false) : il avance
-        talent: lvl >= H.maxLevel,         // niveau maximum : talent + ordre Tenir / Charger
+        talent: lvl >= H.maxLevel,         // niveau maximum : talent du commandant
         secondWind: false,                 // talent de Kane déjà utilisé pendant ce déploiement
         abilityMult: 1 + H.perLevel.ability * lvl,
         cooldown: cfg.ability.cooldown * Math.max(0.3, 1 - H.perLevel.cooldown * lvl),
@@ -360,7 +360,7 @@ export class Game {
   // Tenir / Charger : seul le commandant reçoit cet ordre (les troupes avancent toujours)
   toggleHeroHold() {
     const h = this.hero;
-    if (!h || !h.talent || !h.unit || !h.unit.alive || this.result) return false;
+    if (!h || !h.unit || !h.unit.alive || this.result) return false;
     h.hold = !h.hold;
     this.emit('queue', 0);
     return true;
