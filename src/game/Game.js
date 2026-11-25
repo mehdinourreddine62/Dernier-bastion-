@@ -1,12 +1,12 @@
-import { CONFIG } from '../config.js?v=29';
-import { Unit, bonusMultiplier } from './Unit.js?v=29';
-import { Base } from './Base.js?v=29';
-import { ProjectilePool } from './Projectile.js?v=29';
-import { Particles, GIB_COLOR } from './Particles.js?v=29';
-import { Spells } from './Spell.js?v=29';
-import { AI } from './AI.js?v=29';
-import { levelFor } from '../progress.js?v=29';
-import { Survival, survivalLevel } from './Survival.js?v=29';
+import { CONFIG } from '../config.js?v=30';
+import { Unit, bonusMultiplier } from './Unit.js?v=30';
+import { Base } from './Base.js?v=30';
+import { ProjectilePool } from './Projectile.js?v=30';
+import { Particles, GIB_COLOR } from './Particles.js?v=30';
+import { Spells } from './Spell.js?v=30';
+import { AI } from './AI.js?v=30';
+import { levelFor } from '../progress.js?v=30';
+import { Survival, survivalLevel } from './Survival.js?v=30';
 
 const SIDES = ['player', 'enemy'];
 const byX = (a, b) => a.x - b.x;
@@ -62,6 +62,7 @@ export class Game {
       this.hero = {
         id: opts.hero.id, level: lvl, cfg, unitId: 'hero_' + opts.hero.id,
         unit: null, timer: H.deployDelay, abilityCd: 0,
+        hold: false,                       // Tenir (true) : il reste sur place ; Charger (false) : il avance
         abilityMult: 1 + H.perLevel.ability * lvl,
         cooldown: cfg.ability.cooldown * Math.max(0.3, 1 - H.perLevel.cooldown * lvl),
       };
@@ -342,6 +343,15 @@ export class Game {
     h.unit = this.spawnUnit('player', h.unitId);
     this.fx.healRing(h.unit.x, CONFIG.world.groundY, 80);
     this.emit('heroSpawn', h.unit.x);
+    return true;
+  }
+
+  // Tenir / Charger : seul le commandant reçoit cet ordre (les troupes avancent toujours)
+  toggleHeroHold() {
+    const h = this.hero;
+    if (!h || !h.unit || !h.unit.alive || this.result) return false;
+    h.hold = !h.hold;
+    this.emit('queue', 0);
     return true;
   }
 

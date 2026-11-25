@@ -1,21 +1,21 @@
-import { CONFIG } from './config.js?v=29';
-import { Game } from './game/Game.js?v=29';
-import { Camera } from './game/Camera.js?v=29';
-import { Renderer } from './render/Renderer.js?v=29';
-import { HUD } from './ui/HUD.js?v=29';
-import { Input } from './ui/input.js?v=29';
-import * as screens from './ui/screens.js?v=29';
-import * as campaign from './ui/campaign.js?v=29';
-import * as workshop from './ui/workshop.js?v=29';
-import { Tutorial } from './ui/tutorial.js?v=29';
-import * as bestiary from './ui/bestiary.js?v=29';
-import { checkAchievements, normalizeAchievements } from './achievements.js?v=29';
+import { CONFIG } from './config.js?v=30';
+import { Game } from './game/Game.js?v=30';
+import { Camera } from './game/Camera.js?v=30';
+import { Renderer } from './render/Renderer.js?v=30';
+import { HUD } from './ui/HUD.js?v=30';
+import { Input } from './ui/input.js?v=30';
+import * as screens from './ui/screens.js?v=30';
+import * as campaign from './ui/campaign.js?v=30';
+import * as workshop from './ui/workshop.js?v=30';
+import { Tutorial } from './ui/tutorial.js?v=30';
+import * as bestiary from './ui/bestiary.js?v=30';
+import { checkAchievements, normalizeAchievements } from './achievements.js?v=30';
 import { normalizeProgress, recordResult, playerMods, buyUpgrade, resetUpgrades, totalStars, maxStars,
   heroForGame, buyHeroLevel, resetHeroes, recordSurvival, isSurvivalUnlocked, chapterOf,
-  recordBestiary, exportCode, parseCode } from './progress.js?v=29';
-import { Sfx } from './audio/sfx.js?v=29';
-import { Music } from './audio/music.js?v=29';
-import { loadSave, writeSave } from './save.js?v=29';
+  recordBestiary, exportCode, parseCode } from './progress.js?v=30';
+import { Sfx } from './audio/sfx.js?v=30';
+import { Music } from './audio/music.js?v=30';
+import { loadSave, writeSave } from './save.js?v=30';
 
 // Numéro de version affiché sur l'écran titre : lu dans l'adresse de ce fichier (main.js?v=N),
 // donc il suit automatiquement le numéro de version des fichiers. Bêta : 0.N
@@ -295,6 +295,7 @@ input.onButton = (b) => {
   }
   if (b.kind === 'spell') { startAim(b.spell); return; }
   if (b.kind === 'hero') { game.heroAction(); return; }
+  if (b.kind === 'stance') { game.toggleHeroHold(); return; }
   // Héros : amélioration (étoiles) et choix
   if (b.id.startsWith('heroUp:')) { if (buyHeroLevel(progress, b.hero)) { saveAll(); sfx.play('upgrade'); } return; }
   if (b.id.startsWith('heroPick:')) { progress.heroes.selected = b.hero; saveAll(); return; }
@@ -447,6 +448,7 @@ input.onKey = (e) => {
   }
   const k = e.key.toLowerCase();
   if (k === 'e') { game.heroAction(); return; }
+  if (k === 't') { game.toggleHeroHold(); return; }
   for (const id of game.spells.available) {
     if (CONFIG.spells[id].key.toLowerCase() === k) startAim(id);
   }

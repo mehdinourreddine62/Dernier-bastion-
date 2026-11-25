@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=29';
-import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=29';
-import { drawIcon } from '../render/sprites.js?v=29';
+import { CONFIG } from '../config.js?v=30';
+import { COL, FONT, drawPanel, drawButton, roundRectPath, text } from './widgets.js?v=30';
+import { drawIcon } from '../render/sprites.js?v=30';
 
 // Bestiaire : tous les mutants, dévoilés une fois rencontrés en partie.
 // À gauche la grille des mutants, à droite la fiche de celui qui est sélectionné.

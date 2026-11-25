@@ -1,7 +1,7 @@
-import { CONFIG } from '../config.js?v=29';
-import { drawSprite, DEATH_STYLE } from './sprites.js?v=29';
-import { Backdrop } from './background.js?v=29';
-import { drawFort, drawNest } from './bases.js?v=29';
+import { CONFIG } from '../config.js?v=30';
+import { drawSprite, DEATH_STYLE } from './sprites.js?v=30';
+import { Backdrop } from './background.js?v=30';
+import { drawFort, drawNest } from './bases.js?v=30';
 
 // Position de la bouche du canon (x, y, rayon de lumière, couleur) pour la lueur des tirs
 const MUZZLE = {
@@ -321,6 +321,14 @@ export class Renderer {
       ctx.restore();
     }
     // Commandant : zone d'aura au sol et étoile au-dessus de la tête
+    if (def.hero && !u.dying && u.holding) {
+      // fanion planté : le commandant tient sa position
+      const fx = u.x - u.dir * 26, gy = u.y + 2, wv = Math.sin(time * 5) * 2;
+      ctx.strokeStyle = '#2a2018'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fx, gy); ctx.lineTo(fx, gy - 40); ctx.stroke();
+      ctx.fillStyle = '#f2c230'; ctx.strokeStyle = '#1b120b'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(fx, gy - 40); ctx.lineTo(fx + u.dir * 16, gy - 35 + wv); ctx.lineTo(fx, gy - 29); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
     if (def.hero && !u.dying) {
       const aura = CONFIG.heroes.list[def.hero].aura;
       ctx.save();

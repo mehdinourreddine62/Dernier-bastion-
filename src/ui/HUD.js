@@ -1,6 +1,6 @@
-import { CONFIG } from '../config.js?v=29';
-import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=29';
-import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=29';
+import { CONFIG } from '../config.js?v=30';
+import { drawIcon, drawSpellIcon } from '../render/sprites.js?v=30';
+import { COL, FONT, drawPanel, drawButton, drawStar, roundRectPath, text, drawPlate, chamferPath } from './widgets.js?v=30';
 
 const W = CONFIG.display.width;
 const H = CONFIG.display.height;
@@ -93,6 +93,11 @@ export class HUD {
         cdRatio: alive ? h.abilityCd / h.cooldown : 0,
         tooltip: true,
       });
+      // Tenir / Charger, au-dessus du portrait, quand le commandant est sur le terrain
+      if (alive && !game.result) {
+        const sh = Math.max(40, minL);
+        btns.push({ id: 'heroStance', kind: 'stance', key: 'T', x, y: barY - sh - 6, w: bw, h: sh, enabled: true, hold: h.hold, tooltip: true });
+      }
       x += bw + 6;
     }
     x += 8;
@@ -138,6 +143,11 @@ export class HUD {
       else if (b.kind === 'spell') this._spellButton(ctx, b, p);
       else if (b.kind === 'income') this._incomeButton(ctx, b, p);
       else if (b.kind === 'hero') this._heroButton(ctx, b, p, game);
+      else if (b.kind === 'stance') {
+        // le bouton affiche l'ordre à donner ; jaune quand le commandant tient (pour penser à le relancer)
+        drawButton(ctx, b, b.hold ? 'CHARGER' : 'TENIR', p, { primary: b.hold, size: 15 });
+        text(ctx, b.key, b.x + 7, b.y + 14, 11, b.hold ? '#4a3416' : COL.dim);
+      }
       else if (b.kind === 'minimap') continue;
       else if (b.kind === 'top') {
         drawButton(ctx, b, b.icon ? '' : b.label, p, { size: Math.min(26, b.h * 0.45) });
@@ -296,6 +306,11 @@ export class HUD {
       else lines.push(`Soigne ${Math.round(c.healRatio * 100)} % des PV de tes unités dans un rayon de ${c.radius}`);
       lines.push(`Recharge ${Math.round(game.spells.cooldownOf(b.spell))} s   Touche ${c.key}`);
       lines.push('Touche le bouton, puis vise sur le champ de bataille');
+    } else if (b.kind === 'stance') {
+      title = b.hold ? 'Le commandant tient sa position' : 'Le commandant charge';
+      lines.push(b.hold ? 'Il reste sur place et tire sur tout ce qui passe à portée.' : 'Il avance avec les troupes.');
+      lines.push('Touche le bouton (ou T) pour ' + (b.hold ? 'le faire charger.' : 'qu’il tienne sa position.'));
+      lines.push('Les troupes, elles, avancent toujours.');
     } else if (b.kind === 'hero') {
       const c = b.hero.cfg;
       title = c.name + ' — niv. ' + b.hero.level;

@@ -1,5 +1,5 @@
-import { CONFIG } from '../config.js?v=29';
-import { Entity } from './Entity.js?v=29';
+import { CONFIG } from '../config.js?v=30';
+import { Entity } from './Entity.js?v=30';
 
 // Multiplicateur de dégâts de l'attaquant contre les types de la cible.
 // On prend le meilleur bonus parmi les types de la cible.
@@ -108,6 +108,7 @@ export class Unit extends Entity {
       game.fx.hit(this.x + this.dir * 40, this.y - 30, 'ichor');
     }
 
+    this.holding = !!(this.def.hero && game.hero && game.hero.hold);
     let target = this.findTarget(game, this.def.range);
     // Bloquée derrière un allié qui combat : elle frappe quand même
     // si l'ennemi est à portée de « soutien » (2e rang de la mêlée)
@@ -119,6 +120,8 @@ export class Unit extends Entity {
       if (this.cd <= 0) this.attack(target, game);
     } else if (blocked) {
       this.state = 'wait';
+    } else if (this.def.hero && game.hero && game.hero.hold) {
+      this.state = 'wait';               // le commandant tient sa position (il tire toujours à portée)
     } else {
       this.state = 'walk';
       this.x += this.dir * this.def.speed * this.speedFactor(game) * dt;
